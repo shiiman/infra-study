@@ -1,6 +1,3 @@
-variable "subnet_availability_zones" { type = list(string) }
-variable "subnet_public_cidr_blocks" { type = list(string) }
-
 /**
  * subnet作成
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet
