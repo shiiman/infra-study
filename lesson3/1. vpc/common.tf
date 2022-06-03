@@ -14,4 +14,4 @@ provider "aws" {
   region  = "ap-northeast-1"
 }
 
-variable "user_name" { type = string }
+variable "user_name" {}
