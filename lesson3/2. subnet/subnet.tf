@@ -6,10 +6,10 @@ variable "subnet_public_cidr_blocks" { type = list(string) }
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet
  */
 resource "aws_subnet" "subnet_public" {
-  count                   = length(var.subnet_public_cidr_blocks)
-  vpc_id                  = resource.aws_vpc.vpc.id
-  availability_zone       = var.availability_zones[count.index % length(var.availability_zones)]
-  cidr_block              = var.subnet_public_cidr_blocks[count.index]
+  count             = length(var.subnet_public_cidr_blocks)
+  vpc_id            = resource.aws_vpc.vpc.id
+  availability_zone = var.availability_zones[count.index % length(var.availability_zones)]
+  cidr_block        = var.subnet_public_cidr_blocks[count.index]
 
   tags = {
     Name = format("${var.user_name}-public-%01d-subnet", count.index + 1)
