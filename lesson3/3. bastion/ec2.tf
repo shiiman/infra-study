@@ -7,7 +7,7 @@ resource "aws_instance" "bastion" {
   ami           = "ami-02c3627b04781eada"
   instance_type = "t2.micro"
   key_name      = "instance_access_key"
-  #vpc_security_group_ids      = var.vpc_security_group_ids
+  vpc_security_group_ids      = [resource.aws_security_group.sg_bastion.id]
   subnet_id                   = resource.aws_subnet.subnet_public.*.id[count.index % length(resource.aws_subnet.subnet_public.*.id)]
   associate_public_ip_address = true
 
