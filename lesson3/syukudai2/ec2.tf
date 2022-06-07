@@ -20,7 +20,7 @@ resource "aws_instance" "bastion" {
   }
 }
 
-resource "aws_eip" "eip" {
+resource "aws_eip" "eip_bastion" {
   count    = 1
   instance = resource.aws_instance.bastion.id
   vpc      = true
