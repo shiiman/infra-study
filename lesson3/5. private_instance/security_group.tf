@@ -56,3 +56,13 @@ resource "aws_security_group_rule" "security_group_rule_company" {
   cidr_blocks       = var.company_ip
   security_group_id = resource.aws_security_group.sg_bastion.id
 }
+
+# bastionからprivateインスタンスへのssh
+resource "aws_security_group_rule" "security_group_rule_private_instance" {
+  type                     = "ingress"
+  from_port                = 22
+  to_port                  = 22
+  protocol                 = "tcp"
+  security_group_id        = resource.aws_security_group.sg_private_instance.id
+  source_security_group_id = resource.aws_security_group.sg_bastion.id
+}
