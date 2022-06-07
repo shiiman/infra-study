@@ -22,7 +22,7 @@ resource "aws_instance" "bastion" {
 
 resource "aws_eip" "eip_bastion" {
   count    = 1
-  instance = resource.aws_instance.bastion.id
+  instance = resource.aws_instance.bastion.*.id[count.index]
   vpc      = true
 
   tags = {
