@@ -3,7 +3,7 @@
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eip
  */
 resource "aws_eip" "eip" {
-  vpc = resource.aws_vpc.vpc.id
+  vpc = true
 
   tags = {
     Name = "${var.user_name}-ng-eip"
