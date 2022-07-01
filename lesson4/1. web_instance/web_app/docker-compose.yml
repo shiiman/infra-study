@@ -1,9 +1,0 @@
-version: "3"
-services:
-  app:
-    image: FROM golang:1.18.3-alpine3.16
-    volumes:
-      - ./:/go/src/app
-    tty: true
-    ports:
-      - 80:8080
