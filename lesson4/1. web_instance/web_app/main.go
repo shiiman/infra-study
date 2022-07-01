@@ -13,5 +13,5 @@ func main() {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	hostname, _ := os.Hostname()
-	fmt.Fprintf(w, "Hello, Infra Study\nhostname: "+hostname)
+	fmt.Fprintf(w, "Hello, Infra Study\nhostname: "+hostname+"\n")
 }
