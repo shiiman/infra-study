@@ -26,7 +26,8 @@ resource "aws_lb_target_group" "lb_target_group" {
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_target_group_attachment
  */
 resource "aws_lb_target_group_attachment" "lb_target_group_attachment" {
+  count            = length(resource.aws_instance.web_instance.*.id)
   target_group_arn = resource.aws_lb_target_group.lb_target_group.arn
-  target_id        = resource.aws_instance.web_instance.id
+  target_id        = resource.aws_instance.web_instance.*.id[count.index]
   port             = 80
 }
