@@ -26,7 +26,7 @@ resource "aws_route_table_association" "route_table_association_public" {
 }
 
 resource "aws_route_table" "route_table_private" {
-  count = length(resource.aws_subnet.subnet_public.*.id)
+  count = length(resource.aws_subnet.subnet_private.*.id)
   vpc_id = resource.aws_vpc.vpc.id
 
   route {
@@ -42,5 +42,5 @@ resource "aws_route_table" "route_table_private" {
 resource "aws_route_table_association" "route_table_association_private" {
   count          = length(resource.aws_subnet.subnet_private.*.id) + length(resource.aws_subnet.subnet_web.*.id) + length(resource.aws_subnet.subnet_db.*.id) + length(resource.aws_subnet.subnet_cache.*.id)
   subnet_id      = concat(resource.aws_subnet.subnet_private.*.id, resource.aws_subnet.subnet_web.*.id, resource.aws_subnet.subnet_db.*.id, resource.aws_subnet.subnet_cache.*.id)[count.index]
-  route_table_id = resource.aws_route_table.route_table_private.*.id[count.index % length(resource.aws_subnet.subnet_public.*.id)]
+  route_table_id = resource.aws_route_table.route_table_private.*.id[count.index % length(resource.aws_subnet.subnet_private.*.id)]
 }
