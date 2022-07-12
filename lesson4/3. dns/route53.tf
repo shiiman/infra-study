@@ -10,7 +10,7 @@ data "aws_route53_zone" "public" {
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record
  */
 resource "aws_route53_record" "route53_record" {
-  name    = "user_name.${data.aws_route53_zone.public.name}"
+  name    = "${var.user_name}.${data.aws_route53_zone.public.name}"
   zone_id = data.aws_route53_zone.public.zone_id
   type    = "A"
 
