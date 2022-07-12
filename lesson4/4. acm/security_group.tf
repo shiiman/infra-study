@@ -36,7 +36,7 @@ resource "aws_security_group_rule" "security_group_rule_egress_web_instance" {
 
 variable "company_ip" { type = list(string) }
 
-# 会社からlbへのhttp
+# 会社からlbへのhttps
 resource "aws_security_group_rule" "security_group_rule_lb_from_company_https" {
   type              = "ingress"
   from_port         = 443
