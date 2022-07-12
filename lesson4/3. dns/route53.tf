@@ -1,4 +1,4 @@
-route53_host_name = {}
+variable "route53_host_name" {}
 
 data "aws_route53_zone" "public" {
   name         = var.route53_host_name
