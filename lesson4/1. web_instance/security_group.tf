@@ -10,8 +10,3 @@ resource "aws_security_group" "sg_web_instance" {
     Name = "${var.user_name}-web-instance-sg"
   }
 }
-
-/**
- * Security Group Rule作成
- * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule
- */
