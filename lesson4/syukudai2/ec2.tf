@@ -23,7 +23,7 @@ resource "aws_instance" "web_instance" {
 }
 
 resource "aws_instance" "web_instance2" {
-  ami                         = "作成したカスタムAMI"
+  ami                         = [作成したカスタムAMI]
   instance_type               = "t2.micro"
   vpc_security_group_ids      = [resource.aws_security_group.sg_web_instance.id]
   subnet_id                   = split(",", module.before.private_subnet_ids)[1]
