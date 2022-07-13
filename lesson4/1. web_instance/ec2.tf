@@ -9,7 +9,7 @@ resource "aws_instance" "web_instance" {
   ami                         = "ami-02c3627b04781eada"
   instance_type               = "t2.micro"
   vpc_security_group_ids      = [resource.aws_security_group.sg_web_instance.id]
-  subnet_id                   = split(",", module.before.public_subnet_ids)[count.index % length(split(",", module.before.public_subnet_ids))]
+  subnet_id                   = split(",", module.before.private_subnet_ids)[count.index % length(split(",", module.before.private_subnet_ids))]
   associate_public_ip_address = false
   iam_instance_profile        = var.iam_instance_profile
 
