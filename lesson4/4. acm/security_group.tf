@@ -13,7 +13,7 @@ resource "aws_security_group" "sg_web_instance" {
 
 resource "aws_security_group" "sg_lb" {
   name   = "${var.user_name}-lb-sg"
-  vpc_id = resource.aws_vpc.vpc.id
+  vpc_id = module.before.vpc_id
 
   tags = {
     Name = "${var.user_name}-lb-sg"
