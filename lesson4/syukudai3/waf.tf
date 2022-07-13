@@ -48,3 +48,12 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl_lb" {
     }
   }
 }
+
+/**
+ * waf web acl association 作成
+ * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl_association
+ */
+resource "aws_wafv2_web_acl_association" "wafv2_web_acl_association_lb" {
+  resource_arn = resource.aws_lb.application_lb.arn
+  web_acl_arn  = resource.aws_wafv2_web_acl.wafv2_web_acl_lb.arn
+}
