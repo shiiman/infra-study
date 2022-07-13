@@ -33,9 +33,8 @@ resource "aws_lb_target_group_attachment" "lb_target_group_attachment" {
 }
 
 resource "aws_lb_target_group_attachment" "lb_target_group_attachment2" {
-  count            = length(resource.aws_instance.web_instance2.*.id)
   target_group_arn = resource.aws_lb_target_group.lb_target_group.arn
-  target_id        = resource.aws_instance.web_instance2.*.id[count.index]
+  target_id        = resource.aws_instance.web_instance2.id
   port             = 80
 }
 

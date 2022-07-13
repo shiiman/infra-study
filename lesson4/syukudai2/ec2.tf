@@ -23,19 +23,18 @@ resource "aws_instance" "web_instance" {
 }
 
 resource "aws_instance" "web_instance2" {
-  count                       = 1
   ami                         = "作成したカスタムAMI"
   instance_type               = "t2.micro"
   vpc_security_group_ids      = [resource.aws_security_group.sg_web_instance.id]
-  subnet_id                   = split(",", module.before.private_subnet_ids)[count.index +1 % length(split(",", module.before.private_subnet_ids))]
+  subnet_id                   = split(",", module.before.private_subnet_ids)[count.index+1]
   associate_public_ip_address = false
   iam_instance_profile        = var.iam_instance_profile
 
   tags = {
-    Name = format("${var.user_name}-web-instance2_%04d", count.index + 1)
+    Name = "${var.user_name}-web-instance2-0001"
   }
 
   volume_tags = {
-    Name = "${format("${var.user_name}-web-instance2_%04d", count.index + 1)}-ebs"
+    Name = "${var.user_name}-web-instance2-0001-ebs"
   }
 }
