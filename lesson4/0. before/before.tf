@@ -97,3 +97,15 @@ resource "aws_route_table_association" "route_table_association_private" {
   subnet_id      = concat(resource.aws_subnet.subnet_private.*.id)[count.index]
   route_table_id = resource.aws_route_table.route_table_private.*.id[count.index % length(resource.aws_subnet.subnet_private.*.id)]
 }
+
+output "vpc_id" {
+  value = aws_vpc.vpc.id
+}
+
+output "public_subnet_ids" {
+  value = join(",", aws_subnet.subnet_public.*.id)
+}
+
+output "private_subnet_ids" {
+  value = join(",", aws_subnet.subnet_private.*.id)
+}
