@@ -2,8 +2,6 @@ variable "availability_zones" { type = list(string) }
 variable "subnet_public_cidr_blocks" { type = list(string) }
 variable "subnet_private_cidr_blocks" { type = list(string) }
 
-variable "user_name" {}
-
 module "before" {
   source = "github.com/shiiman/infra-study//lesson4/0. before"
 
