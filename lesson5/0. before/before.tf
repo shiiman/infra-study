@@ -112,7 +112,7 @@ output "private_subnet_ids" {
 
 resource "aws_security_group" "sg_web_instance" {
   name   = "${var.user_name}-web-instance-sg"
-  vpc_id = module.before.vpc_id
+  vpc_id = resource.aws_vpc.vpc.id
 
   tags = {
     Name = "${var.user_name}-web-instance-sg"
@@ -135,7 +135,7 @@ resource "aws_instance" "web_instance" {
   ami                         = "ami-02c3627b04781eada"
   instance_type               = "t2.micro"
   vpc_security_group_ids      = [resource.aws_security_group.sg_web_instance.id]
-  subnet_id                   = split(",", module.before.private_subnet_ids)[count.index % length(split(",", module.before.private_subnet_ids))]
+  subnet_id                   = resource.aws_subnet.subnet_private.*.id[count.index % length(resource.aws_subnet.subnet_private.*.id)]
   associate_public_ip_address = false
   iam_instance_profile        = var.iam_instance_profile
 
@@ -150,7 +150,7 @@ resource "aws_instance" "web_instance" {
 
 resource "aws_security_group" "sg_lb" {
   name   = "${var.user_name}-lb-sg"
-  vpc_id = module.before.vpc_id
+  vpc_id = resource.aws_vpc.vpc.id
 
   tags = {
     Name = "${var.user_name}-lb-sg"
@@ -193,14 +193,14 @@ resource "aws_lb" "application_lb" {
   internal                   = false
   load_balancer_type         = "application"
   security_groups            = [resource.aws_security_group.sg_lb.id]
-  subnets                    = split(",", module.before.public_subnet_ids)
+  subnets                    = resource.aws_subnet.subnet_public.*.id
 }
 
 resource "aws_lb_target_group" "lb_target_group" {
   name                 = "${var.user_name}-lb-tg"
   port                 = 80
   protocol             = "HTTP"
-  vpc_id               = module.before.vpc_id
+  vpc_id               = resource.aws_vpc.vpc.id
 }
 
 resource "aws_lb_target_group_attachment" "lb_target_group_attachment" {
