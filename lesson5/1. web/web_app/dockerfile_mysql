@@ -1,24 +1,14 @@
-# Stage 1のコンテナ
-FROM golang:1.18.0-alpine3.15 as builder
+FROM mysql:8.0
 
-ENV GOPATH=
+ENV MYSQL_ROOT_PASSWORD root
+ENV MYSQL_DATABASE test_db
+ENV TZ "Asia/Tokyo"
 
-RUN mkdir /app
-WORKDIR /app
+ADD ./mysql/init.sql /docker-entrypoint-initdb.d/init.sql
+ADD ./mysql/my.cnf /etc/mysql/conf.d/my.cnf
 
-COPY ./ ./
+RUN chmod 644 /etc/mysql/conf.d/my.cnf
 
-RUN go build -o /main ./main.go
+EXPOSE 3306
 
-# Stage 2のコンテナ
-FROM alpine:3.15
-
-RUN apk --no-cache add tzdata && \
-    cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
-
-ENV TZ='Asia/Tokyo'
-ENV LANG='ja_JP.UTF-8'
-EXPOSE 8080
-
-COPY --from=builder /main .
-ENTRYPOINT ["./main"]
+CMD ["mysqld"]
