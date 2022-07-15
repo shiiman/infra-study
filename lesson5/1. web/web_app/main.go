@@ -40,7 +40,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	cacheconf := CACHE_HOST + ":" + CACHE_PORT
 	cache, err := redis.Dial("tcp", cacheconf)
 	if err != nil {
-		panic(err)
+		cacheStat = "失敗"
 	}
 	defer cache.Close()
 
