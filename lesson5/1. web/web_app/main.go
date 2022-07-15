@@ -33,16 +33,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	db, err := sql.Open("mysql", dbconf)
 	if err != nil {
 		dbStat = "失敗"
+	} else {
+		defer db.Close()
 	}
-	defer db.Close()
 
 	cacheStat := "成功"
 	cacheconf := CACHE_HOST + ":" + CACHE_PORT
 	cache, err := redis.Dial("tcp", cacheconf)
 	if err != nil {
 		cacheStat = "失敗"
+	} else {
+		defer cache.Close()
 	}
-	defer cache.Close()
 
-	fmt.Fprintf(w, "Hello, Infra Study\nhostname: "+hostname+"\nDB接続"+dbStat+"\nCache接続"+cacheStat+"\n")
+	fmt.Fprintf(w, "Hello, Infra Study\nhostname: "+hostname+"\nDB接続: "+dbStat+"\nCache接続: "+cacheStat+"\n")
 }
