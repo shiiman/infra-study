@@ -31,11 +31,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	dbStat := "成功"
 	dbconf := DB_USER + ":" + DB_PASS + "@tcp(" + DB_HOST + ":" + DB_PORT + ")/" + DB_NAME + "?charset=utf8mb4"
-	db, err := sql.Open("mysql", dbconf)
+	db, _ := sql.Open("mysql", dbconf)
+	defer db.Close()
+
+	err := db.Ping()
 	if err != nil {
 		dbStat = "失敗"
-	} else {
-		defer db.Close()
 	}
 
 	cacheStat := "成功"
