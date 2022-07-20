@@ -32,14 +32,14 @@ resource "aws_elasticache_parameter_group" "parameter_group" {
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticache_replication_group
  */
 resource "aws_elasticache_replication_group" "aws_elasticache_replication_group" {
-  replication_group_id       = "${var.user_name}-cache0001"
-  description                = "Managed by Terraform"
-  node_type                  = "cache.t2.micro"
-  engine                     = "redis"
-  engine_version             = "5.0.6"
-  port                       = "6379"
-  subnet_group_name          = resource.aws_elasticache_subnet_group.elasticache_subnet_group.name
-  parameter_group_name       = resource.aws_elasticache_parameter_group.parameter_group.id
-  availability_zones         = var.availability_zones
-  security_group_ids         = [resource.aws_security_group.sg_cache.id]
+  replication_group_id          = "${var.user_name}-cache0001"
+  replication_group_description = "Managed by Terraform"
+  node_type                     = "cache.t2.micro"
+  engine                        = "redis"
+  engine_version                = "5.0.6"
+  port                          = "6379"
+  subnet_group_name             = resource.aws_elasticache_subnet_group.elasticache_subnet_group.name
+  parameter_group_name          = resource.aws_elasticache_parameter_group.parameter_group.id
+  availability_zones            = var.availability_zones
+  security_group_ids            = [resource.aws_security_group.sg_cache.id]
 }
