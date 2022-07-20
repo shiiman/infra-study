@@ -40,6 +40,7 @@ resource "aws_elasticache_replication_group" "aws_elasticache_replication_group"
   port                          = "6379"
   number_cache_clusters         = "2"
   automatic_failover_enabled    = true
+  multi_az_enabled              = true
   subnet_group_name             = resource.aws_elasticache_subnet_group.elasticache_subnet_group.name
   parameter_group_name          = resource.aws_elasticache_parameter_group.parameter_group.id
   security_group_ids            = [resource.aws_security_group.sg_cache.id]
