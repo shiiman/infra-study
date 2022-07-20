@@ -61,7 +61,7 @@ resource "aws_rds_cluster" "rds_cluster" {
   master_password                 = [ROOT_PASSWORD]
   availability_zones              = var.availability_zones
   vpc_security_group_ids          = [resource.aws_security_group.sg_db.id]
-  skip_final_snapshot             = false
+  skip_final_snapshot             = true
 
   lifecycle {
     ignore_changes = [availability_zones]
