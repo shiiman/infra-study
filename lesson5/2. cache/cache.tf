@@ -40,6 +40,5 @@ resource "aws_elasticache_replication_group" "aws_elasticache_replication_group"
   port                          = "6379"
   subnet_group_name             = resource.aws_elasticache_subnet_group.elasticache_subnet_group.name
   parameter_group_name          = resource.aws_elasticache_parameter_group.parameter_group.id
-  availability_zones            = var.availability_zones
   security_group_ids            = [resource.aws_security_group.sg_cache.id]
 }
