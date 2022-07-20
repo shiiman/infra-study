@@ -70,8 +70,6 @@ resource "aws_rds_cluster" "rds_cluster" {
 resource "aws_rds_cluster_instance" "rds_cluster_instance" {
   count                        = 2
   identifier                   = format("${var.user_name}-db01%02d", count.index + 1)
-  engine                       = "aurora-mysql"
-  engine_version               = "5.7.mysql_aurora.2.08.2"
   cluster_identifier           = resource.aws_rds_cluster.rds_cluster.id
   instance_class               = "db.t2.micro"
   db_parameter_group_name      = resource.aws_db_parameter_group.parameter_group.name
