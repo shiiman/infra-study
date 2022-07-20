@@ -119,6 +119,10 @@ resource "aws_security_group" "sg_web_instance" {
   }
 }
 
+output "sg_web_instance_id" {
+  value = aws_security_group.sg_web_instance.id
+}
+
 resource "aws_security_group_rule" "security_group_rule_egress_web_instance" {
   type              = "egress"
   from_port         = 0
@@ -188,6 +192,7 @@ resource "aws_security_group_rule" "security_group_rule_web_instance_from_lb_htt
   security_group_id        = resource.aws_security_group.sg_web_instance.id
   source_security_group_id = resource.aws_security_group.sg_lb.id
 }
+
 resource "aws_lb" "application_lb" {
   name                       = "${var.user_name}-lb"
   internal                   = false
