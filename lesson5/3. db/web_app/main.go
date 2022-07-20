@@ -12,7 +12,7 @@ import (
 
 const (
 	DB_USER = "root"
-	DB_PASS = "root"
+	DB_PASS = "[ROOT_PASS]"
 	DB_HOST = "[DB_HOST]"
 	DB_PORT = "3306"
 	DB_NAME = "test_db"
