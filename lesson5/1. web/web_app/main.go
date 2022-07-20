@@ -13,11 +13,11 @@ import (
 const (
 	DB_USER = "root"
 	DB_PASS = "root"
-	DB_HOST = "127.0.0.1"
+	DB_HOST = "db"
 	DB_PORT = "3306"
 	DB_NAME = "test_db"
 
-	CACHE_HOST = "127.0.0.1"
+	CACHE_HOST = "cache"
 	CACHE_PORT = "6379"
 )
 
