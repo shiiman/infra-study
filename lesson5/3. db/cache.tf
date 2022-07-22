@@ -31,7 +31,7 @@ resource "aws_elasticache_parameter_group" "parameter_group" {
  * elasticache replication group作成
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticache_replication_group
  */
-resource "aws_elasticache_replication_group" "aws_elasticache_replication_group" {
+resource "aws_elasticache_replication_group" "elasticache_replication_group" {
   replication_group_id          = "${var.user_name}-cache0001"
   replication_group_description = "Managed by Terraform"
   node_type                     = "cache.t2.micro"
