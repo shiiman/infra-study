@@ -1,0 +1,14 @@
+FROM mysql:5.7
+
+ENV MYSQL_ROOT_PASSWORD root
+ENV MYSQL_DATABASE test_db
+ENV TZ "Asia/Tokyo"
+
+ADD ./mysql/init.sql /docker-entrypoint-initdb.d/init.sql
+ADD ./mysql/my.cnf /etc/mysql/conf.d/my.cnf
+
+RUN chmod 644 /etc/mysql/conf.d/my.cnf
+
+EXPOSE 3306
+
+CMD ["mysqld"]
