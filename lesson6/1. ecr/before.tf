@@ -3,9 +3,9 @@ variable "subnet_public_cidr_blocks" { type = list(string) }
 variable "subnet_private_cidr_blocks" { type = list(string) }
 variable "company_ip" { type = list(string) }
 variable "route53_host_name" {}
-variable "redis_cluster_parameter" { type = list(string) }
-variable "db_parameter" { type = list(string) }
-variable "rds_cluster_parameter" { type = list(string) }
+variable "redis_cluster_parameter" { type = map(string) }
+variable "db_parameter" { type = map(string) }
+variable "rds_cluster_parameter" { type = map(string) }
 
 module "before" {
   source = "github.com/shiiman/infra-study//lesson6/0. before"
