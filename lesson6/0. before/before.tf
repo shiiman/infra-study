@@ -371,7 +371,7 @@ resource "aws_rds_cluster_parameter_group" "cluster_parameter_group" {
   }
 }
 
-variable "rds_master_password" { type = string }
+variable "rds_master_password" {}
 
 resource "aws_rds_cluster" "rds_cluster" {
   cluster_identifier              = "${var.user_name}-db0001"

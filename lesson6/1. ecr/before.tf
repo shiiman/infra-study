@@ -6,6 +6,7 @@ variable "route53_host_name" {}
 variable "redis_cluster_parameter" { type = map(string) }
 variable "db_parameter" { type = map(string) }
 variable "rds_cluster_parameter" { type = map(string) }
+variable "rds_master_password" {}
 
 module "before" {
   source = "github.com/shiiman/infra-study//lesson6/0. before"
@@ -19,4 +20,5 @@ module "before" {
   redis_cluster_parameter    = var.redis_cluster_parameter
   db_parameter               = var.db_parameter
   rds_cluster_parameter      = var.rds_cluster_parameter
+  rds_master_password        = var.rds_master_password
 }
