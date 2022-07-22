@@ -39,3 +39,6 @@ rds_cluster_parameter = {
   collation_server           = "utf8mb4_unicode_ci"
   time_zone                  = "Asia/Tokyo"
 }
+
+// TODO: RDS rootパスワード設定.
+rds_master_password = [ROOT_PASSWORD]

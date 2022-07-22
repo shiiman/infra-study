@@ -371,6 +371,8 @@ resource "aws_rds_cluster_parameter_group" "cluster_parameter_group" {
   }
 }
 
+variable "rds_master_password" { type = string }
+
 resource "aws_rds_cluster" "rds_cluster" {
   cluster_identifier              = "${var.user_name}-db0001"
   db_subnet_group_name            = resource.aws_db_subnet_group.db_subnet_group.name
@@ -378,7 +380,7 @@ resource "aws_rds_cluster" "rds_cluster" {
   engine                          = "aurora-mysql"
   engine_version                  = "5.7.mysql_aurora.2.08.2"
   master_username                 = "root"
-  master_password                 = [ROOT_PASSWORD]
+  master_password                 = var.rds_master_password
   availability_zones              = var.availability_zones
   vpc_security_group_ids          = [resource.aws_security_group.sg_db.id]
   skip_final_snapshot             = true
