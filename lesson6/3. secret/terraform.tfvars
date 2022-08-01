@@ -59,7 +59,7 @@ ecs_task_iam_role_settings = {
   ]
 }
 POLICY
-  assume_policy      = <<POLICY
+  assume_policy = <<POLICY
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -93,7 +93,7 @@ ecs_task_execution_iam_role_settings = {
 }
 POLICY
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  assume_policy      = <<POLICY
+  assume_policy = <<POLICY
 {
     "Version": "2012-10-17",
     "Statement": [
