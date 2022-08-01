@@ -36,7 +36,27 @@ resource "aws_ecs_task_definition" "ecs_task_definition" {
         "hostPort": 80,
         "protocol": "tcp"
       }
+    ],
+    "environment": [
+      { "name" : "DB_USER", "value" : "root" },
+      { "name" : "DB_PORT", "value" : "3306" },
+      { "name" : "DB_NAME", "value" : "db_test" },
+      { "name" : "CACHE_PORT", "value" : "6379" }
     ]
+    "secrets": [
+      {
+        "name": "DB_PASS",
+        "valueFrom": "${resource.aws_secretsmanager_secret.secretsmanager_secret.arn}:DB_PASS::"
+      },
+      {
+        "name": "DB_HOST",
+        "valueFrom": "${resource.aws_secretsmanager_secret.secretsmanager_secret.arn}:DB_HOST::"
+      },
+      {
+        "name": "CACHE_HOST",
+        "valueFrom": "${resource.aws_secretsmanager_secret.secretsmanager_secret.arn}:CACHE_HOST::"
+      }
+    ],
   }
 ]
 TASK_DEFINITION

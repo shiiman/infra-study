@@ -40,9 +40,19 @@ resource "aws_iam_role" "ecs_task_execution_iam_role" {
   assume_role_policy = var.ecs_task_execution_iam_role_settings["assume_role_policy"]
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_iam_role_policy_attachment" {
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_iam_role_policy_attachment1" {
   role       = resource.aws_iam_role.ecs_task_execution_iam_role.id
   policy_arn = var.ecs_task_execution_iam_role_settings["policy_arn"]
+}
+
+resource "aws_iam_policy" "ecs_task_execution_iam_policy" {
+  name   = "${var.user_name}-ecs-task-execution-iam-role-policy"
+  policy = var.ecs_task_execution_iam_role_settings["assume_policy"]
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_iam_role_policy_attachment2" {
+  role       = resource.aws_iam_role.ecs_task_execution_iam_role.id
+  policy_arn = resource.aws_iam_policy.ecs_task_execution_iam_policy.arn
 }
 
 // ECSタスク実行ロール ===============================================================
