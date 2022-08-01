@@ -27,20 +27,24 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	CACHE_HOST := os.Getenv("CACHE_HOST")
 	CACHE_PORT := os.Getenv("CACHE_PORT")
 
-	dbStat := "成功"
-	dbconf := DB_USER + ":" + DB_PASS + "@tcp(" + DB_HOST + ":" + DB_PORT + ")/" + DB_NAME + "?charset=utf8mb4"
-	db, _ := sql.Open("mysql", dbconf)
-	defer db.Close()
+	dbconf1 := DB_USER + ":" + DB_PASS + "@tcp(" + DB_HOST + ":" + DB_PORT + ")/"
+	db1, _ := sql.Open("mysql", dbconf)
+	defer db1.Close()
+	_, err = db1.Exec("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
+	if err != nil {
+		fmt.Println("DB作成失敗: " + err.Error())
+	}
 
-	err := db.Ping()
+	dbStat := "成功"
+	dbconf2 := DB_USER + ":" + DB_PASS + "@tcp(" + DB_HOST + ":" + DB_PORT + ")/" + DB_NAME + "?charset=utf8mb4"
+	db2, _ := sql.Open("mysql", dbconf)
+	defer db2.Close()
+
+	err := db2.Ping()
 	if err != nil {
 		dbStat = "失敗"
 		fmt.Println("DB接続失敗")
 
-		_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
-		if err != nil {
-			fmt.Println("DB作成失敗")
-		}
 	} else {
 		fmt.Println("DB接続成功")
 	}
