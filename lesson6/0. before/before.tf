@@ -189,6 +189,7 @@ resource "aws_lb_target_group" "lb_target_group" {
   name                 = "${var.user_name}-lb-tg"
   port                 = 8080
   protocol             = "HTTP"
+  target_type          = "ip"
   vpc_id               = resource.aws_vpc.vpc.id
 }
 
