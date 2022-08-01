@@ -37,7 +37,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		dbStat = "失敗"
 		fmt.Println("DB接続失敗")
 
-		db.Exec("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
+		_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
+		if err != nil {
+			fmt.Println("DB作成失敗")
+		}
 	} else {
 		fmt.Println("DB接続成功")
 	}
