@@ -20,5 +20,5 @@ locals {
  */
 resource "aws_secretsmanager_secret_version" "secretsmanager_secret_version" {
   secret_id     = resource.aws_secretsmanager_secret.secretsmanager_secret.id
-  secret_string = jsonencode(locals.secret_string)
+  secret_string = jsonencode(local.secret_string)
 }
