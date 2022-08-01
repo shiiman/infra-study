@@ -42,7 +42,7 @@ resource "aws_ecs_task_definition" "ecs_task_definition" {
       { "name" : "DB_PORT", "value" : "3306" },
       { "name" : "DB_NAME", "value" : "db_test" },
       { "name" : "CACHE_PORT", "value" : "6379" }
-    ]
+    ],
     "secrets": [
       {
         "name": "DB_PASS",
