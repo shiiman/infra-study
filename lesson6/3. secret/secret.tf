@@ -8,13 +8,9 @@ resource "aws_secretsmanager_secret" "secretsmanager_secret" {
 
 locals {
   secret_string = {
-    DB_USER    = "root"
     DB_PASS    = var.rds_master_password
     DB_HOST    = module.before.rds_cluster_endpoint
-    DB_PORT    = 3306
-    DB_NAME    = "DB_TEST"
     CACHE_HOST = module.before.elasticache_replication_group_primary_endpoint_address
-    CACHE_PORT = 6379
   }
 }
 
