@@ -28,7 +28,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	CACHE_PORT := os.Getenv("CACHE_PORT")
 
 	dbconf1 := DB_USER + ":" + DB_PASS + "@tcp(" + DB_HOST + ":" + DB_PORT + ")/"
-	db1, _ := sql.Open("mysql", dbconf)
+	db1, _ := sql.Open("mysql", dbconf1)
 	defer db1.Close()
 	_, err = db1.Exec("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
 	if err != nil {
@@ -37,7 +37,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	dbStat := "成功"
 	dbconf2 := DB_USER + ":" + DB_PASS + "@tcp(" + DB_HOST + ":" + DB_PORT + ")/" + DB_NAME + "?charset=utf8mb4"
-	db2, _ := sql.Open("mysql", dbconf)
+	db2, _ := sql.Open("mysql", dbconf2)
 	defer db2.Close()
 
 	err := db2.Ping()
