@@ -30,7 +30,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	dbconf1 := DB_USER + ":" + DB_PASS + "@tcp(" + DB_HOST + ":" + DB_PORT + ")/"
 	db1, _ := sql.Open("mysql", dbconf1)
 	defer db1.Close()
-	_, err = db1.Exec("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
+	_, err := db1.Exec("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
 	if err != nil {
 		fmt.Println("DB作成失敗: " + err.Error())
 	}
@@ -40,7 +40,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	db2, _ := sql.Open("mysql", dbconf2)
 	defer db2.Close()
 
-	err := db2.Ping()
+	err = db2.Ping()
 	if err != nil {
 		dbStat = "失敗"
 		fmt.Println("DB接続失敗")
