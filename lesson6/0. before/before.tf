@@ -160,8 +160,8 @@ resource "aws_security_group_rule" "security_group_rule_lb_from_company_https" {
 # lbからappへのhttp
 resource "aws_security_group_rule" "security_group_rule_lb_to_app_http" {
   type                     = "egress"
-  from_port                = 80
-  to_port                  = 80
+  from_port                = 8080
+  to_port                  = 8080
   protocol                 = "tcp"
   security_group_id        = resource.aws_security_group.sg_lb.id
   source_security_group_id = resource.aws_security_group.sg_app.id
@@ -170,8 +170,8 @@ resource "aws_security_group_rule" "security_group_rule_lb_to_app_http" {
 # lbからappへのhttp
 resource "aws_security_group_rule" "security_group_rule_app_from_lb_http" {
   type                     = "ingress"
-  from_port                = 80
-  to_port                  = 80
+  from_port                = 8080
+  to_port                  = 8080
   protocol                 = "tcp"
   security_group_id        = resource.aws_security_group.sg_app.id
   source_security_group_id = resource.aws_security_group.sg_lb.id
@@ -187,7 +187,7 @@ resource "aws_lb" "application_lb" {
 
 resource "aws_lb_target_group" "lb_target_group" {
   name                 = "${var.user_name}-lb-tg"
-  port                 = 80
+  port                 = 8080
   protocol             = "HTTP"
   vpc_id               = resource.aws_vpc.vpc.id
 }
