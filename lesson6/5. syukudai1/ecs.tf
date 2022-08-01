@@ -34,7 +34,8 @@ resource "aws_ecs_task_definition" "ecs_task_definition" {
       "logDriver": "awslogs",
       "options": {
         "awslogs-group": "${resource.aws_cloudwatch_log_group.cloud_watch_log_group}",
-        "awslogs-region": "ap-northeast-1"
+        "awslogs-region": "ap-northeast-1",
+        "awslogs-stream-prefix": ""
       }
     },
     "portMappings": [
