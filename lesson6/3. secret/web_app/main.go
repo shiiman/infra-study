@@ -35,6 +35,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	err := db.Ping()
 	if err != nil {
 		dbStat = "失敗"
+		fmt.Println("DB接続失敗")
+	} else {
+		fmt.Println("DB接続成功")
 	}
 
 	cacheStat := "成功"
@@ -42,8 +45,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	cache, err := redis.Dial("tcp", cacheconf)
 	if err != nil {
 		cacheStat = "失敗"
+		fmt.Println("Cache接続失敗")
 	} else {
 		defer cache.Close()
+		fmt.Println("Cache接続成功")
 	}
 
 	fmt.Fprintf(w, "Hello, Infra Study\nhostname: "+hostname+"\nDB接続: "+dbStat+"\nCache接続: "+cacheStat+"\n")
