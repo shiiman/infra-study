@@ -71,6 +71,7 @@ resource "aws_ecs_service" "ecs_service" {
   cluster                = resource.aws_ecs_cluster.ecs_cluster.arn
   task_definition        = resource.aws_ecs_task_definition.ecs_task_definition.arn
   desired_count          = 1
+  launch_type            = "FARGATE"
   platform_version       = "1.4.0"
   enable_execute_command = true
 
