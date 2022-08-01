@@ -22,9 +22,8 @@ resource "aws_ecs_task_definition" "ecs_task_definition" {
   cpu                      = 256
   memory                   = 512
 
-  // TODO:
-  //task_role_arn            = var.ecs_task_definition_variables["task_role_arn"]
-  //execution_role_arn       = var.ecs_task_definition_variables["execution_role_arn"]
+  task_role_arn            = resource.aws_iam_role.ecs_task_iam_role.arn
+  execution_role_arn       = resource.aws_iam_role.ecs_task_execution_iam_role.arn
 
   container_definitions    = <<TASK_DEFINITION
 [
