@@ -3,7 +3,7 @@
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret
  */
 resource "aws_secretsmanager_secret" "secretsmanager_secret" {
-  name        = "db-secret"
+  name        = "${var.user_name}-db-secret"
 }
 
 locals {
