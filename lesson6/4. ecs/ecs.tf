@@ -56,7 +56,7 @@ resource "aws_ecs_task_definition" "ecs_task_definition" {
         "name": "CACHE_HOST",
         "valueFrom": "${resource.aws_secretsmanager_secret.secretsmanager_secret.arn}:CACHE_HOST::"
       }
-    ],
+    ]
   }
 ]
 TASK_DEFINITION
