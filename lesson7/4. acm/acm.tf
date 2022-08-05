@@ -36,6 +36,8 @@ resource "aws_route53_record" "cert_validation_record" {
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/acm_certificate_validation
  */
 resource "aws_acm_certificate_validation" "cert_validation" {
+  provider = aws.us_east
+
   certificate_arn         = aws_acm_certificate.acm_certificate.arn
   validation_record_fqdns = [for record in aws_route53_record.cert_validation_record : record.fqdn]
 }
