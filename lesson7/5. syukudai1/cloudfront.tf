@@ -18,8 +18,8 @@ data "aws_cloudfront_cache_policy" "managed_caching_optimized" {
  * オリジンリクエストポリシー取得
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/cloudfront_origin_request_policy
  */
-data "aws_cloudfront_origin_request_policy" "managed_useragentrefererheaders" {
-  name = "Managed-UserAgentRefererHeaders"
+data "aws_cloudfront_origin_request_policy" "managed_elemental_mediatailor_personalizedmanifests" {
+  name = "Managed-Elemental-MediaTailor-PersonalizedManifests"
 }
 
 /**
@@ -54,7 +54,7 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
     viewer_protocol_policy = "https-only"
 
     cache_policy_id            = data.aws_cloudfront_cache_policy.managed_caching_optimized.id
-    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.managed_useragentrefererheaders.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.managed_elemental_mediatailor_personalizedmanifests.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.managed_simplecors.id
   }
 
