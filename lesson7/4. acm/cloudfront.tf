@@ -23,6 +23,14 @@ data "aws_cloudfront_origin_request_policy" "managed_cors_s3origin" {
 }
 
 /**
+ * レスポンスヘッダーポリシー取得
+ * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/cloudfront_response_headers_policy
+ */
+data "aws_cloudfront_response_headers_policy" "managed_simplecors" {
+  name = "Managed-SimpleCORS"
+}
+
+/**
  * Cloudfront Distribution作成
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_distribution
  */
