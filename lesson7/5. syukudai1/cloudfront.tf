@@ -17,8 +17,12 @@ resource "aws_cloudfront_cache_policy" "cache_policy" {
   min_ttl     = 1
 
   parameters_in_cache_key_and_forwarded_to_origin {
-    cookies_config {}
-    headers_config {}
+    cookies_config {
+      cookie_behavior = "none"
+    }
+    headers_config {
+      header_behavior = "none"
+    }
     query_strings_config {
       query_string_behavior = "whitelist"
       query_strings {
