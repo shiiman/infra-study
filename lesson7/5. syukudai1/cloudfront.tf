@@ -19,7 +19,7 @@ data "aws_cloudfront_cache_policy" "managed_caching_optimized" {
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/cloudfront_origin_request_policy
  */
 data "aws_cloudfront_origin_request_policy" "managed_cors_s3origin" {
-  name = "Managed-CORS-S3Origin"
+  name = "Managed-AllViewer"
 }
 
 /**
