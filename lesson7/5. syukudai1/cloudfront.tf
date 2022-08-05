@@ -29,15 +29,32 @@ resource "aws_cloudfront_cache_policy" "cache_policy" {
         items = ["versionId"]
       }
     }
+    enable_accept_encoding_gzip   = true
+    enable_accept_encoding_brotli = true
   }
 }
 
 /**
- * オリジンリクエストポリシー取得
- * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/cloudfront_origin_request_policy
+ * オリジンリクエストポリシー作成
+ * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_origin_request_policy
  */
-data "aws_cloudfront_origin_request_policy" "managed_elemental_mediatailor_personalizedmanifests" {
-  name = "Managed-Elemental-MediaTailor-PersonalizedManifests"
+resource "aws_cloudfront_origin_request_policy" "origin_request_policy" {
+  name = "${var.user_name}-origin-request-policy"
+  cookies_config {
+    cookie_behavior = "none"
+  }
+  headers_config {
+    header_behavior = "whitelist"
+    headers {
+      items = ["origin", "access-control-request-headers", "access-control-request-method"]
+    }
+  }
+  query_strings_config {
+    query_string_behavior = "whitelist"
+    query_strings {
+      items = ["versionId"]
+    }
+  }
 }
 
 /**
@@ -72,7 +89,7 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
     viewer_protocol_policy = "https-only"
 
     cache_policy_id            = resource.aws_cloudfront_cache_policy.cache_policy.id
-    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.managed_elemental_mediatailor_personalizedmanifests.id
+    origin_request_policy_id   = resource.aws_cloudfront_origin_request_policy.origin_request_policy.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.managed_simplecors.id
   }
 
