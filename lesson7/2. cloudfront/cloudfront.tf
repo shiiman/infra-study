@@ -23,6 +23,14 @@ data "aws_cloudfront_origin_request_policy" "managed_cors_s3origin" {
 }
 
 /**
+ * レスポンスヘッダーポリシー取得
+ * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/cloudfront_response_headers_policy
+ */
+data "aws_cloudfront_response_headers_policy" "managed_simplecors" {
+  name = "Managed-SimpleCORS"
+}
+
+/**
  * Cloudfront Distribution作成
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_distribution
  */
@@ -44,8 +52,9 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
     target_origin_id       = "${resource.aws_s3_bucket.bucket.id}"
     viewer_protocol_policy = "https-only"
 
-    cache_policy_id          = data.aws_cloudfront_cache_policy.managed_caching_optimized.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.managed_cors_s3origin.id
+    cache_policy_id            = data.aws_cloudfront_cache_policy.managed_caching_optimized.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.managed_cors_s3origin.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.managed_simplecors.id
 
     forwarded_values {
       query_string = false
