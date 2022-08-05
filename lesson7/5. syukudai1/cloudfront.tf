@@ -7,11 +7,25 @@ resource "aws_cloudfront_origin_access_identity" "cloudfront_origin_access_ident
 }
 
 /**
- * キャッシュポリシー取得
- * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/cloudfront_cache_policy
+ * キャッシュポリシー作成
+ * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_cache_policy
  */
-data "aws_cloudfront_cache_policy" "managed_amplify" {
-  name = "Managed-Amplify"
+resource "aws_cloudfront_cache_policy" "cache_policy" {
+  name = "${var.user_name}-cache-policy"
+  default_ttl = 86400
+  max_ttl     = 31536000
+  min_ttl     = 1
+
+  parameters_in_cache_key_and_forwarded_to_origin {
+    cookies_config {}
+    headers_config {}
+    query_strings_config {
+      query_string_behavior = "whitelist"
+      query_strings {
+        items = ["versionId"]
+      }
+    }
+  }
 }
 
 /**
@@ -53,7 +67,7 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
     target_origin_id       = "${resource.aws_s3_bucket.bucket.id}"
     viewer_protocol_policy = "https-only"
 
-    cache_policy_id            = data.aws_cloudfront_cache_policy.managed_amplify.id
+    cache_policy_id            = resource.aws_cloudfront_cache_policy.cache_policy.id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.managed_elemental_mediatailor_personalizedmanifests.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.managed_simplecors.id
   }
