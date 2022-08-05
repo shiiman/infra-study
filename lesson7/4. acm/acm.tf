@@ -1,8 +1,15 @@
+provider "aws" {
+  alias  = "us_east"
+  region = "us-east-1"
+}
+
 /**
  * acm 作成
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/acm_certificate
  */
 resource "aws_acm_certificate" "acm_certificate" {
+  provider = aws.us_east
+
   domain_name       ="${var.user_name}.${data.aws_route53_zone.public.name}"
   validation_method = "DNS"
 }
