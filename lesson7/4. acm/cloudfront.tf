@@ -46,7 +46,7 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
     viewer_protocol_policy = "https-only"
 
     cache_policy_id          = data.aws_cloudfront_cache_policy.managed_caching_optimized.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.managed_cors_s3origin
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.managed_cors_s3origin.id
 
     forwarded_values {
       query_string = false
