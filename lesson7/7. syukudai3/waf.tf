@@ -1,3 +1,5 @@
+variable "company_ip" { type = list(string) }
+
 /**
  * waf ip set 作成
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_ip_set
