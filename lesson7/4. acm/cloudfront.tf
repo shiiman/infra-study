@@ -12,6 +12,7 @@ resource "aws_cloudfront_origin_access_identity" "cloudfront_origin_access_ident
  */
 resource "aws_cloudfront_distribution" "cloudfront_distribution" {
   enabled = true
+  aliases = ["${var.user_name}.${data.aws_route53_zone.public.name}"]
 
   origin {
     domain_name = resource.aws_s3_bucket.bucket.bucket_domain_name
@@ -45,6 +46,7 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn = resource.aws_acm_certificate.acm_certificate.arn
+    ssl_support_method  = "sni-only"
   }
 }
