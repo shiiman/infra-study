@@ -10,8 +10,8 @@ resource "aws_cloudfront_origin_access_identity" "cloudfront_origin_access_ident
  * キャッシュポリシー取得
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/cloudfront_cache_policy
  */
-data "aws_cloudfront_cache_policy" "managed_caching_optimized" {
-  name = "Managed-CachingOptimized"
+data "aws_cloudfront_cache_policy" "managed_amplify" {
+  name = "Managed-Amplify"
 }
 
 /**
@@ -53,7 +53,7 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
     target_origin_id       = "${resource.aws_s3_bucket.bucket.id}"
     viewer_protocol_policy = "https-only"
 
-    cache_policy_id            = data.aws_cloudfront_cache_policy.managed_caching_optimized.id
+    cache_policy_id            = data.aws_cloudfront_cache_policy.managed_amplify.id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.managed_elemental_mediatailor_personalizedmanifests.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.managed_simplecors.id
   }
