@@ -24,7 +24,7 @@ resource "aws_lb_target_group" "lb_target_group_green" {
   port                 = 8080
   protocol             = "HTTP"
   target_type          = "ip"
-  vpc_id               = resource.aws_vpc.vpc.id
+  vpc_id               = module.before.vpc_id
 }
 
 resource "aws_lb_listener" "lb_listener_test" {
