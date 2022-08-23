@@ -1,0 +1,38 @@
+version: 0.2
+env:
+  variables:
+    DOCKER_BUILDKIT: "1"
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+    commands:
+      - ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
+  pre_build:
+    commands:
+      - echo "pre_build ===================================================="
+
+      # ecrログイン
+      - aws --version
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+      - echo "finish pre_build ============================================="
+  build:
+    commands:
+      - echo "execute docker build task =============="
+
+      # docker build
+      - docker build -t "${REPOSITORY_NAME}:dev" .
+      - docker push "${REPOSITORY_NAME}:dev"
+
+      - echo "finish docker build task =============="
+
+      - echo "finish build ============================================="
+  post_build:
+    commands:
+      - echo "post_build ===================================================="
+      - echo "finish post_build ============================================="
+artifacts:
+  files:
+    - codedeploy/*
