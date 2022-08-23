@@ -81,7 +81,7 @@ codebuild_role_settings = {
   ]
 }
 POLICY
-  assume_policy      = <<POLICY
+  assume_policy = <<POLICY
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -95,7 +95,7 @@ POLICY
                 "ecr:UploadLayerPart",
                 "ecr:CompleteLayerUpload",
                 "ecr:PutImage",
-                "s3:PutObject",
+                "s3:PutObject"
             ],
             "Resource": "*"
         }
