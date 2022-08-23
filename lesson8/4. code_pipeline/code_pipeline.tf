@@ -19,7 +19,7 @@ resource "aws_s3_bucket" "codepipeline_artifacts_bucket" {
 }
 
 resource "aws_s3_bucket_acl" "s3_bucket_acl" {
-  bucket = resource.aws_s3_bucket.bucket.id
+  bucket = resource.aws_s3_bucket.codepipeline_artifacts_bucket.id
   acl    = "private"
 }
 
