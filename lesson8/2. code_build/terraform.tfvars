@@ -89,6 +89,8 @@ POLICY
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
                 "ecr:InitiateLayerUpload",
