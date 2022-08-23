@@ -9,7 +9,7 @@ resource "aws_iam_role" "codepipeline_iam_role" {
 
 resource "aws_iam_role_policy_attachment" "codepipeline_iam_role_policy_attachment" {
   role       = resource.aws_iam_role.codepipeline_iam_role.id
-  policy_arn = var.codedeploy_role_settings["policy_arn"]
+  policy_arn = var.codepipeline_role_settings["policy_arn"]
 }
 
 # =============================================================
