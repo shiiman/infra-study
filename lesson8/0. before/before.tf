@@ -185,6 +185,10 @@ resource "aws_lb" "application_lb" {
   subnets                    = resource.aws_subnet.subnet_public.*.id
 }
 
+output "lb_arn" {
+  value = aws_lb.application_lb.arn
+}
+
 resource "aws_lb_target_group" "lb_target_group_blue" {
   name                 = "${var.user_name}-lb-tg-blue"
   port                 = 8080
@@ -195,6 +199,10 @@ resource "aws_lb_target_group" "lb_target_group_blue" {
 
 output "lb_target_group_blue_arn" {
   value = aws_lb_target_group.lb_target_group_blue.arn
+}
+
+output "lb_target_group_blue_name" {
+  value = aws_lb_target_group.lb_target_group_blue.name
 }
 
 resource "aws_lb_listener" "lb_listener" {
@@ -208,6 +216,10 @@ resource "aws_lb_listener" "lb_listener" {
     type             = "forward"
     target_group_arn = resource.aws_lb_target_group.lb_target_group_blue.arn
   }
+}
+
+output "lb_listener_arn" {
+  value = aws_lb_listener.lb_listener.arn
 }
 
 variable "route53_host_name" {}
@@ -254,6 +266,10 @@ resource "aws_route53_record" "cert_validation_record" {
 resource "aws_acm_certificate_validation" "cert_validation" {
   certificate_arn         = aws_acm_certificate.acm_certificate.arn
   validation_record_fqdns = [for record in aws_route53_record.cert_validation_record : record.fqdn]
+}
+
+output "acm_certificate_validation_arn" {
+  value = aws_acm_certificate_validation.cert_validation.arn
 }
 
 // ECSタスクロール ===============================================================
@@ -311,6 +327,10 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_iam_role_policy_at
  */
 resource "aws_ecs_cluster" "ecs_cluster" {
   name = "${var.user_name}-ecs-cluster"
+}
+
+output "ecs_cluster_name" {
+  value = aws_ecs_cluster.ecs_cluster.name
 }
 
 data "aws_ecr_repository" "ecr_repository" {
@@ -380,4 +400,8 @@ resource "aws_ecs_service" "ecs_service" {
     subnets          = resource.aws_subnet.subnet_private.*.id
     security_groups  = [resource.aws_security_group.sg_app.id]
   }
+}
+
+output "ecs_service_name" {
+  value = aws_ecs_service.ecs_service.name
 }
