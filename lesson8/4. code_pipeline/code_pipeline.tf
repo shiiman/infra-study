@@ -7,17 +7,12 @@ resource "aws_iam_role" "codepipeline_iam_role" {
   assume_role_policy = var.codepipeline_role_settings["assume_role_policy"]
 }
 
-resource "aws_iam_role_policy_attachment" "codepipeline_iam_role_policy_attachment1" {
-  role       = resource.aws_iam_role.codepipeline_iam_role.id
-  policy_arn = var.codepipeline_role_settings["policy_arn"]
-}
-
 resource "aws_iam_policy" "codepipeline_iam_policy" {
   name   = "${var.user_name}-codepipeline-iam-role-policy"
   policy = var.codepipeline_role_settings["assume_policy"]
 }
 
-resource "aws_iam_role_policy_attachment" "codepipeline_iam_role_policy_attachment2" {
+resource "aws_iam_role_policy_attachment" "codepipeline_iam_role_policy_attachment" {
   role       = resource.aws_iam_role.codepipeline_iam_role.id
   policy_arn = resource.aws_iam_policy.codepipeline_iam_policy.arn
 }

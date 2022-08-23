@@ -141,7 +141,6 @@ codepipeline_role_settings = {
   ]
 }
 POLICY
-  policy_arn = "arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess"
   assume_policy = <<POLICY
 {
     "Statement": [
@@ -153,6 +152,13 @@ POLICY
                 "codecommit:UploadArchive",
                 "codecommit:GetUploadArchiveStatus",
                 "codecommit:CancelUploadArchive"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "s3:*"
             ],
             "Resource": "*",
             "Effect": "Allow"
