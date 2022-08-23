@@ -265,7 +265,7 @@ variable "ecs_task_iam_role_settings" { type = map(string) }
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy
  */
 resource "aws_iam_role" "ecs_task_iam_role" {
-  name               = "${var.user_name}-ecs-task-iam-role"
+  name               = "Cloud9-${var.user_name}-ecs-task-iam-role"
   assume_role_policy = var.ecs_task_iam_role_settings["assume_role_policy"]
 }
 
