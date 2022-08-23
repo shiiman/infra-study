@@ -162,6 +162,38 @@ POLICY
             ],
             "Resource": "*",
             "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "codebuild:BatchGetBuilds",
+                "codebuild:StartBuild"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "codedeploy:CreateDeployment",
+                "codedeploy:GetDeployment",
+                "codedeploy:GetApplication",
+                "codedeploy:GetApplicationRevision",
+                "codedeploy:RegisterApplicationRevision",
+                "codedeploy:GetDeploymentConfig"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "ecs:DescribeServices",
+                "ecs:DescribeTaskDefinition",
+                "ecs:DescribeTasks",
+                "ecs:ListTasks",
+                "ecs:RegisterTaskDefinition",
+                "ecs:UpdateService"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
         }
     ],
     "Version": "2012-10-17"
