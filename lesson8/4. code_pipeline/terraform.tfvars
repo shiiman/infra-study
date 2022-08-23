@@ -125,3 +125,21 @@ POLICY
   policy_arn_1 = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
   policy_arn_2 = "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
 }
+
+codepipeline_role_settings = {
+  assume_role_policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codepipeline.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+POLICY
+  policy_arn = "arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess"
+}

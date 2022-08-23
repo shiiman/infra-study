@@ -35,4 +35,4 @@ phases:
       - echo "finish post_build ============================================="
 artifacts:
   files:
-    - appspec.yml
+    - codedeploy/*
