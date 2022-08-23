@@ -51,8 +51,8 @@ resource "aws_codebuild_project" "codebuild_project" {
     privileged_mode = true
 
     environment_variable {
-      name  = "REPOSITORY_NAME"
-      value = resource.aws_ecr_repository.ecr_repository.name
+      name  = "REPOSITORY"
+      value = resource.aws_ecr_repository.ecr_repository.repository_url
     }
   }
 

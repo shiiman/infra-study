@@ -23,8 +23,8 @@ phases:
       - echo "execute docker build task =============="
 
       # docker build
-      - docker build -t "${REPOSITORY_NAME}:dev" .
-      - docker push "${REPOSITORY_NAME}:dev"
+      - docker build -t "${REPOSITORY}:dev" .
+      - docker push "${REPOSITORY}:dev"
 
       - echo "finish docker build task =============="
 
