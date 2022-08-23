@@ -210,6 +210,13 @@ POLICY
             ],
             "Resource": "*",
             "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
         }
     ],
     "Version": "2012-10-17"
