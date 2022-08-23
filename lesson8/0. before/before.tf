@@ -268,8 +268,8 @@ resource "aws_acm_certificate_validation" "cert_validation" {
   validation_record_fqdns = [for record in aws_route53_record.cert_validation_record : record.fqdn]
 }
 
-output "acm_certificate_validation_arn" {
-  value = aws_acm_certificate_validation.cert_validation.arn
+output "acm_certificate_arn" {
+  value = aws_acm_certificate.acm_certificate.arn
 }
 
 // ECSタスクロール ===============================================================

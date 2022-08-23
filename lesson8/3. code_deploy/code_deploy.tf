@@ -32,7 +32,7 @@ resource "aws_lb_listener" "lb_listener_test" {
   port              = 4443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = module.before.acm_certificate_validation_arn
+  certificate_arn   = module.before.acm_certificate_arn
 
   default_action {
     type             = "forward"
