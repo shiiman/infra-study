@@ -89,7 +89,7 @@ POLICY
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
-                "ecr:GetAuthorizationToken"
+                "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
                 "ecr:InitiateLayerUpload",
                 "ecr:UploadLayerPart",
