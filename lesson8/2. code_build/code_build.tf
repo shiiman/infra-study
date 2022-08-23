@@ -63,6 +63,6 @@ resource "aws_codebuild_project" "codebuild_project" {
   vpc_config {
     vpc_id             = module.before.vpc_id
     subnets            = split(",", module.before.private_subnet_ids)
-    security_group_ids = resource.aws_security_group.sg_codebuild
+    security_group_ids = [resource.aws_security_group.sg_codebuild.id]
   }
 }
