@@ -89,14 +89,23 @@ POLICY
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
+                "ec2:CreateNetworkInterface",
+                "ec2:CreateNetworkInterfacePermission",
+                "ec2:DeleteNetworkInterface",
+                "ec2:DescribeDhcpOptions",
+                "ec2:DescribeNetworkInterfaces",
                 "ec2:DescribeSecurityGroups",
                 "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs",
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
                 "ecr:InitiateLayerUpload",
                 "ecr:UploadLayerPart",
                 "ecr:CompleteLayerUpload",
                 "ecr:PutImage",
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
                 "s3:PutObject"
             ],
             "Resource": "*"
