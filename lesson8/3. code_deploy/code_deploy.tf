@@ -9,12 +9,12 @@ resource "aws_iam_role" "codedeploy_iam_role" {
 
 resource "aws_iam_role_policy_attachment" "codedeploy_iam_role_policy_attachment1" {
   role       = resource.aws_iam_role.codedeploy_iam_role.id
-  policy_arn = var.codedeploy_role_settings["policy_arn1"]
+  policy_arn = var.codedeploy_role_settings["policy_arn_1"]
 }
 
 resource "aws_iam_role_policy_attachment" "codedeploy_iam_role_policy_attachment2" {
   role       = resource.aws_iam_role.codedeploy_iam_role.id
-  policy_arn = var.codedeploy_role_settings["policy_arn2"]
+  policy_arn = var.codedeploy_role_settings["policy_arn_2"]
 }
 
 # =============================================================
