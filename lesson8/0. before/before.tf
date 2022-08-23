@@ -98,6 +98,16 @@ resource "aws_route_table_association" "route_table_association_private" {
   route_table_id = resource.aws_route_table.route_table_private.*.id[count.index % length(resource.aws_subnet.subnet_private.*.id)]
 }
 
+/**
+ * endpoint作成
+ * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_endpoint
+ */
+resource "aws_vpc_endpoint" "endpoint" {
+  vpc_id          = resource.aws_vpc.vpc.id
+  service_name    = "com.amazonaws.ap-northeast-1.s3"
+  route_table_ids = [resource.aws_route_table.route_table_public.*.id, resource.aws_route_table.route_table_private.*.id]
+}
+
 output "vpc_id" {
   value = aws_vpc.vpc.id
 }

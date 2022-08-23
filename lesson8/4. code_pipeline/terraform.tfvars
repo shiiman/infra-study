@@ -103,10 +103,17 @@ POLICY
                 "ecr:UploadLayerPart",
                 "ecr:CompleteLayerUpload",
                 "ecr:PutImage",
+                "kms:Decrypt",
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
-                "s3:PutObject"
+                "s3:DeleteObject",
+                "s3:GetBucketAcl",
+                "s3:GetBucketLocation",
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:PutObject",
+                "s3:List*"
             ],
             "Resource": "*"
         }
