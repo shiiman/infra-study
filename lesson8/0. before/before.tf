@@ -206,7 +206,7 @@ resource "aws_lb_listener" "lb_listener" {
 
   default_action {
     type             = "forward"
-    target_group_arn = resource.aws_lb_target_group.lb_target_group.arn
+    target_group_arn = resource.aws_lb_target_group.lb_target_group_blue.arn
   }
 }
 
@@ -313,6 +313,10 @@ resource "aws_ecs_cluster" "ecs_cluster" {
   name = "${var.user_name}-ecs-cluster"
 }
 
+data "aws_ecr_repository" "ecr_repository" {
+  name = "infra-study-ecr"
+}
+
 data "aws_ecr_image" "ecr_image_app" {
   repository_name = "infra-study-ecr"
   image_tag       = "app"
@@ -336,7 +340,7 @@ resource "aws_ecs_task_definition" "ecs_task_definition" {
 [
   {
     "name": "app",
-    "image": "${resource.aws_ecr_repository.ecr_repository.repository_url}@${data.aws_ecr_image.ecr_image_app.image_digest}",
+    "image": "${data.aws_ecr_repository.ecr_repository.repository_url}@${data.aws_ecr_image.ecr_image_app.image_digest}",
     "portMappings": [
       {
         "containerPort": 8080,
