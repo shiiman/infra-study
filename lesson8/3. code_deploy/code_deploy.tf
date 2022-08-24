@@ -40,6 +40,16 @@ resource "aws_lb_listener" "lb_listener_test" {
   }
 }
 
+# 会社からlbへの4443
+resource "aws_security_group_rule" "security_group_rule_lb_from_company_test" {
+  type              = "ingress"
+  from_port         = 4443
+  to_port           = 4443
+  protocol          = "tcp"
+  cidr_blocks       = var.company_ip
+  security_group_id = resource.aws_security_group.sg_lb.id
+}
+
 /**
  * Code Deploy Application作成
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codedeploy_app
