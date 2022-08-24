@@ -38,6 +38,10 @@ resource "aws_lb_listener" "lb_listener_test" {
     type             = "forward"
     target_group_arn = resource.aws_lb_target_group.lb_target_group_green.arn
   }
+
+  lifecycle {
+    ignore_changes = [default_action.0.target_group_arn]
+  }
 }
 
 # 会社からlbへの4443
