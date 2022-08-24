@@ -106,8 +106,9 @@ resource "aws_codebuild_project" "codebuild_project_deploy" {
   }
 
   source {
-    type = "CODECOMMIT"
-    buildspec = buildspec_deploy.yml
+    type      = "CODECOMMIT"
+    location  = resource.aws_codecommit_repository.codecommit_repository.repository_name
+    buildspec = "buildspec_deploy.yml"
   }
 
   vpc_config {

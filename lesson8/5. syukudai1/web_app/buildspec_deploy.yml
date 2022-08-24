@@ -1,0 +1,16 @@
+version: 0.2
+env:
+  variables:
+    DOCKER_BUILDKIT: "1"
+phases:
+  install:
+    commands:
+      - ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
+  pre_build:
+    commands: []
+  build:
+    commands:
+      # .git削除
+      - rm -rf .git
+artifacts:
+  files: ./*
