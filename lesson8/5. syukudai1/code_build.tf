@@ -121,7 +121,6 @@ resource "aws_codebuild_project" "codebuild_project_deploy" {
 resource "aws_vpc_endpoint" "endpoint_codecommit" {
   vpc_id              = module.before.vpc_id
   vpc_endpoint_type   = "Interface"
-  private_dns_enabled = true
   service_name        = "com.amazonaws.ap-northeast-1.codecommit"
   subnet_ids          = split(",", module.before.private_subnet_ids)
   security_group_ids  = [resource.aws_security_group.sg_codebuild.id]
@@ -130,7 +129,6 @@ resource "aws_vpc_endpoint" "endpoint_codecommit" {
 resource "aws_vpc_endpoint" "endpoint_git_codecommit" {
   vpc_id              = module.before.vpc_id
   vpc_endpoint_type   = "Interface"
-  private_dns_enabled = true
   service_name        = "com.amazonaws.ap-northeast-1.git-codecommit"
   subnet_ids          = split(",", module.before.private_subnet_ids)
   security_group_ids  = [resource.aws_security_group.sg_codebuild.id]
