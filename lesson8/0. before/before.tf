@@ -53,10 +53,6 @@ resource "aws_route_table" "route_table_public" {
   }
 }
 
-output "route_table_public_ids" {
-  value = join(",", aws_route_table.route_table_public.*.id)
-}
-
 resource "aws_route_table_association" "route_table_association_public" {
   count          = length(resource.aws_subnet.subnet_public.*.id)
   subnet_id      = resource.aws_subnet.subnet_public.*.id[count.index]
@@ -94,10 +90,6 @@ resource "aws_route_table" "route_table_private" {
   tags = {
     Name = format("${var.user_name}-rt-private%04d", count.index + 1)
   }
-}
-
-output "route_table_private_ids" {
-  value = join(",", aws_route_table.route_table_private.*.id)
 }
 
 resource "aws_route_table_association" "route_table_association_private" {
