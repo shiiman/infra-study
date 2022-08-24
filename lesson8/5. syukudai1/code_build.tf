@@ -88,8 +88,9 @@ resource "aws_s3_bucket_acl" "s3_bucket_codebuild_artifacts_bucket_acl" {
 }
 
 resource "aws_codebuild_project" "codebuild_project_deploy" {
-  name          = "${var.user_name}-deploy"
-  service_role  = resource.aws_iam_role.codebuild_iam_role.arn
+  name           = "${var.user_name}-deploy"
+  service_role   = resource.aws_iam_role.codebuild_iam_role.arn
+  source_version = "refs/heads/master"
 
   artifacts {
     type      = "S3"
@@ -107,7 +108,7 @@ resource "aws_codebuild_project" "codebuild_project_deploy" {
 
   source {
     type      = "CODECOMMIT"
-    location  = resource.aws_codecommit_repository.codecommit_repository.repository_name
+    location  = resource.aws_codecommit_repository.codecommit_repository.clone_url_http
     buildspec = "buildspec_deploy.yml"
   }
 
