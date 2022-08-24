@@ -9,10 +9,11 @@ phases:
   pre_build:
     commands: []
   build:
-    commands: []
+    commands:
+      # .git削除
+      - rm -rf .git
 artifacts:
   files: '**/*'
   exclude-paths:
-    - .git
     - buildspec.yml
     - buildspec_deploy.yml
