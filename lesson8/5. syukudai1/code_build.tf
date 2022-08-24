@@ -110,6 +110,10 @@ resource "aws_codebuild_project" "codebuild_project_deploy" {
     type      = "CODECOMMIT"
     location  = resource.aws_codecommit_repository.codecommit_repository.clone_url_http
     buildspec = "buildspec_deploy.yml"
+
+    git_submodules_config {
+      fetch_submodules = true
+    }
   }
 
   vpc_config {
