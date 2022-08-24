@@ -117,3 +117,15 @@ resource "aws_codebuild_project" "codebuild_project_deploy" {
     security_group_ids = [resource.aws_security_group.sg_codebuild.id]
   }
 }
+
+resource "aws_vpc_endpoint" "endpoint_codecommit" {
+  vpc_id          = module.before.vpc_id
+  service_name    = "com.amazonaws.ap-northeast-1.codecommit"
+  route_table_ids = concat(split(",", module.before.route_table_public_ids) , split(",", module.before.route_table_private_ids))
+}
+
+resource "aws_vpc_endpoint" "endpoint_git_codecommit" {
+  vpc_id          = module.before.vpc_id
+  service_name    = "com.amazonaws.ap-northeast-1.git-codecommit"
+  route_table_ids = concat(split(",", module.before.route_table_public_ids) , split(",", module.before.route_table_private_ids))
+}
