@@ -47,7 +47,7 @@ resource "aws_security_group_rule" "security_group_rule_lb_from_company_test" {
   to_port           = 4443
   protocol          = "tcp"
   cidr_blocks       = var.company_ip
-  security_group_id = resource.aws_security_group.sg_lb.id
+  security_group_id = module.before.sg_lb_id
 }
 
 /**
