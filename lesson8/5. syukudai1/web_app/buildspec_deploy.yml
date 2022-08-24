@@ -9,8 +9,6 @@ phases:
   pre_build:
     commands: []
   build:
-    commands:
-      # .git削除
-      - rm -rf .git
+    commands: []
 artifacts:
   files: ./*
