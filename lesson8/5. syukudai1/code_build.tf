@@ -87,6 +87,13 @@ resource "aws_s3_bucket_acl" "s3_bucket_codebuild_artifacts_bucket_acl" {
   acl    = "private"
 }
 
+resource "aws_s3_bucket_versioning" "s3_bucket_codebuild_artifacts_bucket_versioning" {
+  bucket = aws_s3_bucket.codebuild_artifacts_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_codebuild_project" "codebuild_project_deploy" {
   name           = "${var.user_name}-deploy"
   service_role   = resource.aws_iam_role.codebuild_iam_role.arn
