@@ -226,6 +226,10 @@ resource "aws_lb_listener" "lb_listener" {
     type             = "forward"
     target_group_arn = resource.aws_lb_target_group.lb_target_group_blue.arn
   }
+
+  lifecycle {
+    ignore_changes = [default_action.0.target_group_arn]
+  }
 }
 
 output "lb_listener_arn" {
@@ -409,6 +413,10 @@ resource "aws_ecs_service" "ecs_service" {
   network_configuration {
     subnets          = resource.aws_subnet.subnet_private.*.id
     security_groups  = [resource.aws_security_group.sg_app.id]
+  }
+
+  lifecycle {
+    ignore_changes = [load_balancer.0.target_group_arn]
   }
 }
 
