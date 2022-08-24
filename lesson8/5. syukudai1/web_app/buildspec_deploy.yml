@@ -12,3 +12,7 @@ phases:
     commands: []
 artifacts:
   files: '**/*'
+  exclude-paths:
+    - .git
+    - buildspec.yml
+    - buildspec_deploy.yml
