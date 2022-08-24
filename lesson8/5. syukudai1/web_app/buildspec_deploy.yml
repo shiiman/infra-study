@@ -15,5 +15,4 @@ phases:
 artifacts:
   files: '**/*'
   exclude-paths:
-    - buildspec.yml
     - buildspec_deploy.yml
