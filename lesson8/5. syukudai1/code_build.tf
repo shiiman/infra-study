@@ -103,11 +103,6 @@ resource "aws_codebuild_project" "codebuild_project_deploy" {
     image           = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
     type            = "LINUX_CONTAINER"
     privileged_mode = true
-
-    environment_variable {
-      name  = "REPOSITORY"
-      value = resource.aws_ecr_repository.ecr_repository.repository_url
-    }
   }
 
   source {
