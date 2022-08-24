@@ -89,7 +89,7 @@ POLICY
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
-                "codecommit:GitPull"
+                "codecommit:GitPull",
                 "ec2:CreateNetworkInterface",
                 "ec2:CreateNetworkInterfacePermission",
                 "ec2:DeleteNetworkInterface",
