@@ -67,7 +67,10 @@ POLICY
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
-                "s3:*"
+                "ssmmessages:CreateControlChannel",
+                "ssmmessages:CreateDataChannel",
+                "ssmmessages:OpenControlChannel",
+                "ssmmessages:OpenDataChannel"
             ],
             "Resource": "*"
         }
