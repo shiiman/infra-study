@@ -12,7 +12,7 @@ resource "aws_lb" "application_lb" {
   internal                   = false
   load_balancer_type         = "application"
   security_groups            = [resource.aws_security_group.sg_lb.id]
-  subnets                    = resource.aws_subnet.subnet_public.*.id[count.index % length(resource.aws_subnet.subnet_public.*.id)]
+  subnets                    = resource.aws_subnet.subnet_public.*.id
 }
 
 resource "aws_lb_target_group" "lb_target_group" {
