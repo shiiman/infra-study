@@ -9,7 +9,7 @@ resource "aws_security_group" "sg_web" {
 
 resource "aws_instance" "private_instance" {
   count                       = 2
-  ami                         = "ami-02c3627b04781eada" # TODO:
+  ami                         = "ami-01eccbfa7be1cfaec"
   instance_type               = "t2.micro"
   vpc_security_group_ids      = [resource.aws_security_group.sg_web.id]
   subnet_id                   = resource.aws_subnet.subnet_private.*.id[count.index % length(resource.aws_subnet.subnet_private.*.id)]
