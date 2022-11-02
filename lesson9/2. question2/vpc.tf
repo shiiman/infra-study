@@ -31,3 +31,24 @@ resource "aws_subnet" "subnet_private" {
     Name = format("${var.user_name}-private%1d", count.index + 1)
   }
 }
+
+resource "aws_internet_gateway" "internet_gateway" {
+  vpc_id = resource.aws_vpc.vpc.id
+
+  tags = {
+    Name = "${var.user_name}-ig"
+  }
+}
+
+resource "aws_route_table" "route_table" {
+  vpc_id = resource.aws_vpc.vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = resource.aws_internet_gateway.internet_gateway.id
+  }
+
+  tags = {
+    Name = "${var.user_name}-rt"
+  }
+}
