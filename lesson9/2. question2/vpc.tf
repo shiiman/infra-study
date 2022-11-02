@@ -52,3 +52,9 @@ resource "aws_route_table" "route_table" {
     Name = "${var.user_name}-rt"
   }
 }
+
+resource "aws_route_table_association" "route_table_association_public" {
+  count          = length(resource.aws_subnet.subnet_public.*.id)
+  subnet_id      = resource.aws_subnet.subnet_public.*.id[count.index]
+  route_table_id = resource.aws_route_table.route_table.id
+}
