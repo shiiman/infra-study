@@ -61,7 +61,7 @@ resource "aws_route_table_association" "route_table_association_public" {
 
 resource "aws_eip" "eip" {
   count = length(resource.aws_subnet.subnet_public.*.id)
-  vpc = true
+  vpc   = true
 
   tags = {
     Name = "${format("${var.user_name}-ng%04d", count.index + 1)}-eip"
@@ -79,11 +79,11 @@ resource "aws_nat_gateway" "nat_gateway" {
 }
 
 resource "aws_route_table" "route_table_private" {
-  count = length(resource.aws_subnet.subnet_private.*.id)
+  count  = length(resource.aws_subnet.subnet_private.*.id)
   vpc_id = resource.aws_vpc.vpc.id
 
   route {
-    cidr_block = "0.0.0.0/0"
+    cidr_block     = "0.0.0.0/0"
     nat_gateway_id = resource.aws_nat_gateway.nat_gateway.*.id[count.index]
   }
 
@@ -178,19 +178,19 @@ resource "aws_security_group_rule" "security_group_rule_app_from_lb_http" {
 }
 
 resource "aws_lb" "application_lb" {
-  name                       = "${var.user_name}-lb"
-  internal                   = false
-  load_balancer_type         = "application"
-  security_groups            = [resource.aws_security_group.sg_lb.id]
-  subnets                    = resource.aws_subnet.subnet_public.*.id
+  name               = "${var.user_name}-lb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [resource.aws_security_group.sg_lb.id]
+  subnets            = resource.aws_subnet.subnet_public.*.id
 }
 
 resource "aws_lb_target_group" "lb_target_group" {
-  name                 = "${var.user_name}-lb-tg"
-  port                 = 8080
-  protocol             = "HTTP"
-  target_type          = "ip"
-  vpc_id               = resource.aws_vpc.vpc.id
+  name        = "${var.user_name}-lb-tg"
+  port        = 8080
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = resource.aws_vpc.vpc.id
 }
 
 output "lb_target_group_arn" {
@@ -230,7 +230,7 @@ resource "aws_route53_record" "route53_record" {
 }
 
 resource "aws_acm_certificate" "acm_certificate" {
-  domain_name       ="${var.user_name}.${data.aws_route53_zone.public.name}"
+  domain_name       = "${var.user_name}.${data.aws_route53_zone.public.name}"
   validation_method = "DNS"
 }
 
@@ -364,7 +364,7 @@ variable "db_parameter" { type = map(string) }
 
 resource "aws_db_parameter_group" "parameter_group" {
   name   = "${var.user_name}-rdspg"
-  family = "aurora-mysql5.7"
+  family = "aurora-mysql8.0"
 
   dynamic "parameter" {
     for_each = var.db_parameter
@@ -380,7 +380,7 @@ variable "rds_cluster_parameter" { type = map(string) }
 
 resource "aws_rds_cluster_parameter_group" "cluster_parameter_group" {
   name   = "${var.user_name}-rdscpg"
-  family = "aurora-mysql5.7"
+  family = "aurora-mysql8.0"
 
   dynamic "parameter" {
     for_each = var.rds_cluster_parameter
@@ -399,7 +399,7 @@ resource "aws_rds_cluster" "rds_cluster" {
   db_subnet_group_name            = resource.aws_db_subnet_group.db_subnet_group.name
   db_cluster_parameter_group_name = resource.aws_rds_cluster_parameter_group.cluster_parameter_group.name
   engine                          = "aurora-mysql"
-  engine_version                  = "5.7.mysql_aurora.2.08.2"
+  engine_version                  = "8.0.mysql_aurora.3.07.1"
   master_username                 = "root"
   master_password                 = var.rds_master_password
   availability_zones              = var.availability_zones
@@ -428,11 +428,11 @@ output "rds_cluster_cluster_identifier" {
 }
 
 resource "aws_rds_cluster_instance" "rds_cluster_instance" {
-  count                        = 2
-  identifier                   = format("${var.user_name}-db01%02d", count.index + 1)
-  cluster_identifier           = resource.aws_rds_cluster.rds_cluster.id
-  instance_class               = "db.t2.small"
-  engine                       = "aurora-mysql"
-  engine_version               = "5.7.mysql_aurora.2.08.2"
-  db_parameter_group_name      = resource.aws_db_parameter_group.parameter_group.name
+  count                   = 2
+  identifier              = format("${var.user_name}-db01%02d", count.index + 1)
+  cluster_identifier      = resource.aws_rds_cluster.rds_cluster.id
+  instance_class          = "db.t2.small"
+  engine                  = "aurora-mysql"
+  engine_version          = "8.0.mysql_aurora.3.07.1"
+  db_parameter_group_name = resource.aws_db_parameter_group.parameter_group.name
 }
