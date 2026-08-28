@@ -603,6 +603,29 @@ AWS版と同じく、各ステップディレクトリは **その時点の作�
 | 証明書の使い回し | OK。第3回の証明書がそのまま使われ再発行なし |
 | LBの伝播 | **約7分30秒**。講義の最後に来るので進行に注意 |
 
+**destroy に第4回とは別の障害がある**
+
+Direct VPC egress を使うと `purpose = SERVERLESS` のIPアドレスが
+サブネットに確保され、Cloud Run を削除してもすぐには解放されない。
+サブネットの削除がブロックされる。
+
+```
+The subnetwork '<user_name>-private-subnet' is already being used by
+'addresses/serverless-ipv4-XXXXXXXXXX', resourceInUseByAnotherResource
+```
+
+**これは仕様で、公式ドキュメントに明記されている。**
+
+> After you delete or move your Cloud Run resources, wait 1-2 hours
+> for Cloud Run to release the IP addresses before you delete the subnet.
+> You cannot manually delete a reserved address.
+> https://cloud.google.com/run/docs/configuring/vpc-direct-vpc
+
+検証時は32分待っても解放されなかった。**当日中の完全削除は諦め、
+翌日に destroy を実行する運用**にするのが現実的。
+課金されるリソースは1回目の destroy で消えるので実害はない。
+第5回スライドの 付録A-2 に手順を記載した。
+
 **この回の核心(S28 → S34)は狙いどおり動いた。**
 Cloud Run は VPC の外にいるため Spanner には繋がるが Memorystore には繋がらず、
 `vpc_access` ブロックを1つ足すだけで解決する。

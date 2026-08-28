@@ -1457,11 +1457,16 @@ Cloud Run のインスタンス自動スケーリング
           servicenetworking-googleapis-com \
           --network=[自分の名前]-vpc
 
-   3. SERVERLESS のアドレスが消えるのを待つ
+   3. SERVERLESS のアドレスが解放されるのを待つ
         gcloud compute addresses list --filter="purpose=SERVERLESS"
-        → 消えるまで待つ(直接は削除できません)
+
+        ★ 公式ドキュメントに「1〜2時間待て」と書かれています
+        ★ 手動では削除できません
 
    4. terraform destroy
+
+★ 残るのは VPC とサブネットだけで、課金はありません
+   慌てず、翌日にでも消してください
 
 ★ 年末年始を挟むので、消し忘れると長期間課金されます
    Spanner / Memorystore / VM / ロードバランサ / 外部IP
@@ -1570,37 +1575,53 @@ The address resource '...' is already being used by
 '//serverless.googleapis.com/.../addressReservations/serverless-ipv4-XXXXXXXXXX'
 ```
 
-Google側(serverless.googleapis.com)が保持しているため、
-**解放されるまで待つしかない。**
+**これは仕様。公式ドキュメントに明記されている。**
+
+> After you delete or move your Cloud Run resources, wait **1-2 hours**
+> for Cloud Run to release the IP addresses before you delete the subnet.
+>
+> **You cannot manually delete a reserved address.**
+>
+> https://cloud.google.com/run/docs/configuring/vpc-direct-vpc
+
+つまり **1〜2時間待つしかない**。
 
 ## 手順
 
 ```
-# 1回目
+# 当日(講義の最後)
 terraform destroy
   → Cloud Run / Spanner / Memorystore などは消える
-  → ピアリングとサブネットの削除で失敗
+  → ピアリングとサブネットの削除で失敗する
 
-# ピアリングを消す
-gcloud compute networks peerings delete serverless-googleapis-com \
+gcloud compute networks peerings delete servicenetworking-googleapis-com \
   --network=<自分の名前>-vpc
 
-# SERVERLESSアドレスが消えるのを待つ
-watch -n 60 'gcloud compute addresses list --filter="purpose=SERVERLESS"'
+# 翌日
+gcloud compute addresses list --filter="purpose=SERVERLESS"
+  → 消えていることを確認
 
-# 2回目
 terraform destroy
+  → 残りの VPC とサブネットが消える
 ```
 
-> **検証時の実測(2026-08-28)**: 解放までの時間は付録Bに記載。
+> **検証時の実測(2026-08-28)**: 32分待っても解放されなかった。
+> 公式ドキュメントの「1〜2時間」は現実的な値。
+
+**課金は当日で止まる**
+
+残るのは VPC とサブネットだけで、どちらも課金されない。
+Cloud Run / Spanner / Memorystore / VM / ロードバランサ / 外部IP は
+1回目の destroy で消えている。
 
 **受講者への案内**
 
 「destroyでエラーが2種類出ます。慌てないでください。
-リソース本体は消えています。ピアリングを消して、
-SERVERLESSのアドレスが消えるのを待ってから、もう一度destroyしてください」
+課金されるものは全部消えています。
+ピアリングを消して、翌日にもう一度 destroy してください」
 
-と先に言っておくと混乱がない。
+と先に言っておくこと。
+**当日中に完全に消そうとすると1〜2時間待つことになる。**
 
 ---
 
@@ -1645,7 +1666,7 @@ Step4のapplyを流したらすぐ S43(まとめ)に進み、
 
 - **Cloud Shell でのビルド時間**。検証ではローカルのdockerで代用した
 - 宿題1(min_instance_count / concurrency)の実測
-- destroy の所要時間(第4回と同じピアリングの手順が必要)
+- destroy の完了(SERVERLESSアドレスの解放に1〜2時間かかるため、翌日に持ち越し)
 
 ## 受講者ロールへの追加(確認済み)
 
