@@ -1924,6 +1924,7 @@ roles/compute.instanceAdmin.v1        compute.instances.setIamPolicy
 roles/iap.admin                       iap.tunnelInstances.get/setIamPolicy
 roles/spanner.admin                   spanner.databases.setIamPolicy  (第4回)
 roles/servicenetworking.networksAdmin servicenetworking.services.addPeering (第4回)
+roles/run.admin                       run.services.setIamPolicy       (第5回)
 ```
 
 **第4回で追加になる2ロールについて**
@@ -1937,6 +1938,10 @@ Spanner / Cloud SQL / Memorystore の**作成権限は `roles/editor` に含ま�
 |---|---|---|
 | `spanner.databases.setIamPolicy` | `roles/spanner.admin` | 第4回 Step3(SAにDB権限を付与) |
 | `servicenetworking.services.addPeering` | `roles/servicenetworking.networksAdmin` | 第4回 Step2(限定公開サービスアクセス) |
+| `run.services.setIamPolicy` | `roles/run.admin` | 第5回 Step2(Cloud Runを公開する) |
+
+**Artifact Registry / Cloud Run / サーバレスNEG の作成権限も `roles/editor` に含まれている。**
+`roles/artifactregistry.admin` は不要。
 
 付与コマンド(受講者ごとに実行)
 
@@ -1953,7 +1958,8 @@ for ROLE in \
   roles/compute.instanceAdmin.v1 \
   roles/iap.admin \
   roles/spanner.admin \
-  roles/servicenetworking.networksAdmin
+  roles/servicenetworking.networksAdmin \
+  roles/run.admin
 do
   gcloud projects add-iam-policy-binding $PROJECT \
     --member=$MEMBER --role=$ROLE --condition=None
