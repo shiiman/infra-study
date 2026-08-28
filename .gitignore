@@ -1,2 +1,9 @@
 */*/web_app/mysql/data/*
 !*.gitkeep
+
+# terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
