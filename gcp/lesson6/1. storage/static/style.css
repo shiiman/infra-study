@@ -1,0 +1,14 @@
+body {
+  font-family: sans-serif;
+  margin: 40px;
+  line-height: 1.8;
+}
+
+h1 {
+  color: #1a73e8;
+}
+
+.version {
+  color: #5f6368;
+  font-size: 0.9em;
+}
