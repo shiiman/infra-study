@@ -1,0 +1,5 @@
+FROM redis:7-alpine
+
+ENV TZ='Asia/Tokyo'
+
+EXPOSE 6379

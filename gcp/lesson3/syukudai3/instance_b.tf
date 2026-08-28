@@ -19,9 +19,11 @@
  * 宿題1でやった「手で入れて docker run」を自動化したもの。
  */
 resource "google_compute_instance" "web_b" {
-  name         = "${var.user_name}-web-b"
-  machine_type = "e2-micro"
-  zone         = "asia-northeast1-b"
+  name = "${var.user_name}-web-b"
+
+  machine_type = "e2-medium"
+
+  zone = "asia-northeast1-b"
 
   tags = ["${var.user_name}-web"]
 

@@ -15,9 +15,14 @@ resource "google_service_account" "web" {
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance
  */
 resource "google_compute_instance" "web" {
-  name         = "${var.user_name}-web"
-  machine_type = "e2-micro"
-  zone         = "asia-northeast1-a"
+  name = "${var.user_name}-web"
+
+  // e2-micro(共有CPU)ではアプリのビルドが遅い。
+  // 第2回のVMは疎通確認だけだったので e2-micro でよかったが、
+  // 第3回からはコンテナをビルドするので e2-medium にする。
+  machine_type = "e2-medium"
+
+  zone = "asia-northeast1-a"
 
   tags = ["${var.user_name}-web"]
 
