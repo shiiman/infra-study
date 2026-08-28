@@ -198,8 +198,13 @@ AWS版のスライドをそのままなぞると破綻する箇所。各回の�
 ### 第5回 コンテナ (2026-12-24 木)
 
 - **AWS版対応**: 第6回
-- **アジェンダ**: コンテナの歴史 / GCPにおけるコンテナの変遷 / Artifact Registry / Cloud Run / **GKE は概説10分** / サービスアカウントと Secret Manager
-- **ハンズオン到達点**: イメージを Artifact Registry に push し、Cloud Run で公開、LBのバックエンドに繋ぐ
+- **アジェンダ**: コンテナの歴史 / GCPにおけるコンテナの変遷 / Artifact Registry / Cloud Run / **GKE は概説10分** / Direct VPC egress / サーバレスNEG
+- **ハンズオン到達点**: イメージを Artifact Registry に push し、Cloud Run で公開、
+  **ロードバランサのバックエンドを VM から Cloud Run に切り替える**
+- **★ 構成(2026-08-28)**: 「LBのバックエンドに繋ぐ」を単なる追加ではなく
+  **VMからの移行**として構成した。ドメインも証明書もそのままで
+  URLマップの向き先だけ差し替えるので、実務の移行手順と一致する。
+  VMのバックエンドサービスは残すのでロールバックも説明できる
 - **宿題**: Cloud Run のオートスケール設定 / 最小インスタンス数の挙動確認
 
 ### 第6回 ストレージ + CDN (2027-01-18)
@@ -400,7 +405,8 @@ GCPも「VPC → サブネット → LB → インスタンス」と構造がほ
 | 2 | 済 `docs/slides/lesson2.md` (63枚) | 済 `lesson2/` 7ステップ | 済 syukudai1-2 | **済 (2026-08-28)** |
 | 3 | 済 `docs/slides/lesson3.md` (56枚) | 済 `lesson3/` 0.before + 4ステップ | 済 syukudai1-3 | **済 (2026-08-28)** |
 | 4 | 済 `docs/slides/lesson4.md` (53枚) | 済 `lesson4/` 0.before + 3ステップ | 済 syukudai1-3 | **済 (2026-08-28)** |
-| 5〜10 | 未 | 未 | 未 | 未 |
+| 5 | 済 `docs/slides/lesson5.md` (51枚) | 済 `lesson5/` 0.before + 4ステップ | 済 syukudai1-2 | **済 (2026-08-28)** |
+| 6〜10 | 未 | 未 | 未 | 未 |
 
 - Terraform コードは全 23 ディレクトリで `terraform fmt` 差分なし /
   `terraform validate` 成功(google provider 8.0.0)
@@ -422,11 +428,24 @@ GCPも「VPC → サブネット → LB → インスタンス」と構造がほ
 2. 自分にそのSAの `roles/iam.serviceAccountTokenCreator` を付ける
 3. 教材のコードをコピーし、次のパッチを当てる
    - `provider "google"` に `impersonate_service_account` を追加
-   - `member = "user:${data...}"` → `"serviceAccount:${data...}"`
-     (実行主体がSAになるため)
+   - `member = "user:${data.google_client_openid_userinfo.me.email}"` を
+     **テスト用SAのメールアドレスの実値**に置換する
    - `user_name` をテスト用の名前に変更
    - `backend` ブロックを削除(ローカルstateで十分)
    - モジュールの `source` をローカルパスに変更(未pushの場合)
+
+> **★ `google_client_openid_userinfo` はなりすまし時に使えない**
+>
+> provider の `impersonate_service_account` が要求するスコープに
+> `openid` が含まれないため、このデータソースは空を返し、
+> `Invalid template interpolation value` で apply が失敗する。
+>
+> gcloud の `--impersonate-service-account` で取ったトークンには
+> `openid` が含まれているので、CLIでは同じ問題が起きない。紛らわしい。
+>
+> 検証時はデータソース参照を実値に置き換えること。
+> **教材側は人間のユーザが実行する前提なので、このままでよい**
+> (第1回でローカル・Cloud Shell の両方で動作確認済み)。
 4. `terraform apply` → 動作確認 → `terraform destroy`
 5. 検証後、プロジェクトIAMのバインディングとSAを削除する
 
@@ -568,6 +587,38 @@ AWS版と同じく、各ステップディレクトリは **その時点の作�
   していない人は権限エラーになる(S28に両方を記載済み)
 - カスタムロールは削除後7日間ソフトデリート状態で残る。
   同じ `role_id` ですぐ作り直せない(`syukudai1/README.md` に記載済み)
+
+### 第5回の動作確認結果(2026-08-28 実施)
+
+受講者相当の権限(10ロール)で Step0〜4 を通しで実行。**36リソース**が作成できた。
+
+| 項目 | 結果 |
+|---|---|
+| `0. before`(24リソース) | OK |
+| Artifact Registry + push | OK。`gcloud auth configure-docker` の1行で認証 |
+| Cloud Run のデプロイ | OK。35秒 |
+| **Step2: Spanner 成功 / Cache 失敗** | **完全再現** |
+| **Step3: Direct VPC egress で Cache 成功** | **OK**。apply 16秒。反映待ちなし |
+| Step4: サーバレスNEG + LB | OK。カスタムドメインで到達 |
+| 証明書の使い回し | OK。第3回の証明書がそのまま使われ再発行なし |
+| LBの伝播 | **約7分30秒**。講義の最後に来るので進行に注意 |
+
+**この回の核心(S28 → S34)は狙いどおり動いた。**
+Cloud Run は VPC の外にいるため Spanner には繋がるが Memorystore には繋がらず、
+`vpc_access` ブロックを1つ足すだけで解決する。
+第4回の「3種類の接続方式」がそのまま回収できている。
+
+**ロール構成は10個で確定**
+
+追加が必要だったのは `roles/run.admin`(`run.services.setIamPolicy`)のみ。
+`roles/artifactregistry.admin` は不要だった。
+
+**第4回・第5回で傾向がはっきりした。**
+GCP は作成・更新・削除の権限を `roles/editor` に広く含めており、
+**`setIamPolicy` だけが別ロール**になっている。
+第6回以降もこのパターンで照合すれば、必要ロールを事前に特定できる。
+
+---
 
 ### 受講者権限での検証(第2回〜第4回まとめて・2026-08-28)
 
@@ -888,7 +939,11 @@ Cloud Shell 固有のリスクは個別に潰してあり、残るのは
 
     「Spanner を作ったのに繋がらない」と「Cloud SQL を作ったのに繋がらない」は
     原因が全く違う。第4回 S17 で明示的に扱う。
-    第5回(Cloud Run)でも接続方式の話が再度出てくる。
+
+    **第5回(Cloud Run)でこれがそのまま効いてくる。**
+    Cloud Run は VPC の外で動くため、Spanner には繋がるが
+    Memorystore には繋がらない。Direct VPC egress の設定が必要になる。
+    第5回 S29 の「繋がらない→繋がる」サイクルの根拠がここ。
 
 10. **IAP は「ネットワークの許可」と「IAM の許可」の2層が揃わないと通らない** —
     AWS の踏み台は「SG + SSH 鍵」の2つだったが、GCP の IAP は
