@@ -399,7 +399,7 @@ GCPも「VPC → サブネット → LB → インスタンス」と構造がほ
 | 1 | 済 `docs/slides/lesson1.md` (68枚) | 済 `lesson1/` 4ステップ | 済 syukudai1-2 | **済 (2026-08-28)** |
 | 2 | 済 `docs/slides/lesson2.md` (63枚) | 済 `lesson2/` 7ステップ | 済 syukudai1-2 | **済 (2026-08-28)** |
 | 3 | 済 `docs/slides/lesson3.md` (56枚) | 済 `lesson3/` 0.before + 4ステップ | 済 syukudai1-3 | **済 (2026-08-28)** |
-| 4 | 済 `docs/slides/lesson4.md` (55枚) | 済 `lesson4/` 0.before + 4ステップ | 済 syukudai1-2 | **済 (2026-08-28)** |
+| 4 | 済 `docs/slides/lesson4.md` (53枚) | 済 `lesson4/` 0.before + 3ステップ | 済 syukudai1-3 | **済 (2026-08-28)** |
 | 5〜10 | 未 | 未 | 未 | 未 |
 
 - Terraform コードは全 23 ディレクトリで `terraform fmt` 差分なし /
@@ -410,6 +410,45 @@ GCPも「VPC → サブネット → LB → インスタンス」と構造がほ
 - 公開リポジトリのため、プロジェクトIDとドメインは変数化して伏せている
 - **`[プロジェクトID]` で通しの apply → destroy を実施済み**(11章に結果)
 - スライドの Google スライドへの流し込みは未着手(手作業)
+
+### 動作確認の型(第5回以降もこれに従う)
+
+**受講者相当の権限で1回だけ通す。** 講師アカウントで確認してから
+別途권限を確認する、という2周はしない(第1回・第2回でやったが無駄だった)。
+
+**方法**
+
+1. 受講者に付与するロールだけを持つサービスアカウントを作る
+2. 自分にそのSAの `roles/iam.serviceAccountTokenCreator` を付ける
+3. 教材のコードをコピーし、次のパッチを当てる
+   - `provider "google"` に `impersonate_service_account` を追加
+   - `member = "user:${data...}"` → `"serviceAccount:${data...}"`
+     (実行主体がSAになるため)
+   - `user_name` をテスト用の名前に変更
+   - `backend` ブロックを削除(ローカルstateで十分)
+   - モジュールの `source` をローカルパスに変更(未pushの場合)
+4. `terraform apply` → 動作確認 → `terraform destroy`
+5. 検証後、プロジェクトIAMのバインディングとSAを削除する
+
+**なぜこの方法が良いか**
+
+- グループ経由の権限が一切混ざらないので、**実際の受講者より厳しい条件**になる
+- 講師アカウントでは気づけない権限不足を確実に検出できる
+- 1周で機能検証と権限検証の両方が終わる
+
+**この方法でカバーできない部分**
+
+`gcloud compute ssh` とアプリの動作確認は人間の操作なので、
+自分のアカウントで実施する。Terraform のリソース作成権限
+(一番詰まりやすいところ)は1周でカバーできる。
+
+**積み上げの利点**
+
+各回の `0. before` に前回までの全リソースが入っているため、
+**最新の回を1本流せば過去の回のリソース作成権限も同時に検証できる**。
+例: 第4回を流すと、第2回・第3回のリソースもすべて作られる。
+
+---
 
 ### 確定した制作の型(第3回以降もこれに従う)
 
@@ -489,11 +528,13 @@ AWS版と同じく、各ステップディレクトリは **その時点の作�
   第1回の最後だけ `-target` でバケット以外を指定する方式に決定(実測で検証済み)。
   第1回スライド S67 に手順を記載。第2回以降は素の `terraform destroy` でよい
 - [ ] アンケート用 Google Form の作成(各回に URL を差し込む)
-- [ ] **受講者ロールに DB 系を追加する**(第4回から必要)。
-  `roles/spanner.admin` / `roles/cloudsql.admin` / `roles/redis.admin` /
-  `roles/servicenetworking.networksAdmin`。第1回 付録A にも追記が必要
-- [ ] 受講者への権限付与を実行する。付与するロールは検証済み(11章参照)。
-  **`roles/editor` だけでは足りない**ので、第1回 付録A の付与コマンドをそのまま使うこと
+- [x] 受講者ロールの確定 — **計9ロール**(検証済み)。第1回 付録A に付与コマンドあり。
+  第4回で追加が必要なのは `roles/spanner.admin` と
+  `roles/servicenetworking.networksAdmin` の2つだけ
+  (`cloudsql.admin` / `redis.admin` は不要。作成権限は Editor に含まれる)
+- [ ] 受講者への権限付与を実行する。付与するロール(9個)は検証済み。
+  **`roles/editor` だけでは足りない**ので、第1回 付録A の付与コマンドをそのまま使うこと。
+  **付与直後の1回目の apply は IAM 反映待ちで失敗する**ため、開催前日までに済ませること
 
 ### 動作確認の結果(2026-08-28 実施)
 
@@ -527,6 +568,58 @@ AWS版と同じく、各ステップディレクトリは **その時点の作�
   していない人は権限エラーになる(S28に両方を記載済み)
 - カスタムロールは削除後7日間ソフトデリート状態で残る。
   同じ `role_id` ですぐ作り直せない(`syukudai1/README.md` に記載済み)
+
+### 受講者権限での検証(第2回〜第4回まとめて・2026-08-28)
+
+**第4回を1本流せば第2回・第3回のリソースも同時に検証できる**(`0. before` に
+積み上がっているため)。この方法で第2〜4回の権限をまとめて確認した。
+
+**結果: 第2〜4回の全リソース(Cloud SQL 含む)が受講者権限だけで作成できた。**
+
+- `3. spanner` 時点で **31リソース**
+- 宿題2(Cloud SQL / REGIONAL)を足して **34リソース**。作成 10分12秒
+
+内訳(第4回の `3. spanner` 時点):
+
+- 第2回: VPC / サブネット×2 / Firewall×2 / Cloud Router / Cloud NAT
+- 第3回: web VM / SA / インスタンスグループ / ヘルスチェック /
+  バックエンドサービス / URLマップ / HTTPプロキシ / HTTPSプロキシ /
+  グローバルIP / 転送ルール×2 / SSL証明書 / DNSレコード / IAP関連IAM×3
+- 第4回: グローバルアドレス(VPC_PEERING) / サービスネットワーキング接続 /
+  Memorystore / Spanner インスタンス / Spanner データベース / Spanner IAM
+
+**ロール構成を簡素化できた**
+
+当初 `roles/cloudsql.admin` / `roles/redis.admin` も必要だと想定していたが、
+**Spanner / Cloud SQL / Memorystore の作成権限は `roles/editor` に含まれていた**。
+
+`roles/editor` に無く、追加が必要だったのは次の2つだけ。
+
+| 不足権限 | 補完先 |
+|---|---|
+| `spanner.databases.setIamPolicy` | `roles/spanner.admin` |
+| `servicenetworking.services.addPeering` | `roles/servicenetworking.networksAdmin` |
+
+**確定した受講者ロール(計9)**
+
+```
+roles/editor
+roles/iam.serviceAccountAdmin
+roles/iam.roleAdmin
+roles/storage.admin
+roles/secretmanager.admin
+roles/compute.instanceAdmin.v1
+roles/iap.admin
+roles/spanner.admin                      ← 第4回で追加
+roles/servicenetworking.networksAdmin    ← 第4回で追加
+```
+
+第1回 付録A の付与コマンドを9ロールに更新済み。
+
+> **注意**: ロール付与直後の1回目の apply は失敗する。
+> IAMの反映に1分程度かかるため。再実行すれば通る。
+
+---
 
 ### 第4回の動作確認結果(2026-08-28 実施・一部)
 

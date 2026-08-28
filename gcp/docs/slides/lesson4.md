@@ -50,11 +50,12 @@
    ```
 3. 受講者のロールに以下を**追加**すること(第1回 付録Aの構成では足りない)
    ```
-   roles/spanner.admin
-   roles/cloudsql.admin
-   roles/redis.admin
-   roles/servicenetworking.networksAdmin
+   roles/spanner.admin                   spanner.databases.setIamPolicy
+   roles/servicenetworking.networksAdmin servicenetworking.services.addPeering
    ```
+   Spanner / Cloud SQL / Memorystore の**作成権限は `roles/editor` に含まれている**ので、
+   `roles/cloudsql.admin` や `roles/redis.admin` は不要。
+   Editor に無いのは上記2つの権限だけ。
 4. **Spanner の課金を事前に確認**すること
    100 PU(最小構成)× 受講者数 × 2時間。
    消し忘れると日割りで効いてくるので、destroy の徹底を強めに案内する
@@ -1699,33 +1700,70 @@ destroy 時に「接続は消さず、stateから外すだけ」にできる。
 
 # 付録B: 制作メモ / 要確認事項
 
-## 実環境での動作確認: **未実施**
+## 実環境での動作確認: **完了(2026-08-28)**
 
-`terraform validate` は全6ディレクトリで成功済み(google provider 8.0.0)。
-`0. before` は23リソースで、第2回・第3回の検証済みコードから機械的に組み立てている。
+Step0〜3 と Cloud SQL(宿題2相当)を通しで apply → destroy 済み。
+`terraform validate` は全6ディレクトリで成功(google provider 8.0.0)。
 
-### 確認すべきこと
-
-| 項目 | 内容 |
+| 項目 | 結果 |
 |---|---|
-| `0. before` の apply | 23リソースが一度に作られる。所要時間 |
-| 限定公開サービスアクセス | ピアリングが張れるか。所要時間 |
-| Memorystore | 作成時間(原稿では「10分前後」と推定) |
-| **Spanner** | 作成時間(原稿では「数分」と推定)。DDLが通るか |
-| **Spanner への接続** | **Private Google Access だけで届くか。これが最重要** |
-| **go-sql-spanner** | Goのドライバでビルドが通るか。Ping が成功するか |
-| Spanner の IAM | `roles/spanner.databaseUser` だけで足りるか |
-| Cloud SQL | 作成時間(原稿では「15分前後」と推定) |
-| `password_wo` | 本当に tfstate に残らないか。apply後に grep して確認 |
-| フェイルオーバー | S43の「60秒程度」は推定値。実測して差し替える |
-| 宿題1 | 5GB未満でのエラーメッセージを実測 |
-| destroy | Spanner / Cloud SQL / ピアリングの削除順序。所要時間 |
+| `0. before`(23リソース) | OK。4分48秒 |
+| 限定公開サービスアクセス + Memorystore | OK。6分5秒。IPは貸出レンジから払い出された |
+| Spanner(インターリーブDDL含む) | OK。**1分6秒**。Cloud SQLよりずっと速い |
+| **外部IPなしVMから Spanner へ到達** | **OK**。Private Google Access のみで届いた |
+| **Spanner の IAM** | **OK**。DB単位の `roles/spanner.databaseUser` だけで足りた |
+| **go-sql-spanner でのビルドと接続** | **OK**。`DB接続(Spanner): 成功` |
+| Spanner + Memorystore 同時接続 | OK |
+| Cloud SQL(REGIONAL) | OK。9分28秒。プライマリ 1-a / セカンダリ 1-c |
+| **`password_wo` が tfstate に残らない** | **OK**。`password: None` のみ。実値の grep は0件 |
+| destroy | ピアリング削除に回避策が必要(付録A-2) |
 
-> **ピアリングの destroy は要注意**。
-> `google_service_networking_connection` は Cloud SQL / Memorystore が
-> 残っている間は削除できない。Terraformが順序を解決できるか確認すること。
+### 見つけて修正したバグ
 
-> **Spanner の課金**に注意。検証時は必ず destroy まで通すこと。
+**1. 貸し出しレンジが `/24` では足りない**
+
+Memorystore を作った時点でブロックが埋まり、Cloud SQL の作成が失敗した。
+
+```
+Couldn't find free blocks in allocated IP ranges.
+Please allocate new ranges for this service provider.
+```
+
+`/20` に変更して解決。Googleは `/16` を推奨。
+
+さらに、Cloud SQL は作成に失敗すると `state: FAILED` で残る。
+Terraformのstateには入らないので次のapplyは
+`The Cloud SQL instance already exists` で失敗する。
+`gcloud sql instances delete` してから再実行が必要。
+
+**2. e2-micro ではアプリがビルドできない**
+
+| マシンタイプ | 結果 |
+|---|---|
+| e2-micro (2共有vCPU / 1GB) | **16分経っても完了せず**(load average 4.11) |
+| e2-medium (2vCPU / 4GB) | **5分16秒で完了** |
+
+第3回のVMも e2-medium に変更し、`0. before` と整合させた。
+第3回のビルドも 6分46秒 → 2分14秒 に改善している。
+
+**3. destroy が待っても終わらない**
+
+付録A-2 に手順を記載。12分・6回リトライしても解決せず、
+`gcloud compute networks peerings delete` が必要だった。
+
+### 受講者相当の権限での検証(2026-08-28 実施)
+
+第1回 付録A の9ロールだけを持つサービスアカウントになりすまして通した結果、
+**第2〜4回の全リソース(34個。Cloud SQL 含む)が作成できた。**
+
+`0. before` に第2回・第3回が積み上がっているため、
+**第4回を1本流すだけで過去の回の権限も同時に検証できる。**
+
+ロールは当初の想定より少なくて済んだ(`cloudsql.admin` / `redis.admin` は不要)。
+
+### まだ検証できていないこと
+- **Cloud Shell での実行**。第1回〜第4回とも未実施
+- 宿題1(Memorystore リードレプリカの5GB制約)のエラーメッセージ実測
 
 ## 受講者ロールへの追加が必要
 
@@ -1733,12 +1771,13 @@ destroy 時に「接続は消さず、stateから外すだけ」にできる。
 
 ```
 roles/spanner.admin
-roles/cloudsql.admin
-roles/redis.admin
 roles/servicenetworking.networksAdmin
 ```
 
-**第1回の付録Aに追記し、権限付与をやり直す必要がある。**
+`roles/cloudsql.admin` / `roles/redis.admin` は**不要**。
+作成権限は `roles/editor` に含まれている。
+
+**第1回の付録Aに追記済み(計9ロール)。**
 
 ## 新規作図が必要なスライド
 
@@ -1764,8 +1803,6 @@ roles/servicenetworking.networksAdmin
 - 社内で Spanner をメインで使っているため、**Spanner を本編**に変更
 - Cloud SQL は「みんな知っている」前提で軽く扱い、フェイルオーバーの計測は宿題へ
 - ハンズオン到達点も「アプリから Spanner と Memorystore に接続」に変更
-
-**設計書 6章の第4回の記述を更新すること。**
 
 その他:
 

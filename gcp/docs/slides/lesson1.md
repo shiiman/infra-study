@@ -1915,19 +1915,33 @@ gcloud services enable \
 Editor に以下を足す。いずれも不足権限を含むことを確認済み。
 
 ```
-roles/editor                      ベース
-roles/iam.serviceAccountAdmin     iam.serviceAccounts.setIamPolicy
-roles/iam.roleAdmin               iam.roles.create / delete / undelete
-roles/storage.admin               storage.buckets.get/setIamPolicy
-roles/secretmanager.admin         secretmanager.secrets.setIamPolicy
-roles/compute.instanceAdmin.v1    compute.instances.setIamPolicy
-roles/iap.admin                   iap.tunnelInstances.get/setIamPolicy
+roles/editor                          ベース
+roles/iam.serviceAccountAdmin         iam.serviceAccounts.setIamPolicy
+roles/iam.roleAdmin                   iam.roles.create / delete / undelete
+roles/storage.admin                   storage.buckets.get/setIamPolicy
+roles/secretmanager.admin             secretmanager.secrets.setIamPolicy
+roles/compute.instanceAdmin.v1        compute.instances.setIamPolicy
+roles/iap.admin                       iap.tunnelInstances.get/setIamPolicy
+roles/spanner.admin                   spanner.databases.setIamPolicy  (第4回)
+roles/servicenetworking.networksAdmin servicenetworking.services.addPeering (第4回)
 ```
+
+**第4回で追加になる2ロールについて**
+
+Spanner / Cloud SQL / Memorystore の**作成権限は `roles/editor` に含まれている**ので、
+`roles/cloudsql.admin` や `roles/redis.admin` は不要。
+
+必要なのは Editor に無い次の2つだけ。
+
+| 不足権限 | 補完先 | 使う箇所 |
+|---|---|---|
+| `spanner.databases.setIamPolicy` | `roles/spanner.admin` | 第4回 Step3(SAにDB権限を付与) |
+| `servicenetworking.services.addPeering` | `roles/servicenetworking.networksAdmin` | 第4回 Step2(限定公開サービスアクセス) |
 
 付与コマンド(受講者ごとに実行)
 
 ```
-PROJECT=[プロジェクトID]
+PROJECT=<プロジェクトID>
 MEMBER=user:xxx@example.com
 
 for ROLE in \
@@ -1937,7 +1951,9 @@ for ROLE in \
   roles/storage.admin \
   roles/secretmanager.admin \
   roles/compute.instanceAdmin.v1 \
-  roles/iap.admin
+  roles/iap.admin \
+  roles/spanner.admin \
+  roles/servicenetworking.networksAdmin
 do
   gcloud projects add-iam-policy-binding $PROJECT \
     --member=$MEMBER --role=$ROLE --condition=None
