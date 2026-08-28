@@ -100,7 +100,7 @@ Terraform で、HTTPS でアクセスできるコンテナ Web アプリ一式
 | ALB | Cloud Load Balancing (Global External Application LB) | |
 | Route53 | Cloud DNS | |
 | ACM | Google マネージド SSL証明書 / Certificate Manager | us-east-1 制約のような面倒がない |
-| RDS / Aurora | **Cloud SQL** (+ AlloyDB / Spanner は概説) | |
+| RDS / Aurora | **Spanner**(本編) / Cloud SQL(軽く) / AlloyDB は概説 | Spanner は AWS に相当なし。社内の主力なので本編に据える |
 | ElastiCache | **Memorystore** (Redis / Valkey) | |
 | DynamoDB | Firestore / Bigtable | 概説のみ |
 | Redshift / Athena | **BigQuery** | 概説のみ |
@@ -185,9 +185,15 @@ AWS版のスライドをそのままなぞると破綻する箇所。各回の�
 ### 第4回 データベース (2026-12-07)
 
 - **AWS版対応**: 第5回
-- **アジェンダ**: データベースの歴史(RDB/NoSQL) / 用途別の選択 / Cloud SQL(HA構成・フェイルオーバー) / Memorystore / AlloyDB・Spanner・Firestore・BigQuery は概説
-- **ハンズオン到達点**: アプリから Cloud SQL と Memorystore に接続、フェイルオーバーの挙動を観測
-- **宿題**: 第5回まで17日あるので極端に軽くする必要はないが、年末進行と重なるため控えめに。Memorystore のリードレプリカ追加程度
+- **アジェンダ**: データベースの歴史(RDB/NoSQL) / 用途別の選択 / **GCPの3種類の接続方式** / Memorystore / **Spanner(本編)** / Cloud SQL(軽く) / AlloyDB・Firestore・Bigtable・BigQuery は概説
+- **ハンズオン到達点**: アプリから Spanner と Memorystore に接続できる
+- **★ 設計変更(2026-08-28)**: 社内で Spanner をメインで使っているため、
+  **Spanner を本編に変更**した。当初案では Cloud SQL が主役だったが、
+  Cloud SQL(MySQL/PostgreSQL)は既知の人が多いので軽く扱う。
+  フェイルオーバーの計測は宿題に回した
+- **宿題**: 年末進行と重なるため控えめに。
+  Memorystore のリードレプリカ追加 / Spanner のインターリーブ体験 /
+  Spanner の主キー設計を調べる / Cloud SQL のフェイルオーバー計測
 
 ### 第5回 コンテナ (2026-12-24 木)
 
@@ -393,7 +399,8 @@ GCPも「VPC → サブネット → LB → インスタンス」と構造がほ
 | 1 | 済 `docs/slides/lesson1.md` (68枚) | 済 `lesson1/` 4ステップ | 済 syukudai1-2 | **済 (2026-08-28)** |
 | 2 | 済 `docs/slides/lesson2.md` (63枚) | 済 `lesson2/` 7ステップ | 済 syukudai1-2 | **済 (2026-08-28)** |
 | 3 | 済 `docs/slides/lesson3.md` (56枚) | 済 `lesson3/` 0.before + 4ステップ | 済 syukudai1-3 | **済 (2026-08-28)** |
-| 4〜10 | 未 | 未 | 未 | 未 |
+| 4 | 済 `docs/slides/lesson4.md` (53枚) | 済 `lesson4/` 0.before + 3ステップ | 済 syukudai1-3 | **済 (2026-08-28)** |
+| 5〜10 | 未 | 未 | 未 | 未 |
 
 - Terraform コードは全 23 ディレクトリで `terraform fmt` 差分なし /
   `terraform validate` 成功(google provider 8.0.0)
@@ -403,6 +410,45 @@ GCPも「VPC → サブネット → LB → インスタンス」と構造がほ
 - 公開リポジトリのため、プロジェクトIDとドメインは変数化して伏せている
 - **`[プロジェクトID]` で通しの apply → destroy を実施済み**(11章に結果)
 - スライドの Google スライドへの流し込みは未着手(手作業)
+
+### 動作確認の型(第5回以降もこれに従う)
+
+**受講者相当の権限で1回だけ通す。** 講師アカウントで確認してから
+別途권限を確認する、という2周はしない(第1回・第2回でやったが無駄だった)。
+
+**方法**
+
+1. 受講者に付与するロールだけを持つサービスアカウントを作る
+2. 自分にそのSAの `roles/iam.serviceAccountTokenCreator` を付ける
+3. 教材のコードをコピーし、次のパッチを当てる
+   - `provider "google"` に `impersonate_service_account` を追加
+   - `member = "user:${data...}"` → `"serviceAccount:${data...}"`
+     (実行主体がSAになるため)
+   - `user_name` をテスト用の名前に変更
+   - `backend` ブロックを削除(ローカルstateで十分)
+   - モジュールの `source` をローカルパスに変更(未pushの場合)
+4. `terraform apply` → 動作確認 → `terraform destroy`
+5. 検証後、プロジェクトIAMのバインディングとSAを削除する
+
+**なぜこの方法が良いか**
+
+- グループ経由の権限が一切混ざらないので、**実際の受講者より厳しい条件**になる
+- 講師アカウントでは気づけない権限不足を確実に検出できる
+- 1周で機能検証と権限検証の両方が終わる
+
+**この方法でカバーできない部分**
+
+`gcloud compute ssh` とアプリの動作確認は人間の操作なので、
+自分のアカウントで実施する。Terraform のリソース作成権限
+(一番詰まりやすいところ)は1周でカバーできる。
+
+**積み上げの利点**
+
+各回の `0. before` に前回までの全リソースが入っているため、
+**最新の回を1本流せば過去の回のリソース作成権限も同時に検証できる**。
+例: 第4回を流すと、第2回・第3回のリソースもすべて作られる。
+
+---
 
 ### 確定した制作の型(第3回以降もこれに従う)
 
@@ -481,9 +527,14 @@ AWS版と同じく、各ステップディレクトリは **その時点の作�
 - [x] tfstate バケットを `terraform destroy` から守る運用 —
   第1回の最後だけ `-target` でバケット以外を指定する方式に決定(実測で検証済み)。
   第1回スライド S67 に手順を記載。第2回以降は素の `terraform destroy` でよい
-- [ ] アンケート用 Google Form の作成(第1回 S63 / 第2回 S58 に URL を差し込む)
-- [ ] 受講者への権限付与を実行する。付与するロールは検証済み(11章参照)。
-  **`roles/editor` だけでは足りない**ので、第1回 付録A の付与コマンドをそのまま使うこと
+- [ ] アンケート用 Google Form の作成(各回に URL を差し込む)
+- [x] 受講者ロールの確定 — **計9ロール**(検証済み)。第1回 付録A に付与コマンドあり。
+  第4回で追加が必要なのは `roles/spanner.admin` と
+  `roles/servicenetworking.networksAdmin` の2つだけ
+  (`cloudsql.admin` / `redis.admin` は不要。作成権限は Editor に含まれる)
+- [ ] 受講者への権限付与を実行する。付与するロール(9個)は検証済み。
+  **`roles/editor` だけでは足りない**ので、第1回 付録A の付与コマンドをそのまま使うこと。
+  **付与直後の1回目の apply は IAM 反映待ちで失敗する**ため、開催前日までに済ませること
 
 ### 動作確認の結果(2026-08-28 実施)
 
@@ -518,6 +569,157 @@ AWS版と同じく、各ステップディレクトリは **その時点の作�
 - カスタムロールは削除後7日間ソフトデリート状態で残る。
   同じ `role_id` ですぐ作り直せない(`syukudai1/README.md` に記載済み)
 
+### 受講者権限での検証(第2回〜第4回まとめて・2026-08-28)
+
+**第4回を1本流せば第2回・第3回のリソースも同時に検証できる**(`0. before` に
+積み上がっているため)。この方法で第2〜4回の権限をまとめて確認した。
+
+**結果: 第2〜4回の全リソース(Cloud SQL 含む)が受講者権限だけで作成できた。**
+
+- `3. spanner` 時点で **31リソース**
+- 宿題2(Cloud SQL / REGIONAL)を足して **34リソース**。作成 10分12秒
+
+内訳(第4回の `3. spanner` 時点):
+
+- 第2回: VPC / サブネット×2 / Firewall×2 / Cloud Router / Cloud NAT
+- 第3回: web VM / SA / インスタンスグループ / ヘルスチェック /
+  バックエンドサービス / URLマップ / HTTPプロキシ / HTTPSプロキシ /
+  グローバルIP / 転送ルール×2 / SSL証明書 / DNSレコード / IAP関連IAM×3
+- 第4回: グローバルアドレス(VPC_PEERING) / サービスネットワーキング接続 /
+  Memorystore / Spanner インスタンス / Spanner データベース / Spanner IAM
+
+**ロール構成を簡素化できた**
+
+当初 `roles/cloudsql.admin` / `roles/redis.admin` も必要だと想定していたが、
+**Spanner / Cloud SQL / Memorystore の作成権限は `roles/editor` に含まれていた**。
+
+`roles/editor` に無く、追加が必要だったのは次の2つだけ。
+
+| 不足権限 | 補完先 |
+|---|---|
+| `spanner.databases.setIamPolicy` | `roles/spanner.admin` |
+| `servicenetworking.services.addPeering` | `roles/servicenetworking.networksAdmin` |
+
+**確定した受講者ロール(計9)**
+
+```
+roles/editor
+roles/iam.serviceAccountAdmin
+roles/iam.roleAdmin
+roles/storage.admin
+roles/secretmanager.admin
+roles/compute.instanceAdmin.v1
+roles/iap.admin
+roles/spanner.admin                      ← 第4回で追加
+roles/servicenetworking.networksAdmin    ← 第4回で追加
+```
+
+第1回 付録A の付与コマンドを9ロールに更新済み。
+
+> **注意**: ロール付与直後の1回目の apply は失敗する。
+> IAMの反映に1分程度かかるため。再実行すれば通る。
+
+---
+
+### 第4回の動作確認結果(2026-08-28 実施・一部)
+
+Spanner をメインに据えた構成で検証。**教材のバグを2件見つけて修正した。**
+
+| 確認項目 | 結果 |
+|---|---|
+| `0. before`(23リソース)の apply | OK。4分48秒 |
+| 限定公開サービスアクセス + Memorystore | OK。6分5秒 |
+| Spanner の作成(DDL・インターリーブ含む) | OK。**1分6秒**。Cloud SQLよりずっと速い |
+| **外部IPなしVMから Spanner へ到達** | **OK**。`gcloud spanner ... execute-sql` が成功 |
+| **Spanner の IAM** | **OK**。データベース単位の `roles/spanner.databaseUser` だけで足りた |
+| **go-sql-spanner でのビルドと接続** | **OK**。`DB接続(Spanner): 成功` |
+| Spanner + Memorystore の同時接続 | OK |
+| Cloud SQL(REGIONAL)の作成 | OK。9分28秒。プライマリ 1-a / セカンダリ 1-c |
+| **`password_wo` が tfstate に残らないか** | **OK**。`password: None` / `password_wo: None` のみ。実値の grep は0件 |
+| アプリから Cloud SQL / Memorystore への接続 | OK |
+| destroy | **1回では終わらない**(下記バグ3) |
+
+**見つけたバグ1: 貸し出しレンジが小さすぎた**
+
+`private_service_cidr = "172.16.200.0/24"` にしていたが、
+Memorystore を作った時点でブロックが埋まり、Cloud SQL の作成が失敗した。
+
+```
+Couldn't find free blocks in allocated IP ranges.
+Please allocate new ranges for this service provider.
+```
+
+`/20` に変更して解決。Googleは `/16` を推奨している。
+
+さらに、**Cloud SQL は作成に失敗すると `state: FAILED` で残る**。
+Terraformのstateには入らないので、次のapplyは
+`The Cloud SQL instance already exists` で失敗する。
+`gcloud sql instances delete` してから再実行が必要。
+受講者全員がこれを踏むところだった。
+
+**見つけたバグ2: e2-micro ではアプリがビルドできない**
+
+Spanner のクライアントライブラリ(Google Cloud Go SDK + gRPC)は依存が大きく、
+第3回まで使っていた e2-micro ではビルドが終わらない。
+
+| マシンタイプ | 結果 |
+|---|---|
+| e2-micro (2共有vCPU / 1GB) | **16分経っても完了せず**(load average 4.11) |
+| e2-medium (2vCPU / 4GB) | **5分16秒で完了** |
+
+**第3回のVMも e2-medium に変更した。**
+`lesson4/0. before` は「第3回までの完成状態」なので、
+第3回が e2-micro のままだと `0. before` の中身と食い違ってしまうため。
+
+副次的に第3回のビルドも速くなった。
+
+| 回 | マシンタイプ | ビルド時間 |
+|---|---|---|
+| 第2回 | e2-micro(VM2台。疎通確認のみ、ビルドなし) | — |
+| 第3回 | **e2-micro → e2-medium** | 6分46秒 → **2分14秒** |
+| 第4回 | e2-medium | 5分16秒(Spannerクライアント込み) |
+
+第3回の待ち時間の合計も 17分 → **12分** に改善した。
+
+**見つけたバグ3: destroy が1回で終わらない**
+
+Cloud SQL / Memorystore を消したあと、限定公開サービスアクセスの
+接続の削除で失敗する。
+
+```
+Error: Unable to remove Service Networking Connection
+Failed to delete connection; Producer services
+(e.g. CloudSQL, Cloud Memstore, etc.) are still using this connection.
+```
+
+Terraform の削除順序自体は正しい(`depends_on` によりDBが先に消え、
+実際に Cloud SQL / Memorystore / Spanner は消えている)。
+Google 側でピアリングが解放されるまでにラグがあるのが原因。
+
+**待っても解決しない。** DBを全て削除した状態で12分間・6回リトライしたが
+毎回同じエラーになった。
+
+解決手順:
+
+```
+terraform destroy      # DBは消える。ピアリングの削除で失敗
+gcloud compute networks peerings delete servicenetworking-googleapis-com \
+  --network=<user_name>-vpc
+terraform destroy      # 33秒で完了
+```
+
+ピアリングが残るとVPCも消せない。共有プロジェクトなので消し残しは
+他の受講者のQuotaを圧迫する。第4回スライドに 付録A-2 として手順を追加した。
+
+**Cloud SQL は講義から外して宿題に回した。**
+作成に10分かかるうえ、社内では既知の人が多いため。
+講義では概説のみ(S41〜S44)とし、構築とフェイルオーバー計測は `syukudai2/` へ。
+
+これにより待ち時間は **約12分**(ビルド5分 + Memorystore 6分 + Spanner 1分)。
+Spanner の講義時間も 35分 → 42分 に増やした。
+
+---
+
 ### 第3回の動作確認結果(2026-08-28 実施)
 
 Step0〜4 と宿題2・3を通しで apply → destroy 済み。詳細は
@@ -531,7 +733,7 @@ Step0〜4 と宿題2・3を通しで apply → destroy 済み。詳細は
 | S31 | (記載なし) | apply直後は無応答。**約1.5分**で503が返るようになる |
 | S33 | ヘルスチェック 20〜30秒 | **37秒** |
 | S42/S44 | 証明書 数分〜60分 | **8分20秒**(ACTIVE後さらに約1分のラグ) |
-| S16 | (記載なし) | アプリのビルドに**約7分** |
+| S16 | (記載なし) | アプリのビルドに**約7分**(その後 e2-medium 化で2分14秒に改善) |
 
 **待ち時間が合計17分ある。** 2時間の講義でこれは大きいので、
 解説を挟める順序に原稿を組んである。当日は「先にコマンドを流してから解説」を推奨。
@@ -672,6 +874,21 @@ Cloud Shell 固有のリスクは個別に潰してあり、残るのは
    AWS の VPC エンドポイントに近いが、サブネットのフラグ1つで全 Google API が対象になる。
    第2回のハンズオンでは **Cloud NAT より先に** これを教える順序にした
    (逆順だと NAT 経由で到達できてしまい、PGA の効果が見えなくなるため)。
+
+11. **マネージドDBへの接続方式が3種類ある** —
+    AWS では RDS も ElastiCache も自分の VPC のサブネットに ENI を作って入ってきたので、
+    「サブネットグループ + セキュリティグループ」の1パターンで済んだ。
+    GCP は接続方式が分かれる。
+
+    | 方式 | サービス | 必要な準備 |
+    |---|---|---|
+    | Google API 経由 | Spanner / BigQuery / Cloud Storage | Private Google Access(第2回で有効化済み) |
+    | VPCピアリング | Cloud SQL / Memorystore | 限定公開サービスアクセス(グローバルアドレス予約 + サービスネットワーキング接続) |
+    | Auth Proxy | Cloud SQL(別解) | プロキシの起動 |
+
+    「Spanner を作ったのに繋がらない」と「Cloud SQL を作ったのに繋がらない」は
+    原因が全く違う。第4回 S17 で明示的に扱う。
+    第5回(Cloud Run)でも接続方式の話が再度出てくる。
 
 10. **IAP は「ネットワークの許可」と「IAM の許可」の2層が揃わないと通らない** —
     AWS の踏み台は「SG + SSH 鍵」の2つだったが、GCP の IAP は
