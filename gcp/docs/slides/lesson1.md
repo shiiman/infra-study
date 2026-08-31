@@ -1926,6 +1926,7 @@ roles/spanner.admin                   spanner.databases.setIamPolicy  (第4回)
 roles/servicenetworking.networksAdmin servicenetworking.services.addPeering (第4回)
 roles/run.admin                       run.services.setIamPolicy       (第5回)
 roles/artifactregistry.admin          artifactregistry.repositories.setIamPolicy (第7回)
+roles/logging.configWriter            logging.sinks / exclusions / buckets.create (第8回)
 ```
 
 **第4回で追加になる2ロールについて**
@@ -1941,10 +1942,17 @@ Spanner / Cloud SQL / Memorystore の**作成権限は `roles/editor` に含ま�
 | `servicenetworking.services.addPeering` | `roles/servicenetworking.networksAdmin` | 第4回 Step2(限定公開サービスアクセス) |
 | `run.services.setIamPolicy` | `roles/run.admin` | 第5回 Step2(Cloud Runを公開する) |
 | `artifactregistry.repositories.setIamPolicy` | `roles/artifactregistry.admin` | 第7回 Step1(ビルドSAにpush権限を付与) |
+| `logging.sinks.create` / `logging.exclusions.create` / `logging.buckets.create` | `roles/logging.configWriter` | 第8回 Step1(ログルーター)/ 宿題3(除外・保持期間) |
 
 **Artifact Registry / Cloud Run / サーバレスNEG の作成権限は `roles/editor` に含まれている。**
 第5回までは `roles/artifactregistry.admin` は不要だったが、
 **第7回でリポジトリ単位のIAMを付けるようになるので必要になる。**
+
+**第8回の監視まわりは、ほとんど `roles/editor` で足りる。**
+ダッシュボード / アラートポリシー / 通知チャンネル / Uptime check / SLO /
+ログベース指標は Editor に入っている。
+足りないのは **ログルーター系(シンク・除外・ログバケット)** だけで、
+これが `roles/logging.configWriter` に入っている。
 
 **★ 配ってはいけないロール ★**
 
@@ -1973,7 +1981,8 @@ for ROLE in \
   roles/spanner.admin \
   roles/servicenetworking.networksAdmin \
   roles/run.admin \
-  roles/artifactregistry.admin
+  roles/artifactregistry.admin \
+  roles/logging.configWriter
 do
   gcloud projects add-iam-policy-binding $PROJECT \
     --member=$MEMBER --role=$ROLE --condition=None
