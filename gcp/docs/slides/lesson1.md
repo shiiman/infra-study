@@ -1925,6 +1925,7 @@ roles/iap.admin                       iap.tunnelInstances.get/setIamPolicy
 roles/spanner.admin                   spanner.databases.setIamPolicy  (第4回)
 roles/servicenetworking.networksAdmin servicenetworking.services.addPeering (第4回)
 roles/run.admin                       run.services.setIamPolicy       (第5回)
+roles/artifactregistry.admin          artifactregistry.repositories.setIamPolicy (第7回)
 ```
 
 **第4回で追加になる2ロールについて**
@@ -1939,9 +1940,21 @@ Spanner / Cloud SQL / Memorystore の**作成権限は `roles/editor` に含ま�
 | `spanner.databases.setIamPolicy` | `roles/spanner.admin` | 第4回 Step3(SAにDB権限を付与) |
 | `servicenetworking.services.addPeering` | `roles/servicenetworking.networksAdmin` | 第4回 Step2(限定公開サービスアクセス) |
 | `run.services.setIamPolicy` | `roles/run.admin` | 第5回 Step2(Cloud Runを公開する) |
+| `artifactregistry.repositories.setIamPolicy` | `roles/artifactregistry.admin` | 第7回 Step1(ビルドSAにpush権限を付与) |
 
-**Artifact Registry / Cloud Run / サーバレスNEG の作成権限も `roles/editor` に含まれている。**
-`roles/artifactregistry.admin` は不要。
+**Artifact Registry / Cloud Run / サーバレスNEG の作成権限は `roles/editor` に含まれている。**
+第5回までは `roles/artifactregistry.admin` は不要だったが、
+**第7回でリポジトリ単位のIAMを付けるようになるので必要になる。**
+
+**★ 配ってはいけないロール ★**
+
+`resourcemanager.projects.setIamPolicy`(= `roles/resourcemanager.projectIamAdmin`
+や `roles/owner`)は**配らない**。
+持つと誰にでも好きなロールを付けられるため、共有プロジェクトでは事実上のオーナー権限になる。
+
+そのため、プロジェクト単位でしか付けられない権限
+(第7回の `roles/logging.logWriter` など)は講師が事前に付与する。
+第7回 S17b で、この分界を受講者にも説明している。
 
 付与コマンド(受講者ごとに実行)
 
@@ -1959,7 +1972,8 @@ for ROLE in \
   roles/iap.admin \
   roles/spanner.admin \
   roles/servicenetworking.networksAdmin \
-  roles/run.admin
+  roles/run.admin \
+  roles/artifactregistry.admin
 do
   gcloud projects add-iam-policy-binding $PROJECT \
     --member=$MEMBER --role=$ROLE --condition=None

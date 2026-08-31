@@ -1,0 +1,21 @@
+# Cloud Deploy が読む設定ファイル(宿題1で使います)
+#
+# ★ skaffold とは ★
+# もともとは Kubernetes 向けの開発ツールですが、
+# Cloud Deploy は「どのマニフェストを、どうやって配るか」の
+# 記述形式として skaffold.yaml を採用しています。
+#
+# Cloud Run にデプロイする場合、覚えることは2つだけです。
+#   manifests  何を配るか(Cloud Run のサービス定義YAML)
+#   deploy     どこに配るか(cloudrun: {} と書くだけ)
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: infra-study-app
+
+manifests:
+  rawYaml:
+    - run-service.yaml
+
+deploy:
+  cloudrun: {}

@@ -1,0 +1,76 @@
+# インフラ勉強会(GCP) 第7回 ビルド構成
+#
+# ★ AWSの buildspec.yml に相当します ★
+#
+# 大きな違いは、AWS では
+#   buildspec.yml(ビルド) と appspec.yml(デプロイ) が別ファイルで、
+#   さらに CodePipeline がその2つをつなぐ定義を持っていたこと。
+#
+# Cloud Build は1ファイルに「ビルドもデプロイも」書きます。
+# ステップを上から順に実行するだけなので、読む場所が1つで済みます。
+#
+# ★ 変数について ★
+#   $PROJECT_ID / $SHORT_SHA / $BRANCH_NAME  Cloud Build が自動で入れる
+#   ${_REGION} / ${_REPO} / ${_SERVICE}      トリガーの substitutions から来る
+#                                            (ユーザ定義は _ で始める決まり)
+
+steps:
+  # 1. イメージをビルドする
+  #
+  # タグを2つ付けている。
+  #   :$SHORT_SHA  どのコミットか分かる。デプロイはこちらを指す
+  #   :latest      人が手で pull するとき用
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - APP_VERSION=$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:latest
+      - .
+
+  # 2. Artifact Registry に push する
+  #
+  # ★ docker login が要らない ★
+  # ビルドを動かしているサービスアカウントの権限がそのまま使われる。
+  # AWS では ecr get-login-password | docker login が必要だった。
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app
+
+  # 3. Cloud Run にデプロイする
+  #
+  # ★ --set-env-vars は使わないこと ★
+  # 環境変数は Terraform が管理している(SPANNER_* / CACHE_HOST)。
+  # ここで --set-env-vars を書くと既存の環境変数を全部消してしまい、
+  # アプリが DB に繋がらなくなる。
+  #
+  # このビルドが変えるのは **イメージだけ**。
+  # だから Terraform 側は image だけを ignore_changes にすればよい。
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$SHORT_SHA
+      - --region
+      - ${_REGION}
+
+# ★ これが無いとビルドが始まりません ★
+#
+# 自分で指定したサービスアカウントでビルドする場合、
+# ログの出力先を明示する必要があります。
+# 既定は「Cloud Storage にも書く」なのですが、
+# その保存先バケットの権限まで面倒を見るのは大変なので、
+# Cloud Logging だけに出す設定にしています。
+options:
+  logging: CLOUD_LOGGING_ONLY
