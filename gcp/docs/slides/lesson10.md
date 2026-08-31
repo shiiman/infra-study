@@ -182,14 +182,16 @@ Google スプレッドシートに読み込む。
 
   15問 / 25分 / 各1点
 
-  https://forms.gle/xxxxxxxx
+  https://docs.google.com/forms/d/e/1FAIpQLSdCU9eEvQr6EKwO9R2hBj7Edbw8S7uMUEIeZxXbo3D4-WGWZQ/viewform
 
 ★ 何も見ずに解いてください
 ★ 25分経ったら締め切ります
 ★ 早く終わった人は、そのまま待っていてください
 ```
 
-> **制作TODO**: Google Form を作成してURLを差し込む。
+> **★ 自動採点を設定済み**(テスト形式・各1点・15点満点)。
+> 複数選択は問3・問6・問13。完答のみ得点になります。
+> **提出後に解答を表示しない設定にすること**(試験2の最中に見られると困る)。
 
 ---
 
@@ -645,7 +647,7 @@ AWS版でも、時間切れで提出できなかった人がいた。
 ```
 ◼10回分のアンケートです
 
-  https://forms.gle/xxxxxxxx
+  https://docs.google.com/forms/d/e/1FAIpQLScLqCvXcVjX0i74ZYf_xjAuFIeEizU7xUPCrpr-QVCftuyYJA/viewform
 
 ★ 5分いただきます。この場で書いてください
 ★ 次にやるときの参考にします
@@ -658,8 +660,7 @@ AWS版でも、時間切れで提出できなかった人がいた。
   「作る→繋がらない→通す」の形式はどうだったか
 ```
 
-> **制作TODO**: Google Form を新規作成してURLを差し込む。
-> AWS版の全体アンケートを流用して、GCP版の設問に差し替える。
+> **★ 作成済み**(18問)。設問は `gcp/docs/survey.md` を参照。
 
 ---
 

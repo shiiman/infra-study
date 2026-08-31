@@ -1378,10 +1378,11 @@ cloudbuild.yaml は共有し、違いは substitutions で渡す
 1分で終わりますのでぜひフィードバックお願い致します！！
 次回開催のモチベになります！！！
 
-https://forms.gle/xxxxxxxx
+https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8fUjjIoF37A/viewform
 ```
 
-> **制作TODO**: Google Form を新規作成してURLを差し込む。
+> **★ 全10回で同じフォームです。** 冒頭で「第何回か」を選ぶ形式なので、
+> 回答は1つのシートに溜まり、回ごとの推移が見えます。
 
 ---
 
