@@ -1,0 +1,27 @@
+# インフラ勉強会(GCP) 第7回 宿題3 用のビルド構成
+#
+# ★ cloudbuild.yaml との違いは deploy ステップが無いことだけ ★
+#
+# <自分の名前>-dev ブランチに push したときに動く。
+# 「ビルドが通るか」「イメージができるか」までを確認して終わり。
+# Cloud Run には出さない。
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - APP_VERSION=$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$SHORT_SHA
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/app:$SHORT_SHA
+
+options:
+  logging: CLOUD_LOGGING_ONLY

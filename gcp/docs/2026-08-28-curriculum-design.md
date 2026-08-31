@@ -219,8 +219,15 @@ AWS版のスライドをそのままなぞると破綻する箇所。各回の�
 - **AWS版対応**: 第8回
 - **アジェンダ**: CI/CDとは / GitHub連携 / Cloud Build(トリガー・ビルド構成) / Artifact Registry / Cloud Deploy(デリバリーパイプライン・ターゲット) / カナリアデプロイ / ロールバック
 - **ハンズオン到達点**: GitHub に push すると自動ビルドされ、Cloud Run へ段階的にデプロイされる
-- **宿題**: ブランチ指定デプロイ / 承認ステップの追加
-- **要確認**: Cloud Source Repositories の状況を制作時に再確認
+- **宿題**: Cloud Deploy でカナリア / 承認ステップとロールバック / ブランチ指定デプロイ
+- **決定(2026-08-28 制作時)**:
+  - **Cloud Source Repositories は使わない。** 2024年6月17日に新規提供を終了しており、
+    組織として未使用ならAPIも有効化できない。後継は Secure Source Manager だが、
+    実務でGitHubを使っているので GitHub 連携で組む
+  - **GitHubは共有リポジトリ + 受講者ごとのブランチ。** GitHub App のインストールと
+    接続の作成は講師が1回だけ行い、受講者はトリガーをぶら下げるだけにする
+  - **Cloud Deploy はハンズオンから宿題へ。** GitHub連携 + Cloud Build で2時間が埋まるため。
+    カナリア/ロールバックはスライド解説 + 宿題1・2 で扱う
 
 ### 第8回 監視・運用 + その他リソース (2027-03-01)
 
@@ -407,9 +414,10 @@ GCPも「VPC → サブネット → LB → インスタンス」と構造がほ
 | 4 | 済 `docs/slides/lesson4.md` (53枚) | 済 `lesson4/` 0.before + 3ステップ | 済 syukudai1-3 | **済 (2026-08-28)** |
 | 5 | 済 `docs/slides/lesson5.md` (51枚) | 済 `lesson5/` 0.before + 4ステップ | 済 syukudai1-2 | **済 (2026-08-28)** |
 | 6 | 済 `docs/slides/lesson6.md` (46枚) | 済 `lesson6/` 0.before + 3ステップ | 済 syukudai1-3 | **済 (2026-08-28)** |
-| 7〜10 | 未 | 未 | 未 | 未 |
+| 7 | 済 `docs/slides/lesson7.md` (48枚) | 済 `lesson7/` 0.before + 3ステップ + `app/` | 済 syukudai1-3 | **済 (2026-08-31)** |
+| 8〜10 | 未 | 未 | 未 | 未 |
 
-- Terraform コードは全 30 ディレクトリで `terraform fmt` 差分なし /
+- Terraform コードは全 37 ディレクトリで `terraform fmt` 差分なし /
   `terraform validate` 成功(google provider 8.0.0)
 - 第1回〜第3回とも実環境で apply → destroy を検証済み(11章)
 - コードは `main` に push 済み。`0. before` のモジュール参照が
@@ -565,13 +573,21 @@ Cloud Run はイメージが存在しないと作成できず、
   `dig NS <勉強会のドメイン>` で委譲を確認済み
 - [ ] 社内IP(`company_ip` 相当)の実値確認 — 第3回 宿題3 / 第6回 宿題3 の Cloud Armor で使う
 - [ ] CIDR を社内の標準化スプレッドシートに合わせる必要があるか
-- [ ] Cloud Source Repositories / CodeCommit の現況確認(第7回制作時)
+- [x] Cloud Source Repositories の現況確認 — **2024年6月17日に新規提供終了**。
+  組織として未使用ならAPIも有効化できない。後継は Secure Source Manager。
+  第7回は **GitHub 連携**で組むことに決定(6章 第7回)
+- [ ] **アプリ用の共有 GitHub リポジトリの org / 名前を決める**(第7回)
+- [ ] **Cloud Build の GitHub App インストール + 接続の作成**(第7回・講師)
+- [ ] **受講者ごとのビルド用サービスアカウントの作成 + `roles/logging.logWriter` 付与**(第7回・講師)
 - [ ] 対象者の確定(AWS版は「社員サーバエンジニア全員」) — 第1回 S05 に反映する
 - [x] tfstate バケットを `terraform destroy` から守る運用 —
   第1回の最後だけ `-target` でバケット以外を指定する方式に決定(実測で検証済み)。
   第1回スライド S67 に手順を記載。第2回以降は素の `terraform destroy` でよい
 - [ ] アンケート用 Google Form の作成(各回に URL を差し込む)
-- [x] 受講者ロールの確定 — **計9ロール**(検証済み)。第1回 付録A に付与コマンドあり。
+- [x] 受講者ロールの確定 — 第5回時点で **10ロール**。
+  **第7回で `roles/artifactregistry.admin` を追加して計11ロール**
+  (`artifactregistry.repositories.setIamPolicy` がどのロールにも無いため)。
+  第1回 付録A に付与コマンドあり。
   第4回で追加が必要なのは `roles/spanner.admin` と
   `roles/servicenetworking.networksAdmin` の2つだけ
   (`cloudsql.admin` / `redis.admin` は不要。作成権限は Editor に含まれる)
@@ -612,6 +628,103 @@ Cloud Run はイメージが存在しないと作成できず、
 - カスタムロールは削除後7日間ソフトデリート状態で残る。
   同じ `role_id` ですぐ作り直せない(`syukudai1/README.md` に記載済み)
 
+### 第7回の動作確認結果(2026-08-29 / 08-31 実施)
+
+**講義・宿題とも受講者相当の権限で通しで実測した。** `user_name = perm7`。
+
+| 項目 | 結果 |
+|---|---|
+| `0. before` + Step1(40リソース) | **約10分** |
+| `roles/artifactregistry.admin` の要否 | **必要だと実測で確認** |
+| **`ignore_changes` あり** | `gcloud run deploy` で image を変えても **No changes** |
+| **`ignore_changes` なし** | `~ image = ... -> ...` で巻き戻そうとする |
+| destroy 1回目 | **6分32秒**。失敗は private サブネット1件のみ(第6回と同じ) |
+| トリガー作成(受講者権限) | **OK**。共有接続にぶら下げられた(追加ロール不要) |
+| push → トリガー起動 | **OK**。`^<自分の名前>$` のブランチフィルタも効いた |
+| **Step2 のビルド** | **build/push は成功、deploy で PERMISSION_DENIED**(完全再現) |
+| ビルド所要時間 | **約5分20秒**。Goの依存解決が重い。講義中に2回走るので計10分 |
+
+**権限の事前照合が2件当たった**
+
+`gcloud iam roles describe` + `gcloud iam list-testable-permissions` で
+事前に洗い出した2件が、そのまま実環境の結果と一致した。
+
+1. `artifactregistry.repositories.setIamPolicy` — 既存10ロールに無い
+   → `roles/artifactregistry.admin` を追加(**11個目**)。
+   実際に付与前は 403 で落ちた
+
+2. `resourcemanager.projects.setIamPolicy` — 既存10ロールに無く、**配ってもいけない**
+   → 持つと共有プロジェクトで誰にでも好きなロールを付けられる。
+   ビルドSAに要る `roles/logging.logWriter` はプロジェクト単位でしか付かないので、
+   **ビルドSAは講師が事前に作る**設計に変更した(15章 判断16)
+
+**ロール付与直後は反映待ちで失敗する(再現)**
+
+`roles/artifactregistry.admin` を付けた直後の apply が 403 で落ち、
+数分おいて再実行したら通った。第1回で確認したのと同じ現象。
+**ロール追加は開催前日までに済ませること。**
+
+**`cloudbuild.triggers.*` / `cloudbuild.connections.use` は存在しない**
+
+`gcloud iam list-testable-permissions` で確認した。
+トリガーの操作は `cloudbuild.builds.*` に含まれ、`roles/editor` にある。
+**実測でも、受講者権限だけで共有接続にトリガーをぶら下げられた。**
+
+**GitHub 連携の実際の手順(2026-08-31 実施)**
+
+1. コンソールで接続を作成 — GitHub App のインストールとトークンの
+   Secret Manager 保存が1回で済む。**ここだけブラウザ作業**
+2. GitHub App が「選択したリポジトリ」でインストールされていると、
+   **後から作ったリポジトリは Cloud Build から見えない**。
+   org の設定画面でリポジトリを追加する必要がある(これもブラウザ作業)
+3. `gcloud builds repositories create` でリンク(CLIで可)
+4. 受講者に渡すのはリンクのフルリソース名1つだけ
+
+2 は見落としやすい。**アプリ用リポジトリは接続を作る前に用意しておくと1往復減る。**
+
+**Cloud Deploy の実行SAには `roles/clouddeploy.jobRunner` も要る(宿題1・2)**
+
+`roles/logging.logWriter` と同じくプロジェクト単位でしか付けられないので、
+**講師がビルドSAを作るときに一緒に付ける**。
+第7回の事前準備スクリプトに入れてある。
+
+### 宿題の実測結果(2026-08-31)
+
+| 項目 | 結果 |
+|---|---|
+| 宿題1 apply | OK(7リソース) |
+| 1回目のリリース | **カナリアは必ず SKIPPED**。`stable` の手前で人待ち |
+| 2回目のリリース | **10% → 50% → 100%** が動いた |
+| 宿題2 承認 | `The rollout is pending approval.` で停止 |
+| 宿題2 ロールバック | **承認不要**。`stable` のみで100%切り戻し |
+| 宿題3 dev ブランチ | **CIだけ起動、Cloud Run のリビジョンは増えず** |
+
+**宿題で見つけて直した設計の穴(2件)**
+
+1. **Cloud Deploy に新規サービスを作らせると、プロジェクト単位の
+   `roles/run.developer` が必要になる。**
+   サービス単位のIAMは既存サービスにしか付けられないため。
+   共有プロジェクトでこれを配ると、受講者のCIが他人の本番 Cloud Run も
+   触れてしまうので通せない。
+   → **カナリア用サービスの入れ物を Terraform で先に作る**形に変更した。
+   講義の「インフラの形は Terraform、動かすものは CI/CD」が、
+   宿題では「権限を絞れる形はどれか」という別の理由からも要求される展開になり、
+   結果として教材の筋が通った
+
+2. Cloud Deploy 実行SAの `roles/clouddeploy.jobRunner`(上記)
+
+**Cloud Deploy の運用上の注意(教材に反映済み)**
+
+- リリース作成直後の `approve` は `PENDING_RELEASE: failed precondition` で失敗する。
+  `PENDING_APPROVAL` になるまで十数秒待つ
+- **1ターゲットで同時に進められるロールアウトは1つだけ。**
+  進行中のものがあるとロールバックが `PENDING` のまま動かない。
+  先に `rollouts cancel` が要る。障害対応で一番ハマるところ
+- ロールバックに承認は要らない(`DOES_NOT_NEED_APPROVAL`)。
+  カナリアも通らず `stable` のみで100%切り戻し
+
+---
+
 ### 第6回の動作確認結果(2026-08-28 実施)
 
 **受講者相当の権限(なりすましSA)で1回通した。** `user_name = perm6`。
@@ -644,7 +757,10 @@ Cloud Run はイメージが存在しないと作成できず、
 
 残ったのは Cloud Run の Direct VPC egress が確保した
 `purpose = SERVERLESS` のアドレスによるサブネット削除の失敗だけ。
-これは第5回と同じで1〜2時間待つしかない。
+これは第5回と同じで待つしかない。
+**実測では Cloud Run の削除から解放まで約2時間20分**かかった
+(公式ドキュメントの「1〜2時間」より長い)。
+受講者には「当日中には終わらない。翌日に2回目の destroy を流す」と案内すること。
 
 **課金されるリソースは1回目の destroy で全部消える。**
 残るのは VPC とサブネット(どちらも無料)のみ。
@@ -1084,6 +1200,45 @@ Cloud Shell 固有のリスクは個別に潰してあり、残るのは
     第2回 S35 で「3つのゲート」として図解している。
     エラーの種類(タイムアウト = ネットワーク / 権限エラー = IAM)で
     切り分けられることを教えると、以降の回の障害切り分けが楽になる。
+
+14. **CI/CD のサービス数が 4 → 1 になる** —
+    AWS版第8回は CodeCommit / CodeBuild / CodeDeploy / CodePipeline の
+    4サービスと、それぞれのIAMロールを作る回だった。
+    GCPは **Cloud Build 1つがビルドもデプロイもやる**ので、
+    「パイプラインで3つのサービスをつなぐ」という説明構造が丸ごと消える。
+    設定ファイルも `buildspec.yml` + `appspec.yml` → `cloudbuild.yaml` の1つ。
+    空いた尺は **権限設計**(下記15)に回す。
+
+15. **デプロイ権限は2階建てになっている** —
+    Cloud Build が Cloud Run にデプロイするには
+    `roles/run.developer`(デプロイ先を更新する)と
+    `roles/iam.serviceAccountUser`(Cloud Run の実行SAになりすます)の
+    **両方**が要る。1つ目だけでは通らない。
+    AWS の `iam:PassRole` と同じ考え方で、AWS版でも CodePipeline のロールに
+    入れていたが、GCPではエラーが出て初めて気づく形になる。
+    第7回 S25〜S27 の「繋がらない→繋がる」サイクルの核。
+
+16. **プロジェクト単位のIAMは受講者に配れない** —
+    Cloud Build のビルド用SAには `roles/logging.logWriter` が要るが、
+    Cloud Logging の権限は**プロジェクト単位でしか付けられない**。
+    それを付けるための `resourcemanager.projects.setIamPolicy` を配ると
+    共有プロジェクトで誰にでも好きなロールを渡せてしまうため、渡せない。
+
+    **対処**: ビルド用SAは講師が事前に作り、受講者は
+    `data "google_service_account"` で参照する。
+    受講者が自分で付けるのはリソース単位の権限だけにする。
+
+    これは勉強会の都合ではなく実務でもそうなるので、
+    「プロジェクト全体のIAM = 基盤チーム / リソース単位 = 使う人」という
+    分界の説明として教材に組み込んだ(第7回 S17b)。
+
+17. **Terraform と CI/CD の責務分界を教える必要がある** —
+    第6回まではデプロイも `terraform apply` だったが、
+    第7回からイメージを決めるのは CI/CD になる。
+    `lifecycle { ignore_changes = [template[0].containers[0].image] }` が
+    無いと、次の apply で古いイメージに巻き戻る。
+    AWS版にはこの論点が無かった(ECSのタスク定義はCodeDeployが持つ前提だった)。
+    第7回 S35〜S37 で1セクション使う。
 
 12. **Cloud CDN は独立したサービスではない** —
     CloudFront は「ディストリビューション」という独立したリソースで、

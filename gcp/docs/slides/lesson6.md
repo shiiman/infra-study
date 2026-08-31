@@ -1392,10 +1392,14 @@ Cloud CDN ドキュメント
         Cloud Run の Direct VPC egress が確保したIPアドレスが
         すぐには解放されないため。手で消すこともできません
 
-   2. 1〜2時間待つ
+   2. 2〜3時間待つ(実測: Cloud Run の削除から約2時間20分)
 
         gcloud compute addresses list --filter="purpose=SERVERLESS"
         → 消えていればOK
+
+        ★ 公式ドキュメントは「1〜2時間」と書いていますが、
+          実測ではそれより長くかかりました。
+          当日中に終わらない前提で、翌日に3を実行してください
 
    3. terraform destroy          (残りは VPC と サブネット だけ)
 

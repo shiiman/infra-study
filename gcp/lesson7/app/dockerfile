@@ -1,0 +1,37 @@
+# Stage 1のコンテナ
+FROM golang:1.25-alpine AS builder
+
+ENV GOPATH=
+
+RUN apk --no-cache add git
+
+RUN mkdir /app
+WORKDIR /app
+
+COPY ./ ./
+
+# ★ 第7回で追加: ビルド時にバージョンを埋め込む
+#
+# Cloud Build から --build-arg APP_VERSION=$SHORT_SHA で渡され、
+# -ldflags で main.version に入る。
+#
+# 環境変数ではなくイメージに焼き込むことで、
+# 「動いているイメージ = どのコミットか」が1対1で対応する。
+ARG APP_VERSION=dev
+
+# 依存を解決してビルド
+RUN go mod tidy && \
+    go build -ldflags "-X main.version=${APP_VERSION}" -o /main ./main.go
+
+# Stage 2のコンテナ
+FROM alpine:3.22
+
+RUN apk --no-cache add tzdata ca-certificates && \
+    cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
+
+ENV TZ='Asia/Tokyo'
+ENV LANG='ja_JP.UTF-8'
+EXPOSE 8080
+
+COPY --from=builder /main .
+ENTRYPOINT ["./main"]
