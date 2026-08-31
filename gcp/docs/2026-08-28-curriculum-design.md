@@ -627,7 +627,7 @@ Cloud Run はイメージが存在しないと作成できず、
 
 ### 保留中
 
-- [ ] 第10回の尺(2.5時間にするか、総まとめを15分に圧縮するか)
+- [x] 第10回の尺 — **2時間のまま、総まとめを15分に圧縮**(2026-08-31 決定)
 - [x] 使用するカスタムドメイン — **`[勉強会のドメイン]`** を Cloud DNS に委譲する方式に決定(12章)
 - [x] 親ゾーンへの NS レコード登録 — **完了(2026-08-28)**。
   Cloud DNS にゾーンを作成し、親ゾーン(Route53)に NS を登録済み。
@@ -637,14 +637,19 @@ Cloud Run はイメージが存在しないと作成できず、
 - [x] Cloud Source Repositories の現況確認 — **2024年6月17日に新規提供終了**。
   組織として未使用ならAPIも有効化できない。後継は Secure Source Manager。
   第7回は **GitHub 連携**で組むことに決定(6章 第7回)
-- [ ] **アプリ用の共有 GitHub リポジトリの org / 名前を決める**(第7回)
-- [ ] **Cloud Build の GitHub App インストール + 接続の作成**(第7回・講師)
-- [ ] **受講者ごとのビルド用サービスアカウントの作成 + `roles/logging.logWriter` 付与**(第7回・講師)
+- [x] アプリ用の共有 GitHub リポジトリ — **`sumzap/infra-study-app` を作成済み**(2026-08-31)
+- [x] Cloud Build の GitHub App + 接続 — **作成済み**(接続名 `infra-study`、2026-08-31)
+- [ ] **受講者ごとのビルド用サービスアカウントの作成**(第7回・講師)
+  `<名前>-build` を作り、`roles/logging.logWriter` と `roles/clouddeploy.jobRunner` を付与する。
+  どちらもプロジェクト単位でしか付けられないため、受講者には配れない
+- [ ] **提出用 GitHub リポジトリの作成**(第10回)。第7回のアプリ用とは別に作る
+- [ ] **Slack 通知チャンネル** — 作成済み(`infra-study` / `#infra-study-alert`、2026-08-31)
 - [ ] 対象者の確定(AWS版は「社員サーバエンジニア全員」) — 第1回 S05 に反映する
 - [x] tfstate バケットを `terraform destroy` から守る運用 —
   第1回の最後だけ `-target` でバケット以外を指定する方式に決定(実測で検証済み)。
   第1回スライド S67 に手順を記載。第2回以降は素の `terraform destroy` でよい
-- [ ] アンケート用 Google Form の作成(各回に URL を差し込む)
+- [x] アンケート用 Google Form — **作成済み**(2026-08-31)。`docs/survey.md` にURL。
+  各回アンケート / 全体アンケート / 第10回 試験1 の3つ。スライドのURLも差し替え済み
 - [x] 受講者ロールの確定 — 第5回時点で **10ロール**。
   **第7回で `roles/artifactregistry.admin` を追加して計11ロール**
   (`artifactregistry.repositories.setIamPolicy` がどのロールにも無いため)。
@@ -652,7 +657,7 @@ Cloud Run はイメージが存在しないと作成できず、
   第4回で追加が必要なのは `roles/spanner.admin` と
   `roles/servicenetworking.networksAdmin` の2つだけ
   (`cloudsql.admin` / `redis.admin` は不要。作成権限は Editor に含まれる)
-- [ ] 受講者への権限付与を実行する。付与するロール(9個)は検証済み。
+- [ ] 受講者への権限付与を実行する。付与するロール(**12個**)は検証済み。
   **`roles/editor` だけでは足りない**ので、第1回 付録A の付与コマンドをそのまま使うこと。
   **付与直後の1回目の apply は IAM 反映待ちで失敗する**ため、開催前日までに済ませること
 
