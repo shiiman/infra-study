@@ -15,13 +15,18 @@
 | セクション | 時間 | スライド |
 |---|---|---|
 | 導入 | 6分 | S01〜S04 |
-| CI/CDとは / AWSとの構成比較 | 20分 | S05〜S12 |
+| CI/CDとは / AWSとの構成比較 | 16分 | S05〜S12 |
 | 休憩 | 5分 | S13 |
-| 準備 + Step1(Artifact Registry) | 16分 | S14〜S19(S17b含む) |
-| Step2(トリガー)→ 失敗 | 28分 | S20〜S28 |
-| Step3(権限)→ 成功 | 20分 | S29〜S34 |
-| 責務の分界 | 12分 | S35〜S38 |
-| まとめ・宿題 | 13分 | S39〜S47 |
+| 準備 + Step1(Artifact Registry) | 14分 | S14〜S19(S17b含む) |
+| Step2(トリガー)→ 失敗 | 25分 | S20〜S28 |
+| Step3(権限)→ 成功 | 17分 | S29〜S34 |
+| **Step4(GitHub Actions + WIF)** | 18分 | S34b〜S34j |
+| 責務の分界 | 10分 | S35〜S38 |
+| まとめ・宿題 | 9分 | S39〜S47 |
+
+> **★ Step4 のビルド待ち(約5分)に S34g(Terragrunt)と S34h(SOPS)を挟む。**
+> ビルド待ちはこれで3回目になるが、待ち時間を説明枠に変えることで
+> Step4 の実コストを 18分に抑えている。
 
 > **待ち時間**
 > - S15 `0. before` + Step1 の apply: 約10分(実測。40リソース)
@@ -150,7 +155,72 @@ done
 既存の10ロールのどれにも入っていないため。
 第4回以降と同じ「`setIamPolicy` だけ別ロール」のパターン。
 
-### 7. API を有効化する
+### 7. ★ Workload Identity プールとプロバイダを作る(Step4 用)
+
+**GitHub Actions から GCP を触れるようにする。プロジェクトに1つでよい。**
+
+サービスアカウントの鍵ファイルは作らない。
+GitHub が発行する OIDC トークンを GCP が直接検証する形にする。
+
+```
+PROJECT_ID=[プロジェクトID]
+PROJECT_NO=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+
+# 1. プール(GCPの外のIDを受け入れる箱)
+gcloud iam workload-identity-pools create github \
+  --location=global --display-name="GitHub Actions" --project=$PROJECT_ID
+
+# 2. プロバイダ(GitHub の OIDC を信頼する設定)
+gcloud iam workload-identity-pools providers create-oidc github \
+  --location=global --workload-identity-pool=github \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repo_ref=assertion.repository+'@'+assertion.ref" \
+  --attribute-condition="assertion.repository_owner=='[org]'" \
+  --project=$PROJECT_ID
+```
+
+> **★ `attribute.repo_ref` を必ず入れること。**
+> `attribute.repository` だけだと「リポジトリ単位」でしか絞れない。
+> 全員が同じリポジトリを使うので、それでは
+> **他人のブランチから自分のSAが使えてしまう。**
+> `repository + "@" + ref` を1つの属性にしておくことで、
+> 受講者側が「自分のブランチだけ」に絞れるようになる。
+
+> **★ `--attribute-condition` も必ず入れること。**
+> これが無いと、**世界中のどのGitHubリポジトリからでも**
+> トークンの入口までは通ってしまう(実際にSAを使えるかは
+> 受講者側の `principalSet` 次第だが、入口は絞っておくべき)。
+
+**受講者に渡す値**
+
+```
+gcloud iam workload-identity-pools describe github \
+  --location=global --project=$PROJECT_ID --format="value(name)"
+```
+
+これを `terraform.tfvars` の `workload_identity_pool_id` に貼らせる。
+
+### 8. アプリ用リポジトリに Variables を2つ設定する
+
+**★ 講師が1回だけ設定する。受講者は触らない。**
+
+```
+gh variable set WIF_PROVIDER --repo [org]/[アプリ用リポジトリ] \
+  --body "projects/$PROJECT_NO/locations/global/workloadIdentityPools/github/providers/github"
+
+gh variable set PROJECT_ID --repo [org]/[アプリ用リポジトリ] --body "$PROJECT_ID"
+```
+
+> **★ 受講者ごとに違う値は Variables に入れないこと。**
+> 全員で1つのリポジトリを共有しているので、リポジトリ変数も全員で共有される。
+> ここに `SERVICE=shiiman-app` などと書くと、**他の人のビルドが壊れる**。
+>
+> リポジトリ名 / サービス名 / SA は、ワークフロー側で
+> `${{ github.ref_name }}`(= ブランチ名 = 自分の名前)から組み立てる。
+> Cloud Build のトリガーで `substitutions` に渡したのと同じ発想。
+> **この制約自体が S34d の教材になる。**
+
+### 9. API を有効化する
 
 ```
 gcloud services enable clouddeploy.googleapis.com --project=[プロジェクトID]
@@ -1173,6 +1243,478 @@ Cloud Run に自動でデプロイされる
 
 ---
 
+# Step4: GitHub Actions から同じことをやる
+
+### S34b | もう1つのやり方
+
+**[図版]** **新規作成**。同じ「push → デプロイ」を2本の経路で描く。
+左が今やった Cloud Build、右がこれからやる GitHub Actions。
+GitHub の箱は共通で、そこから2本に分かれる。
+
+```
+              [GitHub]  push
+                 │
+        ┌────────┴────────┐
+    (webhook)          (GitHub Actions)
+        │                     │
+  [Cloud Build]      [Actions runner]  ← GCPの外で動く
+        │                     │
+        └────────┬────────┘
+            [Cloud Run]
+```
+
+**[本文]**
+
+```
+◼さっきまでのやり方(Cloud Build)
+
+  GitHub に push すると webhook が飛び、GCPの中でビルドが走る
+  ビルドするマシンもGCPの中にある
+
+◼もう1つのやり方(GitHub Actions)
+
+  GitHub の中でビルドが走り、そこからGCPを操作する
+  ビルドするマシンはGCPの外にいる
+
+◼実務ではこちらのほうが多いです
+
+  アプリのテストもリンタも、もう GitHub Actions で回っている
+  デプロイだけ Cloud Build に分けると、2か所を見ることになる
+
+★ ここで問題になるのが「GCPの外から、どうやってGCPを触るか」です
+★ 今日はそこだけをやります
+```
+
+**[話す]** Cloud Build を先にやったのは、GCPの中で完結する形のほうが
+権限の関係が見やすいから。外から触る形は、そこに認証の話が1つ増える。
+
+---
+
+### S34c | 鍵ファイルを配らない ★
+
+**[図版]** **新規作成**。この回の最重要図その4。
+上下2段。上が「昔のやり方(鍵ファイル)」、下が「Workload Identity 連携」。
+上は鍵ファイルがGitHubのSecretsに置かれている図に ✕、
+下はGitHubが発行したトークンをGCPが検証している図に ○。
+
+```
+  ✕ 昔のやり方
+    [SAの鍵ファイル(JSON)] ──コピー──▶ [GitHub Secrets]
+      ・有効期限がない        ・漏れたら誰でもGCPを触れる
+      ・誰が持っているか分からない
+
+  ○ Workload Identity 連携
+    [GitHub Actions] ──「私は sumzap/infra-study-app の
+                          refs/heads/shiiman です」(OIDCトークン)
+           │
+           ▼
+    [GCP] トークンをGitHubの公開鍵で検証
+           → 条件に合えば、SAの短命なトークンを渡す(1時間)
+```
+
+**[本文]**
+
+```
+◼サービスアカウントの鍵ファイルは作らないでください
+
+  JSONの鍵を作って GitHub Secrets に貼る、が昔のやり方でした
+
+  鍵には有効期限がない
+  漏れたら、取り消すまで誰でも使える
+  誰がコピーを持っているか分からない
+
+◼Workload Identity 連携(WIF)
+
+  GitHub Actions は、実行のたびに OIDC トークンを発行できる
+  そのトークンには「どのリポジトリの、どのブランチか」が入っている
+
+    repository : sumzap/infra-study-app
+    ref        : refs/heads/shiiman
+
+  GCP側で「この条件に合うトークンなら、このSAを使ってよい」と
+  書いておけば、鍵ファイルなしでGCPを操作できる
+
+  渡されるのは1時間で切れる短命なトークン
+
+★ 第1回でやった「サービスアカウントの2つの顔」の話です
+   ここでも「このSAを使ってよいのは誰か」を書いています
+   その"誰か"に、人でもSAでもなく
+   「GitHubのこのリポジトリのこのブランチ」を書けるようになった、というだけ
+★ AWSでいうと、GitHub OIDC + IAMロールの AssumeRole と同じ仕組みです
+```
+
+**[話す]** 第1回のサービスアカウントの図(2つの顔)を思い出してもらう。
+「使ってよいのは誰か」の"誰か"に、人でもSAでもなく
+「GitHubのこのリポジトリのこのブランチ」を書けるようになった、というだけ。
+
+---
+
+### S34d | 誰が何を用意するか
+
+**[図版]** **新規作成**。S17b の階層図と同じ描き方で、
+「プロジェクトに1つあればよいもの(講師)」と
+「自分のものに付けるもの(受講者)」に分ける。
+
+**[本文]**
+
+```
+◼講師が用意してあるもの(プロジェクトに1つでよい)
+
+  Workload Identity プール         GCPの外のIDを受け入れる箱
+  Workload Identity プロバイダ      GitHub の OIDC を信頼する設定
+                                  「トークンの何を見るか」の対応付けも書いてある
+
+  ★ 作成はプロジェクト単位の操作なので、Cloud Build の GitHub 接続と同じ扱い
+
+◼みなさんが今から書くもの
+
+  自分のビルド用SAに、こう書きます
+
+    「sumzap/infra-study-app の refs/heads/<自分の名前> から来たトークンなら、
+      このSAを使ってよい」
+
+  ★ 付ける先は サービスアカウント。リソース単位のIAMです
+  ★ 他人のブランチから自分のSAは使えません
+
+◼ワークフローファイル
+
+  .github/workflows/deploy-<自分の名前>.yml
+  cloudbuild.yaml と同じことを、GitHub Actions の書き方で書きます
+```
+
+---
+
+### S34e | Step4: 自分のSAに許可を足す
+
+**[本文]**
+
+```
+参照: gcp/lesson7/4. github_actions/wif.tf
+
+resource "google_service_account_iam_member" "gha_wif" {
+  service_account_id = data.google_service_account.build.name
+  role               = "roles/iam.workloadIdentityUser"
+
+  member = join("", [
+    "principalSet://iam.googleapis.com/",
+    var.workload_identity_pool_id,
+    "/attribute.repo_ref/",
+    "${var.github_repository}@refs/heads/${var.user_name}",
+  ])
+}
+
+  cd ~/works/lesson7 && cp -r "~/infra-study/gcp/lesson7/4. github_actions/"* .
+  terraform apply
+
+★ ここで apply したら、すぐには push しないでください
+   IAMの反映に数分かかります。次の2枚を聞いている間に反映されます
+
+★ principalSet:// で始まるのが、外部IDを指す書き方です
+★ @refs/heads/<自分の名前> で、自分のブランチだけに絞っています
+   ここを消すと、誰のブランチからでも自分のSAが使えてしまいます
+```
+
+**[話す]** ここは1リソースだけ。Step3 でやった
+`google_service_account_iam_member` と同じリソースタイプで、
+member の書き方だけが違う、という点を押さえてもらう。
+
+---
+
+### S34e2 | ドキュメントどおりに書くと通らない ★
+
+**[図版]** **新規作成**。実際に発行されたトークンの sub を大きく見せ、
+数値IDの部分を赤で囲む。下に「repository / ref は素直」と対比を置く。
+
+**[本文]**
+
+```
+◼公式ドキュメントには、こう書いてあります
+
+  principal://iam.googleapis.com/<プール>/subject/
+    repo:OWNER/REPO:ref:refs/heads/BRANCH
+
+  sub の完全一致で、リポジトリとブランチを1つの文字列で縛れる
+
+◼ところが、実際に発行されたトークンの sub はこうでした
+
+  repo:sumzap@45473687/infra-study-app@1351899519:ref:refs/heads/shiiman
+            ~~~~~~~~~                ~~~~~~~~~~~
+            組織の数値ID              リポジトリの数値ID
+
+  ★ この組織は「OIDCのsubjectに不変IDを含める」設定が有効です
+     名前を変えても同じ主体を指せるようにするための設定で、
+     セキュリティ的にはこちらのほうが堅牢です
+
+◼どうするか
+
+  repository と ref のクレームは、名前のまま素直に入っています
+
+    repository : sumzap/infra-study-app
+    ref        : refs/heads/shiiman
+
+  プロバイダ側でこの2つを連結した属性を作ってあります
+
+    attribute.repo_ref = assertion.repository + "@" + assertion.ref
+
+  → principalSet://<プール>/attribute.repo_ref/
+       sumzap/infra-study-app@refs/heads/shiiman
+
+★ 「ドキュメントどおりに書いたのに PERMISSION_DENIED」は、
+   だいたいこれか、audience の指定ミスです
+★ 困ったら、トークンの中身を実際に出して確かめるのが一番早いです
+```
+
+**[話す]** ここは実際にハマったところ。
+最初は公式の書き方で組んだが動かず、トークンをデコードして初めて分かった。
+「ドキュメントと実物が違うことがある」「調べ方を知っていれば10分で分かる」
+という話として扱う。
+
+> **トークンの中身の出し方**(講師のメモ):
+> ワークフロー内で `$ACTIONS_ID_TOKEN_REQUEST_URL` に `audience` を付けて
+> curl し、返ってきた JWT のペイロード部を base64 デコードする。
+> S34i のトラブルシュートで詰まったら、これを見せる。
+
+---
+
+### S34f | ワークフローを書いて push する
+
+**[本文]**
+
+```
+参照: gcp/lesson7/app/.github/workflows/deploy.yml
+
+name: deploy
+on:
+  push:
+    branches: ["<自分の名前>"]     ← ここだけ書き換える
+
+permissions:
+  contents: read
+  id-token: write          ← ★ これが無いとトークンを発行できません
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ブランチ名から自分のリソース名を組み立てる
+      - id: vars
+        run: |
+          NAME="${{ github.ref_name }}"
+          echo "repo=${NAME}-repo"   >> "$GITHUB_OUTPUT"
+          echo "service=${NAME}-app" >> "$GITHUB_OUTPUT"
+          echo "sa=${NAME}-build@${{ vars.PROJECT_ID }}.iam.gserviceaccount.com" \
+            >> "$GITHUB_OUTPUT"
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ steps.vars.outputs.sa }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
+      - run: docker build / push / gcloud run deploy   (中身は cloudbuild.yaml と同じ)
+
+  cp .github/workflows/deploy.yml .github/workflows/deploy-<自分の名前>.yml
+  # branches を自分の名前に書き換えてから
+  git add . && git commit -m "add workflow" && git push origin <自分の名前>
+
+★ リポジトリは全員共通なので、Variables も全員共有です
+   自分の名前を Variables に書くと、他の人のビルドが壊れます
+   → ブランチ名から組み立てます(Cloud Build の substitutions と同じ発想)
+
+★ ビルドに5分ほどかかります。待っている間に別の話をします
+```
+
+**[話す]** `permissions: id-token: write` を忘れるのが一番多いミス。
+書かないと OIDC トークンが発行されず、
+`Unable to get ACTIONS_ID_TOKEN_REQUEST_URL` で落ちる。
+ここは先に「忘れると落ちます」と言っておく。
+
+---
+
+### S34g | Terragrunt — 同じことを何度も書かないために ★
+
+**[図版]** **新規作成**。左が「素のTerraform(環境ごとにコピー)」、
+右が「Terragrunt(共通モジュール + 環境ごとの差分だけ)」。
+左は同じファイルが3つ並んでいて、赤字で「3か所直す」。
+
+```
+   素のTerraform                    Terragrunt
+
+   envs/dev/main.tf   ┐            modules/app/       ← 中身は1つ
+   envs/stg/main.tf   ├ 中身がほぼ同じ  envs/dev/terragrunt.hcl  ← 差分だけ
+   envs/prd/main.tf   ┘            envs/stg/terragrunt.hcl
+                                   envs/prd/terragrunt.hcl
+   → 1つ直すと3か所直す            → モジュールを1か所直す
+```
+
+**[本文]**
+
+```
+◼この勉強会では、環境が1つしかありませんでした
+
+  実務では dev / stg / prd と増えます
+  中身はほとんど同じで、値だけが違う
+
+◼素のTerraformだと
+
+  ディレクトリごとコピーすることになりがちです
+  backend の設定も、provider の設定も、毎回書く
+  → 直すときに全部直す。直し忘れる
+
+◼Terragrunt
+
+  Terraform のラッパー。社内でも使っています(nishiki)
+
+  共通の中身は module に置く
+  環境ごとには terragrunt.hcl に「違うところだけ」書く
+  backend の設定も自動生成できる
+
+  依存関係も書ける(VPCができてからアプリを作る、など)
+
+★ Terraform を素で理解したうえで使う道具です
+   だから今日まで出しませんでした
+★ 今日やった ignore_changes などは、Terragrunt でもそのまま使えます
+```
+
+**[話す]** ビルドを待っている間の話。
+「今日書いたコードが3環境分に増えたらどうなるか」から入る。
+
+> **制作TODO**: nishiki の Terragrunt のディレクトリ構成を確認し、
+> 実物の構成図を1枚差し込むこと。「うちだとこうなっている」があると早い。
+
+---
+
+### S34h | SOPS — 秘密情報をリポジトリに置く ★
+
+**[図版]** **新規作成**。左が「そのまま置く(✕)」、右が「SOPSで暗号化(○)」。
+右は KMS の鍵で暗号化されたYAMLがGitに入っていて、
+復号にはIAMの権限が要る、という流れを描く。
+
+```
+  ✕ そのまま         db_password: "honmono"        ← Gitに平文が残る
+
+  ○ SOPS            db_password: ENC[AES256_GCM,data:...]
+                             │
+                        [Cloud KMS の鍵]
+                             │
+                     復号できるのは、その鍵に IAM 権限がある人だけ
+```
+
+**[本文]**
+
+```
+◼秘密情報をどこに置くか
+
+  第1回の宿題で Secret Manager を使いました
+  → 値はGCPの中。Terraform からは参照するだけ
+
+  では「Secret Manager に入れる値そのもの」はどこで管理するのか
+
+◼SOPS (Secrets OPerationS)
+
+  設定ファイルの **値だけ** を暗号化するツール。社内でも使っています
+
+  キーは平文のまま、値だけ ENC[...] になる
+  → 差分が読める。どのキーが増えたか分かる
+
+  鍵は Cloud KMS(GCP) / KMS(AWS) / age など
+  → 復号できるかは IAM で決まる。人の入れ替わりに強い
+
+◼何がうれしいか
+
+  暗号化したままGitに入れられる
+  → 秘密情報もコードと同じ場所で、同じレビューを通せる
+
+★ 「.env をSlackで送る」をやめるための道具です
+★ 復号の権限をIAMで管理するので、今日までの話とつながります
+```
+
+**[話す]** ここもビルド待ちの話。
+「Secret Manager に入れる値は、誰がどこで持っているのか」という問いから入ると、
+SOPSの位置づけが分かりやすい。
+
+> **制作TODO**: nishiki での SOPS の鍵の持ち方(KMS か age か、
+> 誰が復号できるか)を確認して差し込むこと。
+
+---
+
+### S34i | 動いたか確認する
+
+**[本文]**
+
+```
+◼GitHub の Actions タブを見てください
+
+  緑になっていれば成功です
+
+  gcloud run revisions list --service=[自分の名前]-app \
+    --region=asia-northeast1 --limit=3 \
+    --format="table(name,creationTimestamp)"
+
+  → さっきの Cloud Build のリビジョンの上に、もう1つ増えています
+
+◼うまくいかないとき
+
+  Unable to get ACTIONS_ID_TOKEN_REQUEST_URL
+    → permissions: id-token: write を書いていない
+
+  Permission 'iam.serviceAccounts.getAccessToken' denied
+    → ★ まず「紐付けの反映待ち」を疑ってください
+       apply の直後に push すると、これで落ちます
+       実測では 1〜2分では足りず、10分後の再実行で通りました
+       失敗したジョブは GitHub の画面から Re-run できます
+
+    → 何度やっても駄目なら、ブランチ名が合っているか
+       (terraform output の repo_ref と、自分のブランチ名)
+
+    → それでも分からなければ、S34e2 のやり方で
+       トークンの中身を実際に出して確かめる
+
+  denied: Permission "artifactregistry.repositories.uploadArtifacts" denied
+    → Step1 で付けた権限が、このSAに付いているか確認
+
+★ 3つ目は Cloud Build のときと同じエラーです
+   ビルドする場所が変わっても、必要な権限は同じです
+```
+
+---
+
+### S34j | Cloud Build と GitHub Actions、どちらを使うか
+
+**[図版]** **新規作成**。表。左に判断軸、右2列。
+
+**[本文]**
+
+```
+                      Cloud Build              GitHub Actions
+──────────────────────────────────────────────────────────────
+実行場所               GCPの中                   GitHubの中(GCPの外)
+GCPへの認証            SAを指定するだけ            Workload Identity 連携
+VPC内リソースへの接続    プライベートプールで可能      基本は届かない(要 self-hosted)
+GCPの他サービスとの連携   密(Cloud Deploy など)      gcloud 経由
+テストやリンタ           別に用意することになる        すでにここで回っている
+料金                  ビルド時間で課金             パブリックリポジトリは無料枠が大きい
+設定ファイル            cloudbuild.yaml           .github/workflows/*.yml
+
+◼選び方
+
+  アプリのCIが既に GitHub Actions にある     → そのままデプロイまでやる
+  VPC内のDBにマイグレーションを流したい        → Cloud Build(プライベートプール)
+  Cloud Deploy でカナリアをやりたい          → Cloud Build のほうが素直
+
+★ 両方使う構成もよくあります
+   テストは GitHub Actions、デプロイは Cloud Build、など
+★ どちらでも「必要な権限は同じ」ことは、今日見たとおりです
+```
+
+**[話す]** ここが Step4 の締め。
+道具の優劣ではなく、どこで動かすかの違いであることを押さえてもらう。
+
+---
+
 # 責務の分界
 
 ---
@@ -1515,6 +2057,7 @@ Cloud Logging / Cloud Monitoring / アラート
 | 1 | `1. artifact_registry/` | Artifact Registry + ビルド用SA + 権限2つ | まだ自動化されていない |
 | 2 | `2. cloud_build/` | トリガー | **push → deploy で失敗** |
 | 3 | `3. deploy/` | 権限2つ(run.developer + serviceAccountUser) | **push → 成功** |
+| 4 | `4. github_actions/` | WIFの紐付け1つ + ワークフロー | **GitHub Actions からも成功** |
 
 AWS版 第8回との対応:
 
