@@ -1,0 +1,104 @@
+# インフラ勉強会(GCP) 第7回 Step4
+# GitHub Actions から Cloud Run にデプロイする
+#
+# ★ cloudbuild.yaml と同じことを、GitHub Actions の書き方で書いています ★
+#
+# 違うのは「どこでビルドが動くか」だけです。
+#   Cloud Build      GCPの中で動く。SAを指定すればそのまま権限が使える
+#   GitHub Actions   GCPの外で動く。だからGCPに入るための認証が1つ増える
+#
+# ★ 使い方 ★
+#   1. このファイルを .github/workflows/deploy-<自分の名前>.yml にコピーする
+#   2. branches を自分の名前に書き換える(2か所ではなく1か所だけ)
+#   3. push する
+#
+# ★ サービスアカウントの鍵ファイルは使いません ★
+#   Workload Identity 連携で、実行のたびに短命なトークン(1時間)をもらいます。
+#   詳しくは gcp/lesson7/4. github_actions/wif.tf を読んでください。
+
+name: deploy
+
+on:
+  push:
+    # ★ 自分の名前に書き換えること
+    #   Cloud Build のトリガーで branch = "^shiiman$" と書いたのと同じ意味です
+    branches: ["shiiman"]
+
+# ★ これが無いと動きません ★
+#
+# id-token: write が無いと OIDC トークンを発行できず、
+#   Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable
+# で落ちます。一番多いミスです。
+#
+# contents: read は checkout のために必要です。
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-northeast1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ★ リソース名をブランチ名から組み立てる ★
+      #
+      # 全員で1つのリポジトリを共有しているので、
+      # リポジトリ変数(Variables)も全員で共有になります。
+      # 「自分の名前」をそこに書くと、他の人のビルドが壊れます。
+      #
+      # ブランチ名 = 自分の名前 なので、そこから組み立てます。
+      # Cloud Build 側で substitutions に user_name を渡したのと同じ発想です。
+      - id: vars
+        run: |
+          NAME="${{ github.ref_name }}"
+          echo "repo=${NAME}-repo"    >> "$GITHUB_OUTPUT"
+          echo "service=${NAME}-app"  >> "$GITHUB_OUTPUT"
+          echo "sa=${NAME}-build@${{ vars.PROJECT_ID }}.iam.gserviceaccount.com" >> "$GITHUB_OUTPUT"
+
+      # GCPに入る
+      #
+      # ここで OIDC トークンが GCP に渡り、
+      # wif.tf で書いた条件に合えば SA のトークンが返ってきます。
+      #
+      # ★ 値は Secrets ではなく Variables に入れてあります ★
+      #   鍵を作っていないので、秘密の情報が1つもないためです。
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ steps.vars.outputs.sa }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # Artifact Registry に docker で push できるようにする
+      #
+      # ★ Cloud Build では要りませんでした ★
+      #   GCPの中で動いていたので、認証が最初から通っていたためです。
+      - run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      - name: build and push
+        run: |
+          IMAGE=${REGION}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ steps.vars.outputs.repo }}/app
+          docker build \
+            --build-arg APP_VERSION=${GITHUB_SHA::7} \
+            -t $IMAGE:${GITHUB_SHA::7} \
+            -t $IMAGE:latest \
+            .
+          docker push --all-tags $IMAGE
+
+      # ★ --set-env-vars は書かないこと ★
+      #   cloudbuild.yaml と同じ理由です。
+      #   環境変数は Terraform が管理しているので、
+      #   ここで指定すると既存の環境変数を全部消してしまいます。
+      #   このデプロイが変えるのは イメージだけ です。
+      - name: deploy to Cloud Run
+        run: |
+          IMAGE=${REGION}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ steps.vars.outputs.repo }}/app
+          gcloud run deploy ${{ steps.vars.outputs.service }} \
+            --image=$IMAGE:${GITHUB_SHA::7} \
+            --region=${REGION}

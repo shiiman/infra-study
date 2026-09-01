@@ -1559,3 +1559,200 @@ AWS版では `company_ip`(会社のIP)も同様に伏せられていた
 - 第6回 宿題3: Cloud Armor でIP制限
 
 こちらも第3回の制作までに実値を確認しておくこと(10章の保留中に記載)。
+
+---
+
+## 13. 現場からのフィードバックへの対応(2026-09-01)
+
+朝倉さんから、nishiki / ghost との差分として6項目の提案をいただいた。
+**全10回とも既に120分ぴったりで組んであった**ため、
+追加分は「既存を圧縮する」「待ち時間を説明枠に変える」で捻出した。
+
+| # | 指摘 | 対応 | どこに |
+|---|---|---|---|
+| ① | Terragrunt / SOPS | **第7回に置いた**(第1回ではなく) | S34g / S34h |
+| ② | Private Service Connect | **接続方式を3種類→4種類に** | 第4回 S17 / S20b / S20c |
+| ③ | GitHub Actions + Workload Identity | **ハンズオン(Step4)を新設** | 第7回 S34b〜S34j |
+| ④ | Datadog | 監視の考え方に併記 | 第8回 S12b / S12c |
+| ⑤ | Pub/Sub → BigQuery | その他リソースに追加 | 第8回 S38b |
+| ⑥ | 料金 / 負荷試験 / キャパプラ | **触りだけ**(新セクション) | 第8回 S39b〜S39d |
+
+### 判断23: Terragrunt / SOPS は第1回ではなく第7回に置く
+
+指摘は「GCP基礎 / IAM / Terraform の回で」だったが、**第7回に置いた**。
+
+- 第1回は Terraform 初見の人もいる想定で、既に69枚と最長
+- Terragrunt は「Terraform を素で理解したうえで使う道具」なので、
+  一通り書いたあとのほうが理解が早い
+- 第7回の「責務の分界」(Terraform と CI/CD の境界)と文脈が合う
+- **Step4 のビルド待ち(約5分)に挟めるので、尺のコストが実質ゼロになる**
+
+### 判断24: 接続方式は「3種類」ではなく「4種類」と教える
+
+PSC は単なる4つ目の選択肢ではなく、**①限定公開サービスアクセスの後継**。
+第4回で最大のハマりどころとして扱っている
+「貸出レンジを /24 にすると Cloud SQL が作れない」は、**PSC なら起きない**
+(レンジの貸し出し自体が不要)。
+
+**ハンズオンは①のままにした。**
+
+- ①のほうが「Googleが管理する別VPCにいる」という構造がそのまま見える
+- PSCはその構造を隠すぶん、初見だと「なぜエンドポイントが要るのか」が分からない
+- 実環境で検証済みのコードを作り直すコストが大きい
+
+S20b で「①の何を解決したのか」として扱い、S20c で使い分けを示す。
+
+### 判断25: Step4 の WIF は「プールは講師、紐付けは受講者」で切る
+
+第7回の主題(リソース単位のIAM)と噛み合う切り方にした。
+
+| | 誰が | 理由 |
+|---|---|---|
+| WIF プール / プロバイダ | 講師 | プロジェクトに1つでよい。作成はプロジェクト単位の操作 |
+| SAへの紐付け | **受講者** | サービスアカウント単位のIAM。第7回で繰り返してきた話そのもの |
+| ワークフロー | **受講者** | cloudbuild.yaml と同じことを別の書き方で |
+
+**リポジトリ変数(Variables)は全員共有になる**ので、
+受講者ごとに違う値(リポジトリ名 / サービス名 / SA)はそこに入れず、
+ワークフロー側で `${{ github.ref_name }}`(= ブランチ名 = 自分の名前)
+から組み立てる。Cloud Build の `substitutions` と同じ発想。
+**この制約自体が S34d の教材になる。**
+
+### ★ 実環境で判明: この org は OIDC の sub に数値IDが入る
+
+**2026-09-01 に `sumzap/infra-study-app` で実際に検証して判明した。**
+
+公式ドキュメントの書き方は、sub の完全一致で縛るもの。
+
+```
+principal://iam.googleapis.com/<プール>/subject/repo:OWNER/REPO:ref:refs/heads/BRANCH
+```
+
+ところが実際に発行されたトークンの sub はこうだった。
+
+```
+repo:sumzap@45473687/infra-study-app@1351899519:ref:refs/heads/wif-check
+          ~~~~~~~~~                ~~~~~~~~~~~
+```
+
+**この組織は「OIDC の subject に不変ID を含める」設定が有効**になっている。
+組織やリポジトリの名前を変えても同じ主体を指せるようにするための設定で、
+セキュリティ的にはこちらのほうが堅牢。
+
+`repository` / `ref` クレームは名前のまま素直に入っていたので、
+**プロバイダ側でこの2つを連結したカスタム属性を定義した。**
+
+```
+attribute.repo_ref = assertion.repository + "@" + assertion.ref
+```
+
+→ `principalSet://<プール>/attribute.repo_ref/sumzap/infra-study-app@refs/heads/<名前>`
+
+**`attribute.repository` だけで絞ってはいけない。**
+全員で1つのリポジトリを共有しているため、
+それだと他の人のブランチから自分のSAが使えてしまう。
+
+この経緯は **S34e2 として1枚に起こしてある**。
+「ドキュメントどおりに書いたのに通らない」「トークンの中身を見れば分かる」
+という調べ方の教材として使う。
+
+### ★ 実測: WIF の紐付けは反映に時間がかかる
+
+**同じ設定で、1回目は失敗し、10分後の再実行で成功した。**
+
+```
+1回目(紐付け作成の約1分半後)   PERMISSION_DENIED
+                              Permission 'iam.serviceAccounts.getAccessToken' denied
+2回目(約10分後に Re-run)      成功
+```
+
+第7回では既に「IAMの反映に約1分かかる」を扱っているが、
+**WIF の紐付けはそれより長い。**
+
+そこで原稿の流れをこう組んである。
+
+```
+S34e   apply する(紐付けを作る)
+S34e2  sub の話をする          ← ここで時間を稼ぐ
+S34f   ワークフローを push する
+```
+
+S34e に「すぐには push しないでください」と明記した。
+S34i のトラブルシュートでも、**最初に疑うのは反映待ち**としてある。
+
+### 作った勉強会専用のWIFプール
+
+プロジェクトには既に `github-actions` / `github-pool` の2つがあったが、
+どちらも `attribute.repo_ref` を持っていなかったため、
+**勉強会専用に `infra-study` を作った**(既存プールには手を触れていない)。
+
+```
+gcloud iam workload-identity-pools create infra-study --location=global
+gcloud iam workload-identity-pools providers create-oidc github \
+  --location=global --workload-identity-pool=infra-study \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repo_ref=assertion.repository+'@'+assertion.ref" \
+  --attribute-condition="assertion.repository_owner=='sumzap'"
+```
+
+### 各回の時間の作り直し
+
+| 回 | 変更前 | 変更後 | どう捻出したか |
+|---|---|---|---|
+| 第4回 | 120分 | 120分 | Cloud SQL 概説 8→6分、まとめ 10→8分、Spanner 42→41分 |
+| 第7回 | 120分 | 120分 | 各セクションを計17分圧縮 + **ビルド待ちに①を挟む** |
+| 第8回 | 120分 | 120分 | 各セクションを計14分圧縮 |
+
+**第7回の要点**: GitHub Actions を足すと3回目のビルド待ち(約5分)が増える。
+そこに Terragrunt / SOPS を置くことで、待ち時間が説明枠に変わり、
+Step4 の実コストが 18分に収まった。第3回で使ったのと同じ手。
+
+### 実物(nishiki)に合わせて書き直した(2026-09-01)
+
+`~/Documents/project/nishiki/nishiki-server` を読んで、
+スライドの「一般的な説明」を**実際の構成に差し替えた**。
+`制作TODO` は全て解消済み。
+
+| 項目 | nishiki の実際 | 反映先 |
+|---|---|---|
+| **Terragrunt** | `platform/gcp/{init,common,app}/{env}/{resource}/` + `modules/`。値は `common.yaml → env.yaml → task.yaml` の**3階層**。環境は dev/stg/prd/cer/lod/pmt の**6つ**。**apply/destroy は手元でやらず CI/CD で実行**。tfenv/tgenv でバージョン固定 | 第7回 S34g |
+| **SOPS** | **Cloud KMS 鍵**。`.sops.yaml` の `path_regex` で環境ごとに振り分け、**本番と開発で鍵が別**。`secret.enc.yaml` を Git に置く | 第7回 S34h |
+| **WIF** | プール `<name>-cicd-pool` / プロバイダ `<name>-cicd-provider`。**`attribute.repository` でリポジトリ単位**(1リポジトリ=1プロダクトなのでブランチまで絞らない)。公式モジュール `terraform-google-modules/github-actions-runners//modules/gh-oidc` を使用 | 第7回 S34d |
+| **PSC** | **Memorystore Cluster は PSC のみ**(`google_network_connectivity_service_connection_policy`)。**Cloud SQL は `psc_config` で選択可**。従来の限定公開サービスアクセス(`/22`)も**併存** | 第4回 S20c |
+| **Datadog** | **ghost だけでなく nishiki でも使用**。Terraform に DataDog プロバイダを入れ、**監視設定もコードで管理**。外形監視IPをファイアウォールで許可、APIキーは SOPS | 第8回 S12b |
+| **Pub/Sub → BigQuery** | アプリの行動ログは `ActionLogger` → **Pub/Sub 経由**。テーブルは日次パーティション + **`require_partition_filter = true`** + `storage_billing_model = "PHYSICAL"`。Cloud Armor のログは GCS へ | 第8回 S38b |
+| **負荷試験** | **k6**。PRごとに smoke テストを GitHub Actions で実行。**`lod` という負荷試験専用環境**がある | 第8回 S39d |
+
+### 教材として効いた発見
+
+1. **「新しいサービスほど PSC しか選べない」**
+   Memorystore Cluster は PSC 必須。①を知らないと、なぜ③があるのか分からない。
+   → 第4回で①をハンズオンする順序が正しかったことの裏付けになった。
+
+2. **WIF の絞り方は事情で変わる**
+   nishiki はリポジトリ単位で足りる(1リポジトリ=1プロダクト)。
+   勉強会は「全員で1リポジトリ」なのでブランチまで絞る必要がある。
+   → **「どこまで絞るかは、共有の仕方で決まる」**という話にできる。
+
+3. **`require_partition_filter = true`**
+   「WHERE で日付を指定しないとクエリが通らない」設定。
+   **「全期間スキャンで数万円」を仕組みで防いでいる。**
+   → 第8回の料金の話(S39c)と直結する実例。
+
+4. **手元で apply しない**
+   nishiki の Terragrunt README に
+   「apply と destroy は基本的に実行しないでください(CICD で実行)」とある。
+   → 第7回でやった「push したら適用される」の延長として説明できる。
+
+### スライドに書かなかったもの(公開リポジトリのため)
+
+実物を読んで分かったが、**リポジトリには書いていない**。
+
+- プロジェクトID(環境ごとに分かれている)
+- Cloud KMS の鍵のフルパス
+- 組織名
+- **社内IPの実値** — `terragrunt/platform/gcp/app/common.yaml` に
+  `company_ip_list` / VPN / スマポン / STF などの区分で載っている
+  → **10章の保留「社内IP(`company_ip`)の実値」はここから取れる**
+  (第3回・第6回の Cloud Armor で使う。当日は伏せ字のまま配布し、
+   値は別途共有する運用にすること)
