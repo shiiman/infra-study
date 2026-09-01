@@ -1748,7 +1748,7 @@ Step4 の実コストが 18分に収まった。第3回で使ったのと同じ�
 
 実物を読んで分かったが、**リポジトリには書いていない**。
 
-- プロジェクトID(`gcp-nishiki-development` など)
+- プロジェクトID(環境ごとに分かれている)
 - Cloud KMS の鍵のフルパス
 - 組織名
 - **社内IPの実値** — `terragrunt/platform/gcp/app/common.yaml` に
