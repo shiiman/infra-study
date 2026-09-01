@@ -430,9 +430,14 @@ GCPの監視(Cloud Monitoring / Logging)と SaaS の監視(Datadog)が
 **[本文]**
 
 ```
-◼社内では Datadog を使っているプロダクトもあります
+◼社内では Datadog を使っているプロダクトが複数あります
 
-  ghost では Datadog を使っています
+  ghost / nishiki のどちらでも使っています
+
+  nishiki では
+    Terraform に DataDog プロバイダを入れて、監視設定もコードで管理
+    外形監視(Synthetics)のIPをファイアウォールで許可
+    APIキーは SOPS で暗号化して Git に置く
 
 ◼なぜ両方あるのか
 
@@ -456,9 +461,10 @@ GCPの監視(Cloud Monitoring / Logging)と SaaS の監視(Datadog)が
 先に「考え方は同じ」と言ってから入る。
 道具の名前ではなく、何をどう見るかが本題であることを強調する。
 
-> **制作TODO**: ghost での Datadog の使い方(どのメトリクスを見ているか、
-> アラートの分け方、Cloud Monitoring とどう併用しているか)を確認し、
-> 実例を1枚足すこと。「うちだとこう」が入ると一気に実感が湧く。
+> **★ 監視設定もコードで管理する。** nishiki は Datadog の設定を
+> Terraform(DataDog プロバイダ)で書いている。
+> 「画面でポチポチ作った監視」は誰がいつ作ったか分からなくなる。
+> **今日ダッシュボードとアラートを Terraform で書いたのと同じ考え方。**
 
 ---
 
@@ -1312,13 +1318,31 @@ resource "google_monitoring_alert_policy" "uptime" {
 
 ★ 「まず BigQuery サブスクリプション。加工が要るなら Dataflow」
 ★ AWSでいうと Kinesis Data Firehose に近い立ち位置です
+
+◼nishiki の実際の構成
+
+  アプリの行動ログは ② の経路です
+
+    アプリ (ActionLogger) → Pub/Sub → BigQuery
+
+  BigQuery のテーブルはこう作ってあります
+
+    time_partitioning { type = "DAY", field = "timestamp" }
+    require_partition_filter = true
+    storage_billing_model    = "PHYSICAL"
+
+  ★ require_partition_filter = true が効いています
+     WHERE で日付を指定しないとクエリが実行できない
+     → 「全期間を1回スキャンして数万円」を仕組みで防いでいる
+
+  ★ 一方、Cloud Armor のログは Cloud Storage に流している
+     用途で流し先を変えている(分析するなら BigQuery、保管なら GCS)
 ```
 
 **[話す]** 第8回のシンクの話と地続きなので、
 「さっきのシンク先をBigQueryにすると何ができるか」から入るとつながる。
 
-> **制作TODO**: nishiki / ghost でどちらの構成を採っているかを確認し、
-> 「うちはこちら」を明示すること。
+
 
 ---
 
@@ -1449,7 +1473,14 @@ resource "google_monitoring_alert_policy" "uptime" {
 ◼道具
 
   k6 / Locust / JMeter などをVMやGKEから流す
+
+  ★ nishiki は k6 を使っています
+     PRごとに smoke テスト(軽い負荷)を GitHub Actions で回している
+     → 「重い負荷試験」の前に「壊れていないか」を毎回見る
+
   ★ 本番に向けて流さない。同じ構成の検証環境を作って流す
+     nishiki には lod(負荷試験)という専用環境があります
+     dev / stg / prd とは別に、負荷をかけるためだけの環境
 
 ◼結果から決めること(キャパシティプランニング)
 
@@ -1472,8 +1503,7 @@ resource "google_monitoring_alert_policy" "uptime" {
 「こういう順番でやる」という地図だけ渡して終わる。
 興味がある人は全体アンケートに書いてもらう。
 
-> **制作TODO**: 社内で標準的に使っている負荷試験ツールがあれば、
-> それに合わせて道具の名前を差し替えること。
+
 
 ---
 

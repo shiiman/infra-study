@@ -1376,6 +1376,19 @@ GitHub の箱は共通で、そこから2本に分かれる。
   ★ 付ける先は サービスアカウント。リソース単位のIAMです
   ★ 他人のブランチから自分のSAは使えません
 
+◼実務ではリポジトリ単位で足りることが多い
+
+  nishiki では、こう書いています
+
+    attribute.repository/<org>/nishiki-server
+    attribute.repository/<org>/nishiki-contact
+    attribute.repository/<org>/nishiki-scene-finder
+
+  1リポジトリ = 1プロダクトなので、ブランチまで絞る必要がない
+
+  ★ この勉強会は「全員で1リポジトリを共有」という特殊な事情があるので、
+     ブランチまで絞っています
+
 ◼ワークフローファイル
 
   .github/workflows/deploy-<自分の名前>.yml
@@ -1534,20 +1547,22 @@ jobs:
 
 ---
 
-### S34g | Terragrunt — 同じことを何度も書かないために ★
+### S34g | Terragrunt ★
 
 **[図版]** **新規作成**。左が「素のTerraform(環境ごとにコピー)」、
 右が「Terragrunt(共通モジュール + 環境ごとの差分だけ)」。
-左は同じファイルが3つ並んでいて、赤字で「3か所直す」。
+左は同じファイルが並んでいて、赤字で「全部直す」。
 
 ```
-   素のTerraform                    Terragrunt
+   素のTerraform                    Terragrunt (nishiki の構成)
 
-   envs/dev/main.tf   ┐            modules/app/       ← 中身は1つ
-   envs/stg/main.tf   ├ 中身がほぼ同じ  envs/dev/terragrunt.hcl  ← 差分だけ
-   envs/prd/main.tf   ┘            envs/stg/terragrunt.hcl
-                                   envs/prd/terragrunt.hcl
-   → 1つ直すと3か所直す            → モジュールを1か所直す
+   envs/dev/main.tf   ┐            modules/            ← 中身は1つ
+   envs/stg/main.tf   ├ 中身が      app/dev/db/terragrunt.hcl  ← どのモジュールか
+   envs/prd/main.tf   │ ほぼ同じ    app/dev/db/task.yaml       ← このリソースの値
+   envs/cer/main.tf   │            app/stg/db/...
+   envs/lod/main.tf   │            app/prd/db/...
+   envs/pmt/main.tf   ┘            ...
+   → 1つ直すと6か所直す            → モジュールを1か所直す
 ```
 
 **[本文]**
@@ -1555,24 +1570,30 @@ jobs:
 ```
 ◼この勉強会では、環境が1つしかありませんでした
 
-  実務では dev / stg / prd と増えます
+  nishiki には dev / stg / prd / cer / lod / pmt の6環境があります
   中身はほとんど同じで、値だけが違う
 
 ◼素のTerraformだと
 
   ディレクトリごとコピーすることになりがちです
-  backend の設定も、provider の設定も、毎回書く
+  backend の設定も provider の設定も、環境の数だけ書く
   → 直すときに全部直す。直し忘れる
 
-◼Terragrunt
+◼Terragrunt (社内では nishiki で使っています)
 
-  Terraform のラッパー。社内でも使っています(nishiki)
+  terragrunt/platform/gcp/
+    modules/              共通の中身(cloud_run / db / network / lb ...)
+    app/dev/db/
+      terragrunt.hcl      どのモジュールを使うか + 依存関係
+      task.yaml           このリソースの値
+    app/dev/env.yaml      環境ごとの値
+    app/common.yaml       全環境で共通の値
 
-  共通の中身は module に置く
-  環境ごとには terragrunt.hcl に「違うところだけ」書く
-  backend の設定も自動生成できる
+  ★ 値が3階層に分かれている
+     common.yaml → env.yaml → task.yaml の順に具体的になる
 
-  依存関係も書ける(VPCができてからアプリを作る、など)
+  backend の設定は root.hcl から自動生成
+  dependency で順序も書ける(SAができてから Cloud Run を作る、など)
 
 ★ Terraform を素で理解したうえで使う道具です
    だから今日まで出しませんでした
@@ -1580,17 +1601,20 @@ jobs:
 ```
 
 **[話す]** ビルドを待っている間の話。
-「今日書いたコードが3環境分に増えたらどうなるか」から入る。
+「今日書いたコードが6環境分に増えたらどうなるか」から入る。
 
-> **制作TODO**: nishiki の Terragrunt のディレクトリ構成を確認し、
-> 実物の構成図を1枚差し込むこと。「うちだとこうなっている」があると早い。
+> **★ nishiki では apply / destroy を手元で実行しない。**
+> README に「基本的に実行しないでください(CICD(github actions)で実行)」とある。
+> 人が手で apply できてしまうと、状態がコードとずれる。
+> **今日 Step2〜Step4 でやった「push したら適用される」の延長。**
+> tfenv / tgenv でバージョンも固定してある(`.terraform-version` / `.terragrunt-version`)。
 
 ---
 
 ### S34h | SOPS — 秘密情報をリポジトリに置く ★
 
 **[図版]** **新規作成**。左が「そのまま置く(✕)」、右が「SOPSで暗号化(○)」。
-右は KMS の鍵で暗号化されたYAMLがGitに入っていて、
+右は Cloud KMS の鍵で暗号化されたYAMLがGitに入っていて、
 復号にはIAMの権限が要る、という流れを描く。
 
 ```
@@ -1615,13 +1639,26 @@ jobs:
 
 ◼SOPS (Secrets OPerationS)
 
-  設定ファイルの **値だけ** を暗号化するツール。社内でも使っています
+  設定ファイルの **値だけ** を暗号化するツール。nishiki で使っています
 
   キーは平文のまま、値だけ ENC[...] になる
   → 差分が読める。どのキーが増えたか分かる
 
-  鍵は Cloud KMS(GCP) / KMS(AWS) / age など
-  → 復号できるかは IAM で決まる。人の入れ替わりに強い
+◼nishiki での使い方
+
+  .sops.yaml に「どのパスをどの鍵で暗号化するか」を書く
+
+    creation_rules:
+      - path_regex: dev          → 開発プロジェクトのKMS鍵
+      - path_regex: stg          → 同上
+      - path_regex: production   → 本番プロジェクトのKMS鍵
+
+  暗号化したファイルは secret.enc.yaml として Git に入れる
+
+  ★ 本番と開発で鍵が分かれている
+     開発の鍵しか持っていない人は、本番の値を復号できない
+  ★ 鍵は Cloud KMS。復号できるかは IAM で決まる
+     人の入れ替わりに強い(鍵を配り直さなくてよい)
 
 ◼何がうれしいか
 
@@ -1635,9 +1672,7 @@ jobs:
 **[話す]** ここもビルド待ちの話。
 「Secret Manager に入れる値は、誰がどこで持っているのか」という問いから入ると、
 SOPSの位置づけが分かりやすい。
-
-> **制作TODO**: nishiki での SOPS の鍵の持ち方(KMS か age か、
-> 誰が復号できるか)を確認して差し込むこと。
+「本番の鍵と開発の鍵が分かれている」ところが、権限設計として効いている点。
 
 ---
 

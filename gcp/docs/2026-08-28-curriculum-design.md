@@ -1707,14 +1707,52 @@ gcloud iam workload-identity-pools providers create-oidc github \
 そこに Terragrunt / SOPS を置くことで、待ち時間が説明枠に変わり、
 Step4 の実コストが 18分に収まった。第3回で使ったのと同じ手。
 
-### 残っている確認事項(実物に合わせる)
+### 実物(nishiki)に合わせて書き直した(2026-09-01)
 
-スライドには一般的な説明を書き、**「うちだとこう」の枠を空けてある**。
-`制作TODO` として原稿に埋め込んであるので、開催前に埋めること。
+`~/Documents/project/nishiki/nishiki-server` を読んで、
+スライドの「一般的な説明」を**実際の構成に差し替えた**。
+`制作TODO` は全て解消済み。
 
-- nishiki の Terragrunt のディレクトリ構成(S34g)
-- nishiki の SOPS の鍵の持ち方(KMS か age か、誰が復号できるか)(S34h)
-- nishiki の PSC の使い方(どのサービスに対して、どのVPCから)(S20c)
-- ghost の Datadog の使い方(どのメトリクスを見ているか、Cloud Monitoring との併用)(S12b)
-- nishiki / ghost の Pub/Sub → BigQuery の構成(BigQuery サブスクリプション or Dataflow)(S38b)
-- 社内で標準的に使っている負荷試験ツール(S39d)
+| 項目 | nishiki の実際 | 反映先 |
+|---|---|---|
+| **Terragrunt** | `platform/gcp/{init,common,app}/{env}/{resource}/` + `modules/`。値は `common.yaml → env.yaml → task.yaml` の**3階層**。環境は dev/stg/prd/cer/lod/pmt の**6つ**。**apply/destroy は手元でやらず CI/CD で実行**。tfenv/tgenv でバージョン固定 | 第7回 S34g |
+| **SOPS** | **Cloud KMS 鍵**。`.sops.yaml` の `path_regex` で環境ごとに振り分け、**本番と開発で鍵が別**。`secret.enc.yaml` を Git に置く | 第7回 S34h |
+| **WIF** | プール `<name>-cicd-pool` / プロバイダ `<name>-cicd-provider`。**`attribute.repository` でリポジトリ単位**(1リポジトリ=1プロダクトなのでブランチまで絞らない)。公式モジュール `terraform-google-modules/github-actions-runners//modules/gh-oidc` を使用 | 第7回 S34d |
+| **PSC** | **Memorystore Cluster は PSC のみ**(`google_network_connectivity_service_connection_policy`)。**Cloud SQL は `psc_config` で選択可**。従来の限定公開サービスアクセス(`/22`)も**併存** | 第4回 S20c |
+| **Datadog** | **ghost だけでなく nishiki でも使用**。Terraform に DataDog プロバイダを入れ、**監視設定もコードで管理**。外形監視IPをファイアウォールで許可、APIキーは SOPS | 第8回 S12b |
+| **Pub/Sub → BigQuery** | アプリの行動ログは `ActionLogger` → **Pub/Sub 経由**。テーブルは日次パーティション + **`require_partition_filter = true`** + `storage_billing_model = "PHYSICAL"`。Cloud Armor のログは GCS へ | 第8回 S38b |
+| **負荷試験** | **k6**。PRごとに smoke テストを GitHub Actions で実行。**`lod` という負荷試験専用環境**がある | 第8回 S39d |
+
+### 教材として効いた発見
+
+1. **「新しいサービスほど PSC しか選べない」**
+   Memorystore Cluster は PSC 必須。①を知らないと、なぜ③があるのか分からない。
+   → 第4回で①をハンズオンする順序が正しかったことの裏付けになった。
+
+2. **WIF の絞り方は事情で変わる**
+   nishiki はリポジトリ単位で足りる(1リポジトリ=1プロダクト)。
+   勉強会は「全員で1リポジトリ」なのでブランチまで絞る必要がある。
+   → **「どこまで絞るかは、共有の仕方で決まる」**という話にできる。
+
+3. **`require_partition_filter = true`**
+   「WHERE で日付を指定しないとクエリが通らない」設定。
+   **「全期間スキャンで数万円」を仕組みで防いでいる。**
+   → 第8回の料金の話(S39c)と直結する実例。
+
+4. **手元で apply しない**
+   nishiki の Terragrunt README に
+   「apply と destroy は基本的に実行しないでください(CICD で実行)」とある。
+   → 第7回でやった「push したら適用される」の延長として説明できる。
+
+### スライドに書かなかったもの(公開リポジトリのため)
+
+実物を読んで分かったが、**リポジトリには書いていない**。
+
+- プロジェクトID(`gcp-nishiki-development` など)
+- Cloud KMS の鍵のフルパス
+- 組織名
+- **社内IPの実値** — `terragrunt/platform/gcp/app/common.yaml` に
+  `company_ip_list` / VPN / スマポン / STF などの区分で載っている
+  → **10章の保留「社内IP(`company_ip`)の実値」はここから取れる**
+  (第3回・第6回の Cloud Armor で使う。当日は伏せ字のまま配布し、
+   値は別途共有する運用にすること)
