@@ -5,7 +5,7 @@
 
 | 回 | テーマ | 枚数 | Google スライド |
 |---|---|---:|---|
-| 第1回 | GCP基礎 / IAM / Terraform | 69 | https://docs.google.com/presentation/d/1LGC9jpgPpKj1ObDw7JFDw1x_OG3sMO_ZdxkUQ4mqU6k/edit |
+| 第1回 | GCP基礎 / IAM / Terraform | 94 | https://docs.google.com/presentation/d/1LGC9jpgPpKj1ObDw7JFDw1x_OG3sMO_ZdxkUQ4mqU6k/edit |
 | 第2回 | ネットワーク | 63 | https://docs.google.com/presentation/d/1p0NGtqsvkGYxFewE8AjoPYqh8kgkvTjyVEjLA6Fmkvs/edit |
 | 第3回 | コンピューティング | 56 | https://docs.google.com/presentation/d/1cxkYA6EAxoyUp-iMQILfCvJ_CjR8SuccNb7cRbhMc0s/edit |
 | 第4回 | データベース | 53 | https://docs.google.com/presentation/d/1Cn3LTns2BdgXLAwhyPbr-LbEZU1Je_4m3NZLSRkLufM/edit |
@@ -16,7 +16,11 @@
 | 第9回 | 試験対策 | 46 | https://docs.google.com/presentation/d/18HRSIFBcPvDAH5Gg19AFevZtYdSj1R2hUVhX-U0vzLg/edit |
 | 第10回 | 実践テスト + 総まとめ | 24 | https://docs.google.com/presentation/d/1P4OApYaqHR4UPyu6Se5YiW0lZAORxva7wqCikm1-C_E/edit |
 
-計 504枚。
+計 529枚。
+
+> 第1回は 2026-09-11 に大幅改訂(導入・インフラ基礎の増補、ハンズオンの gcloud 化)。
+> 原稿 `lesson1.md` の S番号はデッキのページ番号と1対1で対応している(S01〜S94)。
+> ハンズオンの gcloud 化でデッキから3枚(Step1実行 / backend切り替え / state移行)を削除した。
 
 ## 流し込みの方式
 
@@ -40,7 +44,7 @@ Google スライドの「レイアウト」機能や一括書式変更がその�
 
 **本文の文字サイズは 20pt を基準に、枠に収まる最大値を自動で選んでいる。**
 全角を2、半角を1として行幅を数え、`幅 x サイズ x 0.6` が枠幅に収まるまで下げる。
-GCP版は AA の図や `terraform destroy -target=...` の長い行があるため、
+GCP版は AA の図や長いコマンド行があるため、
 一部のスライドは 9〜12pt まで落ちる。
 
 ## 作図(2026-08-31 完了)
@@ -51,7 +55,7 @@ Google スライドの**ネイティブ図形**(矩形・矢印・線・テキ�
 
 | 回 | 枚数 | 主な図 |
 |---:|---:|---|
-| 第1回 | 3 | リソース階層のツリー / サービスアカウントの2つの顔 / 4ステップのフロー |
+| 第1回 | 3 | リソース階層のツリー / サービスアカウントの2つの顔 / 3ステップのフロー |
 | 第2回 | 9 | AWS-GCP対応表 / Firewall Rules vs SG / 踏み台不要 / SG→SAの書き換え / IAPの3つのゲート |
 | 第3回 | 3 | ゴール構成図 / LBの6リソース / なぜ繋がらないのか(503) |
 | 第4回 | 6 | DBサービス一覧 / 3種類の接続方式 / レンジの貸し出し / Spanner比較 / ホットスポット |

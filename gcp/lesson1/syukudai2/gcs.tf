@@ -1,22 +1,14 @@
 /**
- * tfstate保存用のGCSバケット作成
- * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket
+ * tfstate保存用のGCSバケット(参照のみ)
+ *
+ * このバケットは gcloud コマンドで作成しており、Terraformの管理外にある。
+ * Terraformで作ってしまうと terraform destroy の対象になり、
+ * tfstateを置いているバケット自身を消しにいって最後のロック解放に失敗する。
+ *
+ * 管理外のリソースは data ブロックで読み取って参照する。
+ * https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/storage_bucket
  */
-resource "google_storage_bucket" "tfstate" {
+data "google_storage_bucket" "tfstate" {
   // バケット名はGCP全体で一意である必要があるため、プロジェクトIDを含めている
   name = "${var.project_id}-tfstate-${var.user_name}"
-
-  // GCSのlocationはリージョン(asia-northeast1)/デュアルリージョン/マルチリージョン(ASIA)が選べる
-  location = "ASIA-NORTHEAST1"
-
-  // バージョニング: tfstateを壊してしまった時に前の世代へ戻せるようにする
-  versioning {
-    enabled = true
-  }
-
-  // 均一なバケットレベルのアクセス: 旧来のACLを無効化し、権限管理をIAMに一本化する
-  uniform_bucket_level_access = true
-
-  // 勉強会用: 中身が残っていても terraform destroy で削除できるようにする
-  force_destroy = true
 }
