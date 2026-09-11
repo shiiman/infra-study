@@ -26,7 +26,7 @@ resource "google_project_iam_custom_role" "object_reader" {
  * 個別リソースを指定できる。
  */
 resource "google_storage_bucket_iam_member" "app_custom_role" {
-  bucket = google_storage_bucket.tfstate.name
+  bucket = data.google_storage_bucket.tfstate.name
   role   = google_project_iam_custom_role.object_reader.name
   member = "serviceAccount:${google_service_account.app.email}"
 }

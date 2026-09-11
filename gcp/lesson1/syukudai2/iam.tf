@@ -29,7 +29,7 @@ resource "google_service_account_iam_member" "token_creator" {
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_iam
  */
 resource "google_storage_bucket_iam_member" "app_object_viewer" {
-  bucket = google_storage_bucket.tfstate.name
+  bucket = data.google_storage_bucket.tfstate.name
   role   = "roles/storage.objectViewer"
   member = "serviceAccount:${google_service_account.app.email}"
 }

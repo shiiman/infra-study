@@ -9,7 +9,8 @@ terraform {
   required_version = ">= 1.9.0"
 
   /**
-   * tfstateの保存先をGCSに変更する
+   * tfstateの保存先
+   * バケットは Step1 で gcloud コマンドを使って作成済み(Terraform管理外)
    * backendブロックには変数が使えないため、バケット名は直接書く必要がある
    * ★ bucket を自分の環境に合わせて書き換えること
    *    例: my-project-tfstate-shiiman

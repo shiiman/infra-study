@@ -166,6 +166,9 @@ AWS版のスライドをそのままなぞると破綻する箇所。各回の�
 - **アジェンダ**: なぜGCPか / 料金体系 / 組織-フォルダ-プロジェクト階層 / リージョン・ゾーン / 割り当て(Quota) / Cloud IAM(プリンシパル・ロール・サービスアカウント) / Cloud Shell / Terraform(HCL・plan/apply/destroy・tfstate on GCS)
 - **省略**: インフラ基礎(WAN/LAN/IP/ポート/DNS/SSL)は事前配布の自習資料にし、冒頭15分で要点のみ
 - **ハンズオン到達点**: Cloud Shell から `terraform apply` が通り、GCSバックエンドに tfstate が保存される
+- **★ 設計変更(2026-09-11)**: tfstate 用バケットの作成を Terraform から
+  **gcloud コマンドに変更**した。バケットが state に入らなくなるため、
+  `terraform destroy` が素で通る(従来は `-target` が必要だった)
 - **宿題**: Terraform チュートリアル(GCP編) / Cloud IAM ドキュメント
 
 ### 第2回 ネットワーク (2026-10-26)
@@ -343,10 +346,9 @@ gcp/
 │       ├── lesson1.md
 │       └── lesson2.md
 ├── lesson1/                              # GCP基礎 / IAM / Terraform
-│   ├── 1. gcs/                           # tfstate用バケット作成(ローカルstate)
-│   ├── 2. backend/                       # backendをGCSへ移行
-│   ├── 3. service_account/               # SA作成 → なりすまし失敗
-│   ├── 4. iam/                           # リソース単位のIAM付与 → 成功
+│   │                                     # Step1(tfstate用バケット)は gcloud で作るのでコード無し
+│   ├── 2. service_account/               # SA作成 → なりすまし失敗
+│   ├── 3. iam/                           # リソース単位のIAM付与 → 成功
 │   ├── syukudai1/                        # カスタムロール
 │   └── syukudai2/                        # Secret Manager + リソース単位IAM
 ├── lesson2/                              # ネットワーク
@@ -607,7 +609,7 @@ Cloud Run はイメージが存在しないと作成できず、
     教材で一切使わない。IAM はすべてリソース単位
     (`google_service_account_iam_member` / `google_storage_bucket_iam_member` /
     `google_compute_instance_iam_member` / `google_iap_tunnel_instance_iam_member`)で付与する。
-    第1回スライド S33 で注意喚起として明示的に扱う。
+    第1回スライド S59 で注意喚起として明示的に扱う。
 
 - [x] **組織階層** — 会社の Cloud Identity 配下で実施する。
   第1回で組織 → フォルダ → プロジェクトの階層を実際のコンソールで見せられる。
@@ -646,8 +648,11 @@ Cloud Run はイメージが存在しないと作成できず、
 - [ ] **Slack 通知チャンネル** — 作成済み(`infra-study` / `#infra-study-alert`、2026-08-31)
 - [ ] 対象者の確定(AWS版は「社員サーバエンジニア全員」) — 第1回 S05 に反映する
 - [x] tfstate バケットを `terraform destroy` から守る運用 —
-  第1回の最後だけ `-target` でバケット以外を指定する方式に決定(実測で検証済み)。
-  第1回スライド S67 に手順を記載。第2回以降は素の `terraform destroy` でよい
+  **バケットを gcloud で作り、Terraform の管理外に置く方式に変更(2026-09-11)**。
+  バケットが state に入らないので destroy は全回とも素で通る。
+  バケットは全10回を通して使い回し、最後に `gcloud storage rm --recursive` で消す。
+  第1回スライド S93 に記載。
+  (従来は第1回の最後だけ `-target` でバケット以外を指定する方式だった)
 - [x] アンケート用 Google Form — **作成済み**(2026-08-31)。`docs/survey.md` にURL。
   各回アンケート / 全体アンケート / 第10回 試験1 の3つ。スライドのURLも差し替え済み
 - [x] 受講者ロールの確定 — 第5回時点で **10ロール**。
@@ -673,21 +678,22 @@ Cloud Run はイメージが存在しないと作成できず、
 | インスタンス単位/SA単位のIAM付与だけでIAP SSHが通るか | **OK**。外部IPなしのVMに踏み台なしでログイン成功 |
 | `*_iam_member` 系(setIamPolicy)を作れるか | **OK**。`iap_tunnel_instance` / `compute_instance` / `service_account` / `storage_bucket` / `secret_manager_secret` の5種すべて成功 |
 | 必要なAPIが有効か | **OK**。compute / iam / iamcredentials / iap / secretmanager / storage / cloudresourcemanager / serviceusage はすべて有効化済みだった |
-| 通しの apply → destroy | 第2回は **OK**(24リソースがクリーンに削除)。第1回は**要注意**(下記) |
+| 通しの apply → destroy | 第2回は **OK**(24リソースがクリーンに削除)。第1回は**要注意だった**(下記) |
 
-**第1回のdestroyに問題があった**
+**第1回のdestroyに問題があった → 2026-09-11 に方式変更で解消**
 
-`terraform destroy` をそのまま実行すると、tfstateを置いているバケット自身を
-削除するため、最後のロック解放に失敗して `errored.tfstate` が残る。
-リソース自体は全て消えるが、後味の悪い終わり方になる。
+検証時点の方式(Step1でバケットもTerraformで作る)だと、`terraform destroy` が
+tfstateを置いているバケット自身を削除するため、最後のロック解放に失敗して
+`errored.tfstate` が残っていた。リソース自体は全て消えるが、後味の悪い終わり方になる。
 
-回避策(検証済み): バケット以外を `-target` で指定して destroy する。
-第1回スライド S67 に手順を記載した。第2回以降は素の `terraform destroy` で問題ない。
+当初の回避策(検証済み)は「バケット以外を `-target` で指定して destroy する」だったが、
+**バケットを gcloud で作る方式に変更した**ことで、この問題は構造的に起きなくなった。
+第1回スライド S93 に「destroy はそのまま実行してよい / バケットは残す」と記載している。
 
 **その他の実測メモ**
 
 - IAMの反映に **約1分** かかる。apply 直後は権限借用が失敗し続ける。
-  「すぐ失敗しても正常」と受講者に先に伝えないと混乱する(S59)
+  「すぐ失敗しても正常」と受講者に先に伝えないと混乱する(S85)
 - 第2回 S28 の失敗パターンは受講者の権限で変わる。
   IAP権限を組織/グループから継承している人はタイムアウト、
   していない人は権限エラーになる(S28に両方を記載済み)
@@ -1217,7 +1223,7 @@ source ~/.bashrc
 
 - `Terraform v1.16.0` の起動、`~/.bashrc` 経由での PATH 永続化を実機で確認
 - `~/bin` の容量は約115MB(ホームは5GB)
-- 第1回に **S38b「Terraform をインストールする」を新規追加**した(所要4分程度)
+- 第1回に **S65「Terraform をインストールする」を新規追加**した(所要4分程度)
 - 第2回以降は不要。第1回でだけ発生する作業
 
 ### 受講者相当の権限での検証結果(2026-08-28 実施)
@@ -1227,7 +1233,7 @@ source ~/.bashrc
 `storage.buckets.get・setIamPolicy` / `compute.instances.setIamPolicy` /
 `iap.tunnelInstances.get・setIamPolicy` / `iam.roles.create・delete` /
 `secretmanager.secrets.setIamPolicy` が含まれていない。
-このため Editor だけだと **第1回 Step4(IAMハンズオン)と第2回 Step4(IAP)が
+このため Editor だけだと **第1回 Step3(IAMハンズオン)と第2回 Step4(IAP)が
 両方とも動かない**。どちらもその回の核心。
 
 必要なロール構成(第1回 付録A に付与コマンドを記載):
@@ -1252,6 +1258,11 @@ roles/iap.admin
 | 第2回 Step1〜7 + 宿題1・2 | OK(25リソース) |
 | destroy(第2回は素、第1回は `-target`) | OK |
 
+> **注記(2026-09-11)**: この検証は第1回が Terraform でバケットを作る方式だった
+> 時点のもの。gcloud 方式への変更で第1回の destroy 対象は 3リソースになり、
+> `-target` は不要になった。**権限要件(不足権限の表・ロール一覧)は方式変更の影響を
+> 受けないが、新方式での通し実行は未検証**。
+
 検証後、付与したプロジェクトIAMバインディングとテスト用SAは削除済み
 (バインディング数は元の62件に復帰)。
 
@@ -1263,9 +1274,9 @@ Cloud Shell 固有のリスクは個別に潰してあり、残るのは
 
 | Cloud Shell 固有の懸念 | 状態 |
 |---|---|
-| Terraform が入っていない | 判明済み。第1回 S38b でインストール手順を追加 |
+| Terraform が入っていない | 判明済み。第1回 S65 でインストール手順を追加 |
 | ADC に `userinfo.email` スコープがあるか | 確認済み。`terraform apply` でデータソースが動作 |
-| 既定プロジェクトが個人プロジェクト | 判明済み。S38 で切り替えを明示 |
+| 既定プロジェクトが個人プロジェクト | 判明済み。S64 で切り替えを明示 |
 | 全ステップの apply | 未実施 → **第3回のハンズオンを Cloud Shell で組む段階で自然に判明する** |
 
 第3回の制作時に Cloud Shell で作業すれば、第1回・第2回のコードも同時に踏むことになる。
@@ -1451,7 +1462,7 @@ Cloud Shell 固有のリスクは個別に潰してあり、残るのは
     GCP のバックエンドバケットにはこれが無く、
     `allUsers` に `roles/storage.objectViewer` を与える必要がある。
     つまり `storage.googleapis.com` から直接読めてしまう。
-    - 第1回 S25 で「`allUsers` は事故の元」と教えた直後の回で、
+    - 第1回 S51 で「`allUsers` は事故の元」と教えた直後の回で、
       意図的に `allUsers` を使うことになるので、必ず理由を説明すること
     - 非公開のまま配信したい場合は署名付きURL / 署名付きCookie になる(第6回 S28)
     - **Cloud Armor をバックエンドバケットに付けても、
