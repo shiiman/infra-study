@@ -26,7 +26,8 @@
 >
 > **S66(Terraformのインストール)は飛ばせない。** Cloud Shell に Terraform が
 > 入っていないため、ここを飛ばすとハンズオンが始まらない。全10回で唯一この回だけ必要な作業。
-> 事前に「Cloud Shellを開いてTerraformを入れておいてください」と案内しておくと当日が楽になる。
+> **講義内で全員一緒にやる。** Cloud Shell は事前準備のしようがないので、
+> 受講者への事前案内は不要。
 
 ## 原稿の読み方
 
@@ -2381,11 +2382,54 @@ Spanner / Cloud SQL / Memorystore の**作成権限は `roles/editor` に含ま�
 (第7回の `roles/logging.logWriter` など)は講師が事前に付与する。
 第7回 S17b で、この分界を受講者にも説明している。
 
-付与コマンド(受講者ごとに実行)
+### 付与は Google グループ経由で行う
+
+**個人ごとに12ロールを付けるのではなく、グループを1つ作ってそこに付与する。**
+このプロジェクトは既にグループ運用になっている
+(`gcp-infra-owner@` / `gcp-infra_common-analyst-user@` / `wonder-server@`)ので、
+その流儀に合わせる。
+
+教材側はこれで問題ない。**受講者個人の identity を使うのは全部リソースレベル**で、
+`data "google_client_openid_userinfo"` から Terraform が apply 時に解決している
+(`lesson1/3. iam/iam.tf`)。講師が配るのはプロジェクトレベルのロールだけ。
+
+**後始末が1箇所で済むのが最大の利点。** 勉強会が終わったらグループを消すか
+バインディングを12個外すだけで全員分の権限が消える。
+個人付与だと 20人 × 12ロール = 240個のバインディングを外すことになる。
+
+#### 1. グループを作る
+
+```
+gcloud identity groups create gcp-infra_common-study-user@[ドメイン] \
+  --organization="[ドメイン]" \
+  --display-name="GCP勉強会 受講者" \
+  --description="インフラ勉強会(GCP)の受講者。editor を含むので管理者のみ追加可"
+```
+
+#### 2. ★ グループの参加設定を締める ★
+
+Workspace 管理コンソールで次のようにする。
+
+- 参加できるユーザー: **招待されたユーザーのみ**
+- メンバーの追加: **管理者のみ**
+- 社外参加者を入れる場合のみ「組織外のメンバーを許可」をオン
+
+**`roles/editor` を配るグループになる。**
+自由参加にすると誰でもプロジェクトの編集権限を取れてしまう。
+
+#### 3. メンバーを追加する
+
+```
+gcloud identity groups memberships add \
+  --group-email=gcp-infra_common-study-user@[ドメイン] \
+  --member-email=[受講者]@[ドメイン]
+```
+
+#### 4. グループに12ロールを付与する(1回で済む)
 
 ```
 PROJECT=<プロジェクトID>
-MEMBER=user:xxx@example.com
+MEMBER=group:gcp-infra_common-study-user@[ドメイン]
 
 for ROLE in \
   roles/editor \
@@ -2405,6 +2449,35 @@ do
     --member=$MEMBER --role=$ROLE --condition=None
 done
 ```
+
+#### グループ方式の注意点
+
+**① 反映待ちが個人付与より長くなりえる。**
+メンバーシップの伝播が挟まるため。**前日ではなく数日前に付与し、
+講師が1回 apply を通して確認しておくこと。**
+
+**② `gcloud projects get-iam-policy` では個人が見えなくなる。**
+当日「この人だけ権限がない」を切り分けるときは Policy Troubleshooter を使う。
+
+```
+gcloud policy-intelligence troubleshoot-policy-v3 \
+  --principal-email=[受講者]@[ドメイン] \
+  --resource=//cloudresourcemanager.googleapis.com/projects/[プロジェクトID] \
+  --permission=iam.serviceAccounts.setIamPolicy
+```
+
+**③ 社外参加者も入れられる**(2026-09-16 確認)。
+組織ポリシー `constraints/iam.allowedPolicyMemberDomains` は `allValues: ALLOW` で、
+ドメイン制限はかかっていない。グループ側で「組織外のメンバーを許可」をオンにすればよい。
+
+#### 個人ごとに付与する場合(グループを使わないとき)
+
+```
+PROJECT=<プロジェクトID>
+MEMBER=user:xxx@example.com
+```
+
+として、上の 4. の for ループをそのまま受講者ごとに実行する。
 
 ### 共有プロジェクトでのリスク
 
