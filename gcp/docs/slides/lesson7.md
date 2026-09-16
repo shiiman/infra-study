@@ -1,6 +1,6 @@
 # 第7回 インフラ勉強会(GCP) — CI/CD
 
-- **開催日**: 2027-02-08(月) 2時間
+- **開催日**: 2027-02-08(月) 11-13時
 - **AWS版対応**: 第8回(AWS CI/CD編)
 - **Terraformコード**: `gcp/lesson7/`
 - **ゴール**: GitHub に push すると自動でビルドされ、Cloud Run にデプロイされる状態を作る
@@ -228,6 +228,28 @@ gcloud services enable clouddeploy.googleapis.com --project=[プロジェクトI
 
 Cloud Build は既に有効。Cloud Deploy は宿題で使う。
 
+
+> **★ 前回(第6回)の残骸が消えているか、開催前に確認すること ★**
+>
+> 第5回以降の destroy は **Direct VPC egress の予約IPが解放されるまで
+> サブネットが消せない**ため、1回では終わらない(1〜2時間かかる)。
+> **受講者は講義中の1回だけ**にして、2回目は講師がまとめて流す運用にしている。
+>
+> 第6回の直後に流し忘れていないか、ここで確認する。
+> 残骸があると**この回の `0. before` が同名リソースの衝突で落ちて、
+> 冒頭で全員が止まる。**
+>
+> ```
+> # 残骸の確認
+> gcp/tools/check-leftover.sh --names-file=<受講者名簿> --project=[プロジェクトID]
+>
+> # 残っていたら、前回分をまとめて片付ける(まず dry-run)
+> gcp/tools/cleanup-lesson.sh 6 --names-file=<受講者名簿> \
+>   --project=[プロジェクトID] --var-file=cleanup.tfvars
+> ```
+>
+> **この回の片付け**については、末尾の注意事項スライドの講師メモを参照。
+
 ## 原稿の読み方
 
 - **[本文]** — スライドに載せるテキスト
@@ -251,7 +273,7 @@ Cloud Build は既に有効。Cloud Deploy は宿題で使う。
 
 〜 CI/CD 編 〜
 
-2027年2月8日
+2027年2月8日(月) 11-13時
 ```
 
 ---
@@ -2049,20 +2071,46 @@ Cloud Run のロールアウトとロールバック
 宿題などで作成したリソースは
 必ず削除してください！
 
-★★ destroy の手順 ★★
+★★ この場で terraform destroy を1回打つだけでOKです ★★
 
-   1. terraform destroy          (private サブネットだけ失敗します)
+   → private サブネットだけ失敗します。それで終わりです
+     Direct VPC egress が確保したIPの解放待ち(1〜2時間)のためで、
+     手動では消せません
 
-   2. 2〜3時間待つ
-        gcloud compute addresses list --filter="purpose=SERVERLESS"
-        → 消えていればOK
+★★ 残りは講師がまとめて片付けます ★★
+   翌日にもう1回打つ必要はありません
 
-   3. terraform destroy
+★ 残るのは VPC とサブネットだけで、課金はありません
+
+★ 確認したい人は  gcp/tools/check-leftover.sh [自分の名前]
 
 ★ アプリのリポジトリのブランチは消さなくて大丈夫です
 
 ★ 次回(第8回)は3月1日、監視・運用編です
 ```
+
+> **★ 講師メモ: 2回目は講師がやる ★**
+>
+> 以前は「2〜3時間待ってもう1回 destroy」を受講者にやらせていたが、
+> **夕方〜夜に当たるのでやらない人が必ず出る**設計だった。
+> 残骸が残ると次回の `0. before` が名前衝突で落ち、冒頭で全員が止まる。
+>
+> **受講者は講義中の1回だけ。2回目は講師がまとめて流す。**
+>
+> ```
+> # まず dry-run(既定)。何が消えるか確認する
+> gcp/tools/cleanup-lesson.sh 7 --names-file=<受講者名簿> \
+>   --project=[プロジェクトID] --var-file=cleanup.tfvars
+>
+> # 中身を見てから実行
+> gcp/tools/cleanup-lesson.sh 7 --names-file=<受講者名簿> \
+>   --project=[プロジェクトID] --var-file=cleanup.tfvars --apply
+> ```
+>
+> **受講者の tfstate を使って destroy する**ので、実体と state がズレない。
+> (`gcloud` で直接消すと次回の apply がもっと厄介な形で失敗する)
+>
+> **翌朝に流すこと。** 当日の夜ではまだIPが解放されていない。
 
 ---
 

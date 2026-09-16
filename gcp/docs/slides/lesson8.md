@@ -1,6 +1,6 @@
 # 第8回 インフラ勉強会(GCP) — 監視・運用 + その他リソース
 
-- **開催日**: 2027-03-01(月) 2時間
+- **開催日**: 2027-03-01(月) 14-16時
 - **AWS版対応**: 第11回(その他・まとめ)+ **AWS版に無かった監視回**
 - **Terraformコード**: `gcp/lesson8/`
 - **ゴール**: ダッシュボードを作り、しきい値超過で Slack に通知が飛ぶ状態にする
@@ -85,6 +85,28 @@ gcloud beta monitoring channels list --project=[プロジェクトID] \
 ### 3. API の追加は不要
 
 Cloud Monitoring / Cloud Logging は既定で有効。
+
+
+> **★ 前回(第7回)の残骸が消えているか、開催前に確認すること ★**
+>
+> 第5回以降の destroy は **Direct VPC egress の予約IPが解放されるまで
+> サブネットが消せない**ため、1回では終わらない(1〜2時間かかる)。
+> **受講者は講義中の1回だけ**にして、2回目は講師がまとめて流す運用にしている。
+>
+> 第7回の直後に流し忘れていないか、ここで確認する。
+> 残骸があると**この回の `0. before` が同名リソースの衝突で落ちて、
+> 冒頭で全員が止まる。**
+>
+> ```
+> # 残骸の確認
+> gcp/tools/check-leftover.sh --names-file=<受講者名簿> --project=[プロジェクトID]
+>
+> # 残っていたら、前回分をまとめて片付ける(まず dry-run)
+> gcp/tools/cleanup-lesson.sh 7 --names-file=<受講者名簿> \
+>   --project=[プロジェクトID] --var-file=cleanup.tfvars
+> ```
+>
+> **この回の片付け**については、末尾の注意事項スライドの講師メモを参照。
 
 ## 原稿の読み方
 
@@ -1668,21 +1690,72 @@ Google SRE Book(無料)
 宿題などで作成したリソースは
 必ず削除してください！
 
-★★ destroy の手順 ★★
+★★ この場で terraform destroy を1回打つだけでOKです ★★
 
-   1. terraform destroy   (private サブネットだけ失敗します)
+   → private サブネットだけ失敗します。それで終わりです
+     Direct VPC egress が確保したIPの解放待ち(1〜2時間)のためで、
+     手動では消せません
 
-   2. 2〜3時間待つ
-        gcloud compute addresses list --filter="purpose=SERVERLESS"
+★★ 残りは講師がまとめて片付けます ★★
+   翌日にもう1回打つ必要はありません
 
-   3. terraform destroy
+★★ ただし1回目は必ず打ってください ★★
+   アラートポリシーが残ると Slack が鳴り続けます
+   この回の残骸は第10回の試験にも影響します
 
-★ アラートポリシーを消し忘れると、鳴り続けます
-   Slack が荒れるので、必ず destroy してください
+★ 残るのは VPC とサブネットだけで、課金はありません
 
-★ 次回(第9回)は3月25日(木)、試験対策です
+★ 確認したい人は  gcp/tools/check-leftover.sh [自分の名前]
+
+★ 次回(第9回)は3月18日(木)、試験対策です
    ★ 曜日が違うので注意してください
 ```
+
+> **★ 講師メモ: 2回目は講師がやる。この回はいちばん重要 ★**
+>
+> **受講者は講義中の1回だけ。2回目は翌朝、講師がまとめて流す。**
+>
+> ```
+> # まず dry-run(既定)
+> gcp/tools/cleanup-lesson.sh 8 --names-file=<受講者名簿> \
+>   --project=[プロジェクトID] --var-file=cleanup.tfvars
+>
+> # 中身を見てから実行
+> gcp/tools/cleanup-lesson.sh 8 --names-file=<受講者名簿> \
+>   --project=[プロジェクトID] --var-file=cleanup.tfvars --apply
+> ```
+>
+> **この回の片付けだけは絶対に落とさないこと。**
+> 第8回(3/1)から第10回(4/5)まで35日空き、間の第9回はハンズオンが無い。
+> 残骸があると第10回の試験で作るリソースと二重になり、
+> **`BACKEND-SERVICES-per-project`(75で固定・引き上げ不可)に当たって
+> 試験そのものが止まる。**
+>
+> 流したあとに `check-leftover.sh` で消えたことを確認し、
+> 第10回の事前準備(前日の残骸確認)でもう一度見る。二重に構えておく。
+
+> **★ 講師メモ: destroy の完了を後追いすること ★**
+>
+> この手順は **1回目の destroy が必ず失敗する**(private サブネットが
+> `purpose=SERVERLESS` の予約IPに掴まれている)。
+> 「2〜3時間待って再実行」を当日の夜にやらせる形なので、
+> **やり切れない人が必ず出る。**
+>
+> 第9回(3/18)はハンズオンが無く、次に手を動かすのは第10回(4/5)。
+> **35日間、誰も気づかないまま残り続ける。**
+> 残っていると第10回の試験でクォータに当たって試験が止まるうえ、
+> その間ずっと課金される。
+>
+> **翌日と1週間後に、講師が全体を見て個別に声をかけること。**
+>
+> ```
+> gcloud compute instances list --project=[プロジェクトID]
+> gcloud compute networks list --project=[プロジェクトID]
+> gcloud compute addresses list --project=[プロジェクトID] \
+>   --filter="purpose=SERVERLESS"
+> ```
+>
+> 第10回の「事前準備 7」でも同じ確認をする。
 
 ---
 
@@ -1691,7 +1764,7 @@ Google SRE Book(無料)
 **[本文]**
 
 ```
-次回は 試験対策 です(3月25日 木曜)
+次回は 試験対策 です(3月18日 木曜)
 
 Associate Cloud Engineer と
 Cloud Digital Leader の出題範囲を見ながら、

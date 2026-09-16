@@ -1,0 +1,39 @@
+// cleanup-lesson.sh に渡す、全員共通の変数
+//
+//   cp cleanup.tfvars.example cleanup.tfvars
+// して値を埋める。cleanup.tfvars は .gitignore 済み(実値を含むため)。
+//
+// user_name と project_id はスクリプトが1人ずつ上書きするので書かなくてよい。
+
+// 第2回〜: 全員同じ固定値
+subnet_public_cidr  = "172.16.0.0/24"
+subnet_private_cidr = "172.16.10.0/24"
+
+// 第2回の宿題2で追加したサブネット
+subnet_web_cidr           = "172.16.20.0/22"
+subnet_db_cidr            = "172.16.40.0/24"
+subnet_cache_cidr         = "172.16.50.0/24"
+subnet_osaka_public_cidr  = "172.16.100.0/24"
+subnet_osaka_private_cidr = "172.16.110.0/24"
+
+// 第4回〜: 限定公開サービスアクセス用
+private_service_cidr = "172.16.192.0/20"
+
+// 第3回〜: Cloud DNS のマネージドゾーン名
+dns_zone_name = ""
+
+// 第3回・第6回: 社内IP
+company_ip = []
+
+// 第4回: Cloud SQL のパスワード
+//   destroy にしか使わないのでダミーで構わない
+db_password = "dummy-for-destroy"
+
+// 第7回: 講師が作った Cloud Build のリポジトリリンク
+cloudbuild_repository = ""
+
+// 第8回: 講師が作った Slack 通知チャンネルの表示名
+notification_channel_name = ""
+
+// 第8回: destroy にしか使わないのでダミーで構わない
+alert_email = "dummy@example.com"

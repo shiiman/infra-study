@@ -7,3 +7,6 @@
 *.tfstate
 *.tfstate.*
 crash.log
+
+# 運営ツールに渡す実値(社内IP・DNSゾーン名などを含むため)
+gcp/tools/cleanup.tfvars

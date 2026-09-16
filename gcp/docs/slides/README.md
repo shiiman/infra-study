@@ -8,19 +8,39 @@
 | 第1回 | GCP基礎 / IAM / Terraform | 94 | https://docs.google.com/presentation/d/1LGC9jpgPpKj1ObDw7JFDw1x_OG3sMO_ZdxkUQ4mqU6k/edit |
 | 第2回 | ネットワーク | 63 | https://docs.google.com/presentation/d/1p0NGtqsvkGYxFewE8AjoPYqh8kgkvTjyVEjLA6Fmkvs/edit |
 | 第3回 | コンピューティング | 56 | https://docs.google.com/presentation/d/1cxkYA6EAxoyUp-iMQILfCvJ_CjR8SuccNb7cRbhMc0s/edit |
-| 第4回 | データベース | 53 | https://docs.google.com/presentation/d/1Cn3LTns2BdgXLAwhyPbr-LbEZU1Je_4m3NZLSRkLufM/edit |
+| 第4回 | データベース | 55 | https://docs.google.com/presentation/d/1Cn3LTns2BdgXLAwhyPbr-LbEZU1Je_4m3NZLSRkLufM/edit |
 | 第5回 | コンテナ | 51 | https://docs.google.com/presentation/d/1ow1DPEjkCakiMKhQ-TknYS3u_9yezEQYnRvaovz_sqs/edit |
 | 第6回 | ストレージ + CDN | 46 | https://docs.google.com/presentation/d/1kuYTeNuWkzd8-_Mj1u2RNBKO4-xh8ycWsvlxO0hbXYo/edit |
-| 第7回 | CI/CD | 48 | https://docs.google.com/presentation/d/1gRqC2I-lme3uUlA2DX2L3aRYAkpB0DQokDFzI2yKI3I/edit |
-| 第8回 | 監視・運用 + その他リソース | 48 | https://docs.google.com/presentation/d/1T5uKWZNngdzsw9JepsK4pJiwgir7dz3mwUgFueaoiDc/edit |
+| 第7回 | CI/CD | 58 | https://docs.google.com/presentation/d/1gRqC2I-lme3uUlA2DX2L3aRYAkpB0DQokDFzI2yKI3I/edit |
+| 第8回 | 監視・運用 + その他リソース | 54 | https://docs.google.com/presentation/d/1T5uKWZNngdzsw9JepsK4pJiwgir7dz3mwUgFueaoiDc/edit |
 | 第9回 | 試験対策 | 46 | https://docs.google.com/presentation/d/18HRSIFBcPvDAH5Gg19AFevZtYdSj1R2hUVhX-U0vzLg/edit |
 | 第10回 | 実践テスト + 総まとめ | 24 | https://docs.google.com/presentation/d/1P4OApYaqHR4UPyu6Se5YiW0lZAORxva7wqCikm1-C_E/edit |
 
-計 529枚。
+計 547枚(2026-09-16 に Slides API で実測)。
 
 > 第1回は 2026-09-11 に大幅改訂(導入・インフラ基礎の増補、ハンズオンの gcloud 化)。
 > 原稿 `lesson1.md` の S番号はデッキのページ番号と1対1で対応している(S01〜S94)。
 > ハンズオンの gcloud 化でデッキから3枚(Step1実行 / backend切り替え / state移行)を削除した。
+
+> **★ S番号とページ番号は第1回以外ズレている(2026-09-16 実測)★**
+>
+> 第4回・第7回・第8回はデッキ側がページ数を増やしているため、
+> **原稿の S番号でページを特定してはいけない。**
+> 例: 第7回の「注意事項」は原稿 S46 だがデッキは **p57**、
+> 第8回は原稿 S47 に対しデッキ **p53**、第6回は原稿 S43 に対し **p45**。
+>
+> デッキ側を触るときは**タイトルで該当ページを探すこと**。
+> Slides API なら次で一覧できる。
+>
+> ```python
+> pres = service.presentations().get(presentationId=PID).execute()
+> for i, sl in enumerate(pres["slides"], 1):
+>     for el in sl.get("pageElements", []):
+>         sh = el.get("shape")
+>         if sh and sh.get("placeholder", {}).get("type") == "TITLE":
+>             print(i, "".join(e.get("textRun", {}).get("content", "")
+>                              for e in sh.get("text", {}).get("textElements", [])))
+> ```
 
 ## 流し込みの方式
 
@@ -90,3 +110,33 @@ Google スライドの**ネイティブ図形**(矩形・矢印・線・テキ�
 生成スクリプトは会話用の一時ディレクトリに置いたので残っていない。
 上の実測値と方式が分かれば Slides API で作り直せるが、
 **手で調整したあとに再生成すると、その調整は消える。**
+
+### 1枚だけ直したいとき(再生成しない方法)
+
+デッキ全体を作り直さず、**該当ページの BODY プレースホルダだけ差し替えられる**。
+他のページの手調整は一切触らないので安全。
+
+```python
+requests = [
+    {"deleteText": {"objectId": body_id, "textRange": {"type": "ALL"}}},
+    {"insertText": {"objectId": body_id, "insertionIndex": 0, "text": new_text}},
+    {"updateTextStyle": {"objectId": body_id, "textRange": {"type": "ALL"},
+                         "style": {"fontSize": {"magnitude": fit, "unit": "PT"}},
+                         "fields": "fontSize"}},
+]
+service.presentations().batchUpdate(presentationId=PID, body={"requests": requests}).execute()
+```
+
+- `deleteText` + `insertText` だけなら**フォントサイズは引き継がれる**(実測で確認)。
+  文字数が増えて枠からはみ出すときだけ `updateTextStyle` でサイズを下げる。
+- 収まる最大サイズは 20pt から1ptずつ下げて、
+  `行数 x サイズ x 1.2` が枠高の95%以内、
+  `最大行幅(全角2換算) x サイズ x 0.6` が枠幅の95%以内になるまで。
+- **末尾の空段落も1行として数える**(数え落とすと1pt はみ出す)。
+- 認証は `shiiman-google` プラグインの `lib/google_utils.py` の
+  `load_credentials(get_token_path("<プロファイル名>"), SCOPES)` を使う。
+
+**2026-09-16 にこの方法で4枚を差し替えた**
+(第5回 p50 / 第6回 p45 / 第7回 p57 / 第8回 p53 の「注意事項」)。
+片付け手順を「受講者は1回だけ、2回目は講師がまとめて」に変えたため。
+フォントサイズは 8→7 / 7→6 / 16→14 / 16→12 pt に調整している。
