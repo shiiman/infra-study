@@ -2484,11 +2484,21 @@ done
 当日「この人だけ権限がない」を切り分けるときは Policy Troubleshooter を使う。
 
 ```
-gcloud policy-intelligence troubleshoot-policy-v3 \
+gcloud policy-intelligence troubleshoot-policy iam \
+  //cloudresourcemanager.googleapis.com/projects/[プロジェクトID] \
   --principal-email=[受講者]@[ドメイン] \
-  --resource=//cloudresourcemanager.googleapis.com/projects/[プロジェクトID] \
   --permission=iam.serviceAccounts.setIamPolicy
 ```
+
+`allowAccessState: ALLOW_ACCESS_STATE_GRANTED` が出れば通っている。
+リソースは**位置引数**で、`--resource` ではない点に注意。
+
+> **★ `policytroubleshooter.googleapis.com` の有効化が必要 ★**
+> 2026-09-16 に有効化済み。**無効に戻すと当日の切り分け手段が無くなる。**
+> グループ経由だと `gcloud projects get-iam-policy` では個人が見えないため、
+> これが唯一の確認手段になる。
+> 受講者をグループに入れる `gcloud identity groups memberships add` には
+> `cloudidentity.googleapis.com` が必要(同日に有効化済み)。
 
 **③ 社外参加者も入れられる**(2026-09-16 確認)。
 組織ポリシー `constraints/iam.allowedPolicyMemberDomains` は `allValues: ALLOW` で、

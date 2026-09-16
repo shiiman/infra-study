@@ -651,7 +651,7 @@ Cloud Run はイメージが存在しないと作成できず、
   第7回は **GitHub 連携**で組むことに決定(6章 第7回)
 - [x] アプリ用の共有 GitHub リポジトリ — **`sumzap/infra-study-app` を作成済み**(2026-08-31)
 - [x] Cloud Build の GitHub App + 接続 — **作成済み**(接続名 `infra-study`、2026-08-31)
-- [ ] **受講者ごとのビルド用サービスアカウントの作成**(第7回・講師)
+- [x] **受講者ごとのビルド用サービスアカウントの作成**(第7回・講師) — **完了**
   `<名前>-build` を作り、`roles/logging.logWriter` と `roles/clouddeploy.jobRunner` を付与する。
   どちらもプロジェクト単位でしか付けられないため、受講者には配れない。
   **スクリプトを用意済み**(2026-09-16): `gcp/tools/create-build-sa.sh`。
@@ -694,7 +694,16 @@ Cloud Run はイメージが存在しないと作成できず、
   第4回で追加が必要なのは `roles/spanner.admin` と
   `roles/servicenetworking.networksAdmin` の2つだけ
   (`cloudsql.admin` / `redis.admin` は不要。作成権限は Editor に含まれる)
-- [ ] 受講者への権限付与を実行する。付与するロール(**12個**)は検証済み。
+- [x] 受講者への権限付与 — **2026-09-16 に完了。**
+  グループ `infra-study-gcp@[ドメイン]` を作成(管理コンソール)し、
+  **12ロールを付与 + メンバー12名を追加**した。
+  Policy Troubleshooter で、**`roles/editor` に含まれず追加ロールで補った権限**を
+  1人ずつ違う組み合わせで確認し、全員 `ALLOW_ACCESS_STATE_GRANTED`。
+  逆方向も確認し、**配ってはいけない `resourcemanager.projects.setIamPolicy` は
+  `NOT_GRANTED`**(= 漏れていない)。
+  手順と確認コマンドは第1回 付録A-2。
+
+  以下は上記の方針メモ(実行済みなので参照用)。付与するロール(**12個**)は検証済み。
   **`roles/editor` だけでは足りない**ので、第1回 付録A の付与コマンドをそのまま使うこと。
   **付与は Google グループ経由で行う**(2026-09-16 決定)。
   **グループの作成と参加設定は Workspace 管理コンソールで行う**
@@ -714,6 +723,17 @@ Cloud Run はイメージが存在しないと作成できず、
 > 第4〜8回で使う sqladmin / redis / spanner / servicenetworking /
 > artifactregistry / run / cloudbuild / clouddeploy / monitoring /
 > logging / dns も有効になっている。**各回の事前準備での API 有効化は不要。**
+>
+> **運営用に2つ追加で有効化した(2026-09-16)。教材のハンズオンには使わない。**
+>
+> | API | 何に使うか |
+> |---|---|
+> | `cloudidentity.googleapis.com` | `gcloud identity groups memberships add`(受講者をグループに入れる) |
+> | `policytroubleshooter.googleapis.com` | Policy Troubleshooter。**当日「この人だけ権限がない」を切り分けるのに要る**(付録A-2 で案内している) |
+>
+> グループ経由で権限を配っているため
+> `gcloud projects get-iam-policy` では個人が見えない。
+> **切り分けは Policy Troubleshooter が唯一の手段**なので、無効に戻さないこと。
 >
 > また組織ポリシー `constraints/storage.publicAccessPrevention` は
 > **未適用**(`booleanPolicy: {}`)だった。第6回の `allUsers` 公開は動く。
