@@ -1,6 +1,6 @@
 # 第3回 インフラ勉強会(GCP) — コンピューティング
 
-- **開催日**: 2026-11-16(月) 2時間
+- **開催日**: 2026-11-16(月) 14-16時
 - **AWS版対応**: 第4回(AWS コンピューティング編)
 - **Terraformコード**: `gcp/lesson3/`
 - **ゴール**: カスタムドメインに HTTPS でアクセスでき、`Hello, Infra Study` が返る
@@ -47,6 +47,26 @@
      読み込むため、push されていないと `terraform init` が失敗する
 4. 受講者が第2回のリソースを destroy 済みであること
    - `0. before` が同名のVPCを作るため、残っていると名前が衝突する
+5. **vCPU クォータに余裕があること**(この回が全10回で最大)
+   - この回は**1人あたり e2-medium を2台**(zone a と b)作る。
+     全10回で1人あたりのVM台数が最大になるのがこの回
+   - 20人分が同時に存在するため、`asia-northeast1` の vCPU 枠を食い切ると
+     **後から apply した人だけが失敗する**。原因が分かりにくい事故になる
+   - 確認:
+     ```
+     gcloud compute regions describe asia-northeast1 --project=[プロジェクトID] \
+       --format="value(quotas)" | tr ';' '\n' | grep -A2 CPUS
+     ```
+   - 足りなければ引き上げを申請する(反映に数日かかる場合がある):
+     ```
+     gcloud quotas preferences create \
+       --service=compute.googleapis.com --project=[プロジェクトID] \
+       --quota-id=CPUS-per-project-region --preferred-value=200 \
+       --dimensions=region=asia-northeast1 \
+       --justification="社内インフラ勉強会・20名が同時ハンズオン" \
+       --email=[講師のメールアドレス]
+     ```
+   - 詳細は `gcp/docs/quota-precheck-2026-09.md`
 
 ## 原稿の読み方
 
@@ -71,7 +91,7 @@
 
 〜 コンピューティング編 〜
 
-2026年11月16日
+2026年11月16日(月) 14-16時
 ```
 
 ---
