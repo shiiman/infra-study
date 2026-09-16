@@ -85,6 +85,21 @@ cat <<EOS
 
 EOS
 
+# プロジェクトのIAMポリシーは1つしかないため、連続して更新すると
+# 他の更新と etag が競合して落ちることがある(12人 x 2ロール = 24回の更新で実際に発生)。
+# 競合は時間をおけば通るので、少し待って数回やり直す。
+add_binding_with_retry() {
+  local member="$1" role="$2" i
+  for i in 1 2 3 4 5; do
+    if gcloud projects add-iam-policy-binding "$PROJECT" \
+         --member="$member" --role="$role" --condition=None >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep $((i * 2))
+  done
+  return 1
+}
+
 OK=()
 NG=()
 SKIP=()
@@ -121,11 +136,13 @@ for NAME in "${NAMES[@]}"; do
 
   if [[ $FAILED -eq 0 ]]; then
     for R in "${ROLES[@]}"; do
-      if gcloud projects add-iam-policy-binding "$PROJECT" \
-           --member="serviceAccount:${EMAIL}" --role="$R" --condition=None >/dev/null 2>&1; then
+      if add_binding_with_retry "serviceAccount:${EMAIL}" "$R"; then
         echo "  ✓ $R"
       else
-        echo "  ✗ $R の付与に失敗しました"
+        echo "  ✗ $R の付与に失敗しました(5回試行)"
+        echo "      ★ 他の更新と etag が競合している可能性があります。"
+        echo "        少し待ってから、このスクリプトをもう一度流してください"
+        echo "        (作成済みの SA は飛ばされ、足りないロールだけ付きます)"
         FAILED=1
       fi
     done

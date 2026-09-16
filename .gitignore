@@ -10,3 +10,6 @@ crash.log
 
 # 運営ツールに渡す実値(社内IP・DNSゾーン名などを含むため)
 gcp/tools/cleanup.tfvars
+
+# 受講者名簿(氏名を含むので public リポジトリには入れない)
+gcp/tools/members.txt
