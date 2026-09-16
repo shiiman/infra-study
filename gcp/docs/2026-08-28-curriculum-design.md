@@ -634,8 +634,18 @@ Cloud Run はイメージが存在しないと作成できず、
 - [x] 親ゾーンへの NS レコード登録 — **完了(2026-08-28)**。
   Cloud DNS にゾーンを作成し、親ゾーン(Route53)に NS を登録済み。
   `dig NS <勉強会のドメイン>` で委譲を確認済み
-- [ ] 社内IP(`company_ip` 相当)の実値確認 — 第3回 宿題3 / 第6回 宿題3 の Cloud Armor で使う
-- [ ] CIDR を社内の標準化スプレッドシートに合わせる必要があるか
+- [x] 社内IP(`company_ip` 相当)の実値確認 — **2026-09-16 に確定**。
+  オフィスの有線・無線と、DC 経由の全社VPN経路をあわせて**計9エントリ**。
+  **リポジトリは public なので、値も拠点名も書かない。**
+  教材は `company_ip = []` のまま。
+  当日も伏せ字で配布し、値は別途共有する(制約は 15章)。
+  一次情報は nishiki の `terragrunt/platform/gcp/app/common.yaml`。
+  **開催前に一次情報と突き合わせること**(オフィスの回線やVPN経路は変わる)
+- [x] CIDR を社内の標準化スプレッドシートに合わせる必要があるか — **合わせる必要なし**(2026-09-16 判断)。
+  Drive の「GCP標準化」はプロジェクト一覧で **CIDR の割当表を持っていない**。
+  nishiki は dev で `172.16.0.0/20`(us-central1)/ `172.16.16.0/20`(asia-northeast1)だが、
+  **教材は受講者ごとに独立した VPC を作るので衝突しない。**
+  現行の `172.16.0.0/24` 系のまま進める
 - [x] Cloud Source Repositories の現況確認 — **2024年6月17日に新規提供終了**。
   組織として未使用ならAPIも有効化できない。後継は Secure Source Manager。
   第7回は **GitHub 連携**で組むことに決定(6章 第7回)
@@ -643,10 +653,20 @@ Cloud Run はイメージが存在しないと作成できず、
 - [x] Cloud Build の GitHub App + 接続 — **作成済み**(接続名 `infra-study`、2026-08-31)
 - [ ] **受講者ごとのビルド用サービスアカウントの作成**(第7回・講師)
   `<名前>-build` を作り、`roles/logging.logWriter` と `roles/clouddeploy.jobRunner` を付与する。
-  どちらもプロジェクト単位でしか付けられないため、受講者には配れない
-- [ ] **提出用 GitHub リポジトリの作成**(第10回)。第7回のアプリ用とは別に作る
-- [ ] **Slack 通知チャンネル** — 作成済み(`infra-study` / `#infra-study-alert`、2026-08-31)
-- [ ] 対象者の確定(AWS版は「社員サーバエンジニア全員」) — 第1回 S05 に反映する
+  どちらもプロジェクト単位でしか付けられないため、受講者には配れない。
+  **スクリプトを用意済み**(2026-09-16): `gcp/tools/create-build-sa.sh`。
+  既定は dry-run、`--apply` で実行。SA が既にあれば作成を飛ばしてロールだけ付ける。
+  **名簿の名前は受講者が `user_name` に入れる文字列と同じにすること**
+  (SA名が `<user_name>-build` になるため、食い違うと第7回の apply が落ちる)。
+  **実行待ち: 受講者の `user_name` 一覧が確定したら流す**
+- [x] **提出用 GitHub リポジトリの作成**(第10回) — **`infra-study-exam` を作成済み**(2026-09-16)。
+  private。`README.md`(提出方法)と `.gitignore`(tfstate を除外)を置いてある。
+  受講者は `exam/<自分の名前>` ブランチに push する。
+  **受講者への write 権限付与は第10回の前に行う**(第10回 事前準備2)
+- [x] **Slack 通知チャンネル** — 作成済み(`infra-study` / `#infra-study-alert`、2026-08-31)
+- [x] 対象者の確定 — **第1回 S05 に反映済み**。
+  社員バックエンドエンジニア(全員)+ 参加希望者。任意参加の7名は S05 に記載。
+  途中参加も可なので、確定後に増えた分はグループに追加するだけでよい
 - [x] tfstate バケットを `terraform destroy` から守る運用 —
   **バケットを gcloud で作り、Terraform の管理外に置く方式に変更(2026-09-11)**。
   バケットが state に入らないので destroy は全回とも素で通る。
@@ -664,7 +684,27 @@ Cloud Run はイメージが存在しないと作成できず、
   (`cloudsql.admin` / `redis.admin` は不要。作成権限は Editor に含まれる)
 - [ ] 受講者への権限付与を実行する。付与するロール(**12個**)は検証済み。
   **`roles/editor` だけでは足りない**ので、第1回 付録A の付与コマンドをそのまま使うこと。
-  **付与直後の1回目の apply は IAM 反映待ちで失敗する**ため、開催前日までに済ませること
+  **付与は Google グループ経由で行う**(2026-09-16 決定)。
+  **グループの作成と参加設定は Workspace 管理コンソールで行う**
+  (gcloud でやる場合はプロジェクトに Cloud Identity API の有効化が必要。現在は無効)。
+  グループができたら、講師が12ロールを1回付与する。
+  このプロジェクトは既にグループ運用(`gcp-infra-owner@` 他)なのでその流儀に合わせる。
+  グループは `roles/editor` を持つので、**参加設定を「管理者のみ追加可」に締めること。**
+  手順は第1回 付録A-2「付与は Google グループ経由で行う」。
+  **付与直後の1回目の apply は IAM 反映待ちで失敗する**うえ、
+  グループはメンバーシップの伝播が挟まってさらに不利なので、
+  **前日ではなく数日前に付与し、講師が1回 apply を通して確認すること**
+
+> **★ API の有効化は全10回分すべて完了している(2026-09-16 実測)★**
+>
+> 第1回で使う7つ(compute / iam / iamcredentials / storage /
+> cloudresourcemanager / secretmanager / iap)だけでなく、
+> 第4〜8回で使う sqladmin / redis / spanner / servicenetworking /
+> artifactregistry / run / cloudbuild / clouddeploy / monitoring /
+> logging / dns も有効になっている。**各回の事前準備での API 有効化は不要。**
+>
+> また組織ポリシー `constraints/storage.publicAccessPrevention` は
+> **未適用**(`booleanPolicy: {}`)だった。第6回の `allUsers` 公開は動く。
 
 ### 動作確認の結果(2026-08-28 実施)
 

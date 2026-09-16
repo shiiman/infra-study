@@ -41,12 +41,20 @@
 - **複数選択は問3・問6・問13の3問**。完答のみ得点にする
 - 提出後に解答を見せない設定にすること(試験2の最中に見られると困る)
 
-### 2. 提出用の GitHub リポジトリを用意する
+### 2. 提出用の GitHub リポジトリに write 権限を付ける
 
-受講者が `exam/[自分の名前]` ブランチに push する。
-**第7回で使ったアプリ用リポジトリとは別に作ること。**
+**リポジトリは作成済み**(`infra-study-exam`、private、2026-09-16)。
+`README.md`(提出方法)と `.gitignore`(tfstate を除外)が入っている。
+第7回で使うアプリ用リポジトリ(`infra-study-app`)とは別物。
 
-受講者に write 権限を付ける。
+**この回の準備は「受講者に write 権限を付ける」だけ。**
+
+```
+gh api -X PUT repos/[org]/infra-study-exam/collaborators/[GitHubユーザー名] \
+  -f permission=push
+```
+
+受講者は `exam/[自分の名前]` ブランチに push する。
 
 ### 3. 模範解答を1回通しで動かす
 
