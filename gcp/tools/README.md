@@ -122,14 +122,42 @@ backend の差し替えが効くことは確認済み。
 **第1回の直後に、自分の state に対して1回 dry-run で試しておくこと。**
 そこで通れば以降は同じ形で動く。
 
-## 2つのスクリプトの使い分け
+## create-build-sa.sh — 受講者ごとのビルド用SAを作る(第7回)
 
-| | check-leftover.sh | cleanup-lesson.sh |
-|---|---|---|
-| 何をする | 残骸を**見つける**だけ | 残骸を**消す** |
-| 消す機能 | 無い | ある(`--apply` 必須) |
-| 誰が使う | 受講者・講師 | **講師のみ** |
-| いつ | 次回の前・片付けの後 | 各回の翌朝 |
+```bash
+# まず dry-run(既定)
+./create-build-sa.sh --names-file=members.txt --project=<プロジェクトID>
+
+# 中身を確認したうえで実行
+./create-build-sa.sh --names-file=members.txt --project=<プロジェクトID> --apply
+```
+
+`<名前>-build` という SA を作り、`roles/logging.logWriter` と
+`roles/clouddeploy.jobRunner` を付与する。
+SA が既にあれば作成を飛ばしてロールだけ付けるので、**何度流しても安全**。
+
+### なぜ講師がやるのか
+
+この2つのロールは**プロジェクト単位でしか付けられない**。
+それを付けるための `resourcemanager.projects.setIamPolicy` は
+共有プロジェクトでは配れない(付けると誰にでも好きなロールを渡せてしまう)。
+
+受講者は `data "google_service_account"` で参照するだけ
+(`lesson7/2. cloud_build/artifact_registry.tf`)。
+
+### ★ 名簿の名前は `user_name` と同じ文字列にすること
+
+SA名が `<user_name>-build` になる。食い違うと受講者側の apply が
+「SAが見つからない」で落ちる。
+
+## スクリプトの使い分け
+
+| | check-leftover.sh | cleanup-lesson.sh | create-build-sa.sh |
+|---|---|---|---|
+| 何をする | 残骸を**見つける**だけ | 残骸を**消す** | ビルド用SAを**作る** |
+| 危険な操作 | 無い | 削除(`--apply` 必須) | 作成・ロール付与(`--apply` 必須) |
+| 誰が使う | 受講者・講師 | **講師のみ** | **講師のみ** |
+| いつ | 次回の前・片付けの後 | 各回の翌朝 | 第7回の前に1回 |
 
 `check-leftover.sh` にあえて削除機能を持たせていないのは、
 **受講者に渡すスクリプトだから**。手元のコマンドで消せるようにすると
@@ -144,6 +172,7 @@ state を無視した削除が起きる。消すのは必ず
 | 各回の翌朝 | 講師 | `cleanup-lesson.sh <N> ... --apply` で残りを消す |
 | 次回の数日前 | 講師 | `check-leftover.sh --names-file=...` で取りこぼし確認 |
 | 第10回の前日 | 講師 | 同上 + vCPU クォータの余裕を確認 |
+| 第7回の前 | 講師 | `create-build-sa.sh --apply` でビルド用SAを作る(1回だけ) |
 
 **受講者の手順を1回に固定したのが要点。**
 「翌日もう1回」は必ず取りこぼすので、教材からその指示を外してある

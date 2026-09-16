@@ -123,6 +123,25 @@ gcloud builds repositories describe [リポジトリリンク名] \
 それを付けるための `resourcemanager.projects.setIamPolicy` は
 共有プロジェクトでは配れない(付けると誰にでも好きなロールを渡せてしまう)。
 
+**スクリプトがある。**(`gcp/tools/create-build-sa.sh`)
+
+```
+# まず dry-run(既定)。何が作られるかを見る
+gcp/tools/create-build-sa.sh --names-file=<受講者名簿> --project=[プロジェクトID]
+
+# 中身を確認したうえで実行
+gcp/tools/create-build-sa.sh --names-file=<受講者名簿> --project=[プロジェクトID] --apply
+```
+
+SA が既にあれば作成を飛ばしてロールだけ付けるので、**何度流しても安全**。
+
+> **★ 名簿の名前は `user_name` と同じ文字列にすること ★**
+> SA名が `<user_name>-build` になるため、食い違うと
+> 受講者側の `data "google_service_account"` が
+> 「SAが見つからない」で落ちる。
+
+手で打つ場合は次のとおり。
+
 ```
 for u in shiiman tanaka suzuki; do
   gcloud iam service-accounts create "${u}-build" \

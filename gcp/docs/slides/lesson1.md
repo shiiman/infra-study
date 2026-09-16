@@ -26,7 +26,8 @@
 >
 > **S66(Terraformのインストール)は飛ばせない。** Cloud Shell に Terraform が
 > 入っていないため、ここを飛ばすとハンズオンが始まらない。全10回で唯一この回だけ必要な作業。
-> 事前に「Cloud Shellを開いてTerraformを入れておいてください」と案内しておくと当日が楽になる。
+> **講義内で全員一緒にやる。** Cloud Shell は事前準備のしようがないので、
+> 受講者への事前案内は不要。
 
 ## 原稿の読み方
 
@@ -1676,7 +1677,15 @@ Terraformで「リソースを1つ足す」感覚を掴んでおくと、
 terraform.tfvars
 
   // ★ 自分の名前に書き換えること
-  user_name = "shiiman"
+  user_name = "yamada-taro"
+
+★★ user_name は「社用メールの @ の前」の _ を - に変えたもの ★★
+
+     yamada_taro@... → user_name = "yamada-taro"
+
+  ★ アンダースコア(_)は使えません
+     サービスアカウントの名前が <user_name>-app になり、
+     account_id は「小文字英数字とハイフンのみ」だからです
 
 ◼値の渡し方(優先順位順)
   -var オプション
@@ -1688,6 +1697,22 @@ terraform.tfvars
 
 **[話す]** この勉強会では全員が同じコードを使って、`user_name` だけ変える。
 共有プロジェクトなので、ここを書き換え忘れると他人のリソースを触ることになる。必ず変えること。
+
+**名前の形をここで揃えてもらう。** メールのローカル部の `_` を `-` にするだけ。
+アンダースコアのままだとサービスアカウントが作れず、この回の Step2 で落ちる。
+第7回のビルド用サービスアカウント(`<user_name>-build`)は講師が事前に作ってあるので、
+**ここで違う名前を入れると第7回で「SAが見つからない」で詰まる**。
+
+> **★ 講師メモ ★** `user_name` の形は
+> **社用メールのローカル部の `_` を `-` に置き換えたもの**で確定している(2026-09-16)。
+> 名簿(`gcp/tools/members.txt`)と `tools/` のスクリプトは全部この形を前提にしている。
+>
+> 制約はサービスアカウントの `account_id` がいちばん厳しく、
+> **6〜30文字・小文字英数字とハイフンのみ。**
+> サフィックスが最長 `-build`(6文字)なので **user_name は 3〜24文字**。
+> 確定した12名で最長は18文字なので余裕がある。
+>
+> **姓だけにしなかった理由**: 同姓が2名いて衝突するため。
 
 ---
 
@@ -2381,11 +2406,54 @@ Spanner / Cloud SQL / Memorystore の**作成権限は `roles/editor` に含ま�
 (第7回の `roles/logging.logWriter` など)は講師が事前に付与する。
 第7回 S17b で、この分界を受講者にも説明している。
 
-付与コマンド(受講者ごとに実行)
+### 付与は Google グループ経由で行う
+
+**個人ごとに12ロールを付けるのではなく、グループを1つ作ってそこに付与する。**
+このプロジェクトは既にグループ運用になっている
+(`gcp-infra-owner@` / `gcp-infra_common-analyst-user@` / `wonder-server@`)ので、
+その流儀に合わせる。
+
+教材側はこれで問題ない。**受講者個人の identity を使うのは全部リソースレベル**で、
+`data "google_client_openid_userinfo"` から Terraform が apply 時に解決している
+(`lesson1/3. iam/iam.tf`)。講師が配るのはプロジェクトレベルのロールだけ。
+
+**後始末が1箇所で済むのが最大の利点。** 勉強会が終わったらグループを消すか
+バインディングを12個外すだけで全員分の権限が消える。
+個人付与だと 20人 × 12ロール = 240個のバインディングを外すことになる。
+
+#### 1. グループを作る
+
+```
+gcloud identity groups create gcp-infra_common-study-user@[ドメイン] \
+  --organization="[ドメイン]" \
+  --display-name="GCP勉強会 受講者" \
+  --description="インフラ勉強会(GCP)の受講者。editor を含むので管理者のみ追加可"
+```
+
+#### 2. ★ グループの参加設定を締める ★
+
+Workspace 管理コンソールで次のようにする。
+
+- 参加できるユーザー: **招待されたユーザーのみ**
+- メンバーの追加: **管理者のみ**
+- 社外参加者を入れる場合のみ「組織外のメンバーを許可」をオン
+
+**`roles/editor` を配るグループになる。**
+自由参加にすると誰でもプロジェクトの編集権限を取れてしまう。
+
+#### 3. メンバーを追加する
+
+```
+gcloud identity groups memberships add \
+  --group-email=gcp-infra_common-study-user@[ドメイン] \
+  --member-email=[受講者]@[ドメイン]
+```
+
+#### 4. グループに12ロールを付与する(1回で済む)
 
 ```
 PROJECT=<プロジェクトID>
-MEMBER=user:xxx@example.com
+MEMBER=group:gcp-infra_common-study-user@[ドメイン]
 
 for ROLE in \
   roles/editor \
@@ -2405,6 +2473,45 @@ do
     --member=$MEMBER --role=$ROLE --condition=None
 done
 ```
+
+#### グループ方式の注意点
+
+**① 反映待ちが個人付与より長くなりえる。**
+メンバーシップの伝播が挟まるため。**前日ではなく数日前に付与し、
+講師が1回 apply を通して確認しておくこと。**
+
+**② `gcloud projects get-iam-policy` では個人が見えなくなる。**
+当日「この人だけ権限がない」を切り分けるときは Policy Troubleshooter を使う。
+
+```
+gcloud policy-intelligence troubleshoot-policy iam \
+  //cloudresourcemanager.googleapis.com/projects/[プロジェクトID] \
+  --principal-email=[受講者]@[ドメイン] \
+  --permission=iam.serviceAccounts.setIamPolicy
+```
+
+`allowAccessState: ALLOW_ACCESS_STATE_GRANTED` が出れば通っている。
+リソースは**位置引数**で、`--resource` ではない点に注意。
+
+> **★ `policytroubleshooter.googleapis.com` の有効化が必要 ★**
+> 2026-09-16 に有効化済み。**無効に戻すと当日の切り分け手段が無くなる。**
+> グループ経由だと `gcloud projects get-iam-policy` では個人が見えないため、
+> これが唯一の確認手段になる。
+> 受講者をグループに入れる `gcloud identity groups memberships add` には
+> `cloudidentity.googleapis.com` が必要(同日に有効化済み)。
+
+**③ 社外参加者も入れられる**(2026-09-16 確認)。
+組織ポリシー `constraints/iam.allowedPolicyMemberDomains` は `allValues: ALLOW` で、
+ドメイン制限はかかっていない。グループ側で「組織外のメンバーを許可」をオンにすればよい。
+
+#### 個人ごとに付与する場合(グループを使わないとき)
+
+```
+PROJECT=<プロジェクトID>
+MEMBER=user:xxx@example.com
+```
+
+として、上の 4. の for ループをそのまま受講者ごとに実行する。
 
 ### 共有プロジェクトでのリスク
 

@@ -1,0 +1,21 @@
+# 受講者名簿
+#
+#   cp members.txt.example members.txt
+# して実際の名前を書く。members.txt は .gitignore 済み(氏名を含むため)。
+#
+# ★ ここに書く名前は、受講者が terraform.tfvars の user_name に
+#   入れるのと同じ文字列にすること。
+#   tools/ のスクリプトは全部この名簿を基準に動く。
+#
+# 命名規則(2026-09-16 決定):
+#   社用メールのローカル部の `_` を `-` に置き換えたもの
+#   例: yamada_taro@... → yamada-taro
+#
+# 制約(サービスアカウントの account_id がいちばん厳しい):
+#   - 小文字英数字とハイフンのみ。**アンダースコアは使えない**
+#   - `<user_name>-build` が 6〜30文字に収まること → user_name は 3〜24文字
+#
+# `#` 以降はコメント、空行は無視される。
+
+yamada-taro
+suzuki-hanako   # 第5回から参加
