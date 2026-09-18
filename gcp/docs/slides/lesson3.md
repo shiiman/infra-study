@@ -157,7 +157,7 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 - 左に Cloud DNS の箱、上にブラウザ
 
 ```
- [ブラウザ] ── https://shiiman.[勉強会のドメイン]
+ [ブラウザ] ── https://yamada-taro.[勉強会のドメイン]
      │
  [Cloud DNS] Aレコード
      │
@@ -457,7 +457,7 @@ resource "google_compute_instance" "web" {
   gcloud compute instances list --filter="name:[自分の名前]-web"
 
   NAME         ZONE               INTERNAL_IP  EXTERNAL_IP  STATUS
-  shiiman-web  asia-northeast1-a  172.16.10.2               RUNNING
+  yamada-taro-web  asia-northeast1-a  172.16.10.2               RUNNING
 
 ★ EXTERNAL_IP が空
 ```
@@ -1200,7 +1200,7 @@ resource "google_dns_record_set" "web" {
 ★ dns_name は末尾にドットが付いた形で返ります
    "[勉強会のドメイン]."
    なので "${var.user_name}." と繋ぐと
-   "shiiman.[勉強会のドメイン]." になります
+   "yamada-taro.[勉強会のドメイン]." になります
 
 ★ AWS版はALBへの alias レコードでした
    GCPはLBが固定IPを持つので、普通のAレコードでよい

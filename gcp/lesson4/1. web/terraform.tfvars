@@ -2,7 +2,7 @@
 project_id = ""
 
 // ★ 自分の名前に書き換えること
-user_name = "shiiman"
+user_name = "yamada-taro"
 
 // subnet
 subnet_public_cidr  = "172.16.0.0/24"

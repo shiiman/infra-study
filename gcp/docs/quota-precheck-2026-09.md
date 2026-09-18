@@ -228,7 +228,7 @@ gcloud quotas info describe CPUS-per-project-region \
 
 ## 6. 確認手順(チェックリスト)
 
-- [x] 社用アカウント(hiroki_shimada@sumzap.co.jp)でアクセス確認
+- [x] 社用アカウントでアクセス確認
       (個人アカウントでは対象プロジェクトに権限がない)
 - [x] Cloud Quotas API で **全項目の現行値を実測**(2026-09-16)
 - [x] 申請対象を 🔴4件 + ⚠️2件 に確定

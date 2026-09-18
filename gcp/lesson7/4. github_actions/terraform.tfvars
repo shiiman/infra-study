@@ -3,7 +3,7 @@ project_id = ""
 
 // ★ 自分の名前に書き換えること
 //   この名前が、push するブランチ名にもなります
-user_name = "shiiman"
+user_name = "yamada-taro"
 
 // subnet
 subnet_public_cidr  = "172.16.0.0/24"

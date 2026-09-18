@@ -1074,12 +1074,12 @@ GCPは「リソースに『このプリンシパルにこのロール』を貼�
 ```
 ◼プリンシパル = 操作する主体
 
-user:shiiman@example.com               Googleアカウント(人)
-serviceAccount:xxx@....gserviceaccount.com   サービスアカウント(プログラム)
-group:sre@example.com                  Googleグループ
-domain:example.com                     Cloud Identity / Workspace ドメイン
+user:yamada-taro@example.com                Googleアカウント(人)
+serviceAccount:xxx@....gserviceaccount.com  サービスアカウント(プログラム)
+group:sre@example.com                       Googleグループ
+domain:example.com                          Cloud Identity / Workspace ドメイン
 
-allUsers            インターネット上の全員(認証不要)
+allUsers               インターネット上の全員(認証不要)
 allAuthenticatedUsers  Googleアカウントを持つ全員
 
 ★ allUsers / allAuthenticatedUsers は事故の元
@@ -1134,10 +1134,10 @@ allAuthenticatedUsers  Googleアカウントを持つ全員
 ◼許可ポリシー(Allow Policy)
 リソースにぶら下がる「バインディングのリスト」
 
-  バケット "[プロジェクトID]-tfstate-shiiman"
+  バケット "[プロジェクトID]-tfstate-yamada-taro"
     └ 許可ポリシー
-        ├ roles/storage.objectViewer : [serviceAccount:shiiman-app@...]
-        └ roles/storage.admin        : [user:shiiman@example.com]
+        ├ roles/storage.objectViewer : [serviceAccount:yamada-taro-app@...]
+        └ roles/storage.admin        : [user:yamada-taro@example.com]
 
 ◼付与できる階層
 組織 / フォルダ / プロジェクト / 個別リソース
@@ -1190,7 +1190,7 @@ allAuthenticatedUsers  Googleアカウントを持つ全員
 ◼サービスアカウント(SA)
 人ではなく「プログラム」に紐づくGCP専用のアカウント
 
-  shiiman-app@[プロジェクトID].iam.gserviceaccount.com
+  yamada-taro-app@[プロジェクトID].iam.gserviceaccount.com
 
 ◼SAが特殊なのは「プリンシパル」でも「リソース」でもあること
 
@@ -1258,7 +1258,7 @@ GCPはキーレスの手段が揃っているので、原則キーは作らな�
 
 ◼CLIでの使い方
   gcloud storage ls gs://xxx \
-    --impersonate-service-account=shiiman-app@[プロジェクトID].iam.gserviceaccount.com
+    --impersonate-service-account=yamada-taro-app@[プロジェクトID].iam.gserviceaccount.com
 
 今日のハンズオンで実際にやります
 ```
@@ -1848,7 +1848,7 @@ GCSバケットに置く
 
 terraform {
   backend "gcs" {
-    bucket = "[プロジェクトID]-tfstate-shiiman"
+    bucket = "[プロジェクトID]-tfstate-yamada-taro"
     prefix = "lesson1"
   }
 }
@@ -1978,7 +1978,7 @@ resource "google_service_account" "app" {
 ◼確認
   gcloud iam service-accounts list --filter="email:[自分の名前]-app"
 
-  shiiman-app@[プロジェクトID].iam.gserviceaccount.com
+  yamada-taro-app@[プロジェクトID].iam.gserviceaccount.com
 
 ★ init の段階で state は GCS backend に接続される
   → 以降の apply で state が GCS に保存される
@@ -2003,7 +2003,7 @@ resource "google_service_account" "app" {
 ◼結果
 
   ERROR: (gcloud.storage.ls) PERMISSION_DENIED:
-    Failed to impersonate [shiiman-app@[プロジェクトID].iam.gserviceaccount.com].
+    Failed to impersonate [yamada-taro-app@[プロジェクトID].iam.gserviceaccount.com].
     Make sure the account that's trying to impersonate it has access to
     the service account itself and the "roles/iam.serviceAccountTokenCreator" role.
     Permission 'iam.serviceAccounts.getAccessToken' denied on resource

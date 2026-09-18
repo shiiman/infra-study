@@ -477,8 +477,8 @@ resource "google_compute_network" "vpc" {
 ◼確認
   gcloud compute networks list --filter="name:[自分の名前]-vpc"
 
-  NAME         SUBNET_MODE  BGP_ROUTING_MODE
-  shiiman-vpc  CUSTOM       REGIONAL
+  NAME             SUBNET_MODE  BGP_ROUTING_MODE
+  yamada-taro-vpc  CUSTOM       REGIONAL
 
 ◼自動で作られたルートを見てみる
   gcloud compute routes list --filter="network:[自分の名前]-vpc"
@@ -603,9 +603,9 @@ resource "google_compute_subnetwork" "private" {
 ◼確認
   gcloud compute networks subnets list --filter="network:[自分の名前]-vpc"
 
-  NAME                    REGION           NETWORK      RANGE
-  shiiman-public-subnet   asia-northeast1  shiiman-vpc  172.16.0.0/24
-  shiiman-private-subnet  asia-northeast1  shiiman-vpc  172.16.10.0/24
+  NAME                        REGION           NETWORK          RANGE
+  yamada-taro-public-subnet   asia-northeast1  yamada-taro-vpc  172.16.0.0/24
+  yamada-taro-private-subnet  asia-northeast1  yamada-taro-vpc  172.16.10.0/24
 
 ◼ルートが増えているのを確認
   gcloud compute routes list --filter="network:[自分の名前]-vpc"
@@ -659,7 +659,7 @@ resource "google_compute_subnetwork" "private" {
 VMに付ける ただの文字列ラベル
 Firewall Ruleの適用先を指定するのに使う
 
-  tags = ["shiiman-web"]
+  tags = ["yamada-taro-web"]
 
 ◼サービスアカウント
 VMに紐づけるID
@@ -762,9 +762,9 @@ resource "google_compute_instance" "db" {
 ◼確認
   gcloud compute instances list --filter="name:[自分の名前]"
 
-  NAME         ZONE               INTERNAL_IP   EXTERNAL_IP    STATUS
-  shiiman-web  asia-northeast1-a  172.16.0.2    34.xx.xx.xx    RUNNING
-  shiiman-db   asia-northeast1-a  172.16.10.2   (なし)          RUNNING
+  NAME             ZONE               INTERNAL_IP  EXTERNAL_IP  STATUS
+  yamada-taro-web  asia-northeast1-a  172.16.0.2   34.xx.xx.xx  RUNNING
+  yamada-taro-db   asia-northeast1-a  172.16.10.2  (なし)       RUNNING
 
 ★ dbには EXTERNAL_IP が無い
 ```
@@ -1113,7 +1113,7 @@ resource "google_service_account_iam_member" "db_sa_user" {
 
   gcloud compute ssh [自分の名前]-db --zone=asia-northeast1-a --tunnel-through-iap
 
-  shiiman@shiiman-db:~$
+  yamada-taro@yamada-taro-db:~$
 
 ★ 踏み台を作らずに、外部IPを持たないVMに入れた
 ★ SSH鍵も配っていない(OS Loginが自動で鍵を配置している)

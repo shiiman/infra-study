@@ -40,14 +40,14 @@ gcloud compute networks subnets list --filter="network:[自分の名前]-vpc"
 ```
 
 ```
-NAME                          REGION           NETWORK      RANGE
-shiiman-cache-subnet          asia-northeast1  shiiman-vpc  172.16.50.0/24
-shiiman-db-subnet             asia-northeast1  shiiman-vpc  172.16.40.0/24
-shiiman-private-subnet        asia-northeast1  shiiman-vpc  172.16.10.0/24
-shiiman-public-subnet         asia-northeast1  shiiman-vpc  172.16.0.0/24
-shiiman-web-subnet            asia-northeast1  shiiman-vpc  172.16.20.0/22
-shiiman-osaka-private-subnet  asia-northeast2  shiiman-vpc  172.16.110.0/24
-shiiman-osaka-public-subnet   asia-northeast2  shiiman-vpc  172.16.100.0/24
+NAME                              REGION           NETWORK           RANGE
+yamada-taro-cache-subnet          asia-northeast1  yamada-taro-vpc   172.16.50.0/24
+yamada-taro-db-subnet             asia-northeast1  yamada-taro-vpc   172.16.40.0/24
+yamada-taro-private-subnet        asia-northeast1  yamada-taro-vpc   172.16.10.0/24
+yamada-taro-public-subnet         asia-northeast1  yamada-taro-vpc   172.16.0.0/24
+yamada-taro-web-subnet            asia-northeast1  yamada-taro-vpc   172.16.20.0/22
+yamada-taro-osaka-private-subnet  asia-northeast2  yamada-taro-vpc   172.16.110.0/24
+yamada-taro-osaka-public-subnet   asia-northeast2  yamada-taro-vpc   172.16.100.0/24
 ```
 
 Cloud Routerが2つ(東京・大阪)できていることを確認する。
