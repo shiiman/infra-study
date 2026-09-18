@@ -751,8 +751,17 @@ Cloud Run はイメージが存在しないと作成できず、
 > **★ 2026-09-18 に Cloud Shell 実機で通し確認を完了した ★**
 >
 > `gcloud cloud-shell ssh --authorize-session --command='...'` で実行。
-> **第1回の最大の未検証項目だった `data "google_client_openid_userinfo"` は
-> Cloud Shell で問題なく動いた**(`variable "user_email"` を足す改修は不要)。
+>
+> **★★ ただしこの検証方法には穴があった ★★**
+> `gcloud cloud-shell ssh` では `GOOGLE_CLOUD_QUOTA_PROJECT` が立たないため、
+> **受講者が使うブラウザの Cloud Shell で必ず起きる問題を再現できていなかった。**
+> `data "google_client_openid_userinfo"` は、この変数があると
+> `openidconnect.googleapis.com` が 403 `USER_PROJECT_DENIED` で弾かれ、
+> **プロバイダが握りつぶして email を null にする。**
+> 対処は第1回 S66 で `~/.bashrc` に `unset` を書かせること
+> (`variable "user_email"` への改修は不要)。詳細は第1回 S66 の講師メモ。
+>
+> **Cloud Shell の検証は必ずブラウザの端末で行うこと。**
 > Step1〜Step3 の apply と destroy、バケットが残ることも確認済み。
 > なりすましは apply 完了から**51秒後**に通った(IAM の反映待ち)。
 > 詳細は第1回 付録B「動作確認」。
