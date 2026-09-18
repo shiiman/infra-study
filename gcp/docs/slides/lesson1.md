@@ -1074,12 +1074,12 @@ GCPは「リソースに『このプリンシパルにこのロール』を貼�
 ```
 ◼プリンシパル = 操作する主体
 
-user:yamada-taro@example.com               Googleアカウント(人)
-serviceAccount:xxx@....gserviceaccount.com   サービスアカウント(プログラム)
-group:sre@example.com                  Googleグループ
-domain:example.com                     Cloud Identity / Workspace ドメイン
+user:yamada-taro@example.com                Googleアカウント(人)
+serviceAccount:xxx@....gserviceaccount.com  サービスアカウント(プログラム)
+group:sre@example.com                       Googleグループ
+domain:example.com                          Cloud Identity / Workspace ドメイン
 
-allUsers            インターネット上の全員(認証不要)
+allUsers               インターネット上の全員(認証不要)
 allAuthenticatedUsers  Googleアカウントを持つ全員
 
 ★ allUsers / allAuthenticatedUsers は事故の元

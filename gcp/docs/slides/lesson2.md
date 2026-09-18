@@ -477,7 +477,7 @@ resource "google_compute_network" "vpc" {
 ◼確認
   gcloud compute networks list --filter="name:[自分の名前]-vpc"
 
-  NAME         SUBNET_MODE  BGP_ROUTING_MODE
+  NAME             SUBNET_MODE  BGP_ROUTING_MODE
   yamada-taro-vpc  CUSTOM       REGIONAL
 
 ◼自動で作られたルートを見てみる
@@ -603,7 +603,7 @@ resource "google_compute_subnetwork" "private" {
 ◼確認
   gcloud compute networks subnets list --filter="network:[自分の名前]-vpc"
 
-  NAME                    REGION           NETWORK      RANGE
+  NAME                        REGION           NETWORK          RANGE
   yamada-taro-public-subnet   asia-northeast1  yamada-taro-vpc  172.16.0.0/24
   yamada-taro-private-subnet  asia-northeast1  yamada-taro-vpc  172.16.10.0/24
 
@@ -762,9 +762,9 @@ resource "google_compute_instance" "db" {
 ◼確認
   gcloud compute instances list --filter="name:[自分の名前]"
 
-  NAME         ZONE               INTERNAL_IP   EXTERNAL_IP    STATUS
-  yamada-taro-web  asia-northeast1-a  172.16.0.2    34.xx.xx.xx    RUNNING
-  yamada-taro-db   asia-northeast1-a  172.16.10.2   (なし)          RUNNING
+  NAME             ZONE               INTERNAL_IP  EXTERNAL_IP  STATUS
+  yamada-taro-web  asia-northeast1-a  172.16.0.2   34.xx.xx.xx  RUNNING
+  yamada-taro-db   asia-northeast1-a  172.16.10.2  (なし)       RUNNING
 
 ★ dbには EXTERNAL_IP が無い
 ```
