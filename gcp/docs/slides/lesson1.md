@@ -1488,14 +1488,22 @@ Terraform
   curl -sLO https://releases.hashicorp.com/terraform/1.16.3/terraform_1.16.3_linux_amd64.zip
   unzip -o terraform_1.16.3_linux_amd64.zip -d ~/bin
 
-◼PATH を通します(~/.bashrc に書けば次回以降も有効)
+◼~/.bashrc に2行書きます(次回以降も有効)
 
-  echo 'export PATH=$HOME/bin:$PATH' >> ~/.bashrc
+  echo 'export PATH=$HOME/bin:$PATH'        >> ~/.bashrc
+  echo 'unset GOOGLE_CLOUD_QUOTA_PROJECT'   >> ~/.bashrc
   source ~/.bashrc
+
+  ★ 2行目を忘れると Step3 で失敗します
+     Cloud Shell が立てる設定のせいで、自分のメールアドレスを
+     取るAPIが 403 で弾かれます(詳しくは S84 で)
 
 ◼確認
   terraform version
   → Terraform v1.16.3
+
+  echo $GOOGLE_CLOUD_QUOTA_PROJECT
+  → (何も出なければOK)
 
 ★ この作業は初回だけ。第2回以降は不要です
 ```
@@ -1511,6 +1519,31 @@ Terraform
 > 起動と `~/.bashrc` 経由でのPATH永続化を確認。
 > `~/bin` の容量は約115MB(ホームは5GBまで)。
 > このとき入れたのは当時の最新 `1.16.0`。
+
+> **★★ `unset GOOGLE_CLOUD_QUOTA_PROJECT` は必須。飛ばすと Step3 で全員止まる ★★**
+>
+> **2026-09-18 に実機で判明した。** Cloud Shell のブラウザ端末は
+> `GOOGLE_CLOUD_QUOTA_PROJECT` を自動で設定する
+> (`/google/devshell/bashrc.google` が設定しており、`~/.bashrc` はそれを読む)。
+>
+> これがあると Terraform の API 呼び出しに `x-goog-user-project` が付き、
+> **`openidconnect.googleapis.com` の呼び出しが 403 `USER_PROJECT_DENIED` になる。**
+> このサービスは**ユーザーが有効化できない**ので、API を有効化する回避策は取れない。
+>
+> **さらに悪いことに、プロバイダはこの403を握りつぶして email を null にする。**
+> 受講者には無関係に見えるエラーだけが出る:
+>
+> ```
+> Error: Invalid template interpolation value
+>   data.google_client_openid_userinfo.me.email is null
+> ```
+>
+> `~/.bashrc` の末尾に書けば効く(`bashrc.google` を読んだ後に unset されるため)。
+> **`gcloud cloud-shell ssh` 経由では この変数が立たないので再現しない。**
+> 検証するときは必ずブラウザの Cloud Shell で行うこと。
+>
+> 影響するのは `data "google_client_openid_userinfo"` を使う箇所:
+> 第1回 Step3(`lesson1/3. iam/iam.tf`)と第2回 Step4(`lesson2/4. firewall/iap.tf`)。
 
 > **★ バージョンを上げるときは、講師の Cloud Shell も入れ直すこと ★**
 >
@@ -2097,7 +2130,19 @@ resource "google_storage_bucket_iam_member" "app_object_viewer" {
 ★ data ブロックが2つ出てくる (S74でやったもの)
    ・自分のメールアドレスを取る
    ・Terraform管理外のバケットを読む
+
+★★ ここで下のエラーが出たら ★★
+   Error: Invalid template interpolation value
+     data.google_client_openid_userinfo.me.email is null
+
+   → S66 の unset を忘れています。これを打ってやり直してください
+     unset GOOGLE_CLOUD_QUOTA_PROJECT
 ```
+
+**[話す]** エラーの文面には `unset` のことは何も出てこない。
+**Cloud Shell が立てる設定のせいで、メールアドレスを取るAPIが403で弾かれ、
+プロバイダがそれを握りつぶして null にしている**ためにこう見える。
+「エラー文が原因を指していないこともある」例として使える。
 
 ---
 
@@ -2695,11 +2740,24 @@ iam.roles.create,iam.roles.delete,iam.roles.undelete,iam.roles.update
 `gcloud cloud-shell ssh --authorize-session --command='...'` で
 講師の Cloud Shell に入って通しで実行した。**3項目すべてOK。**
 
-1. **`data "google_client_openid_userinfo"` が Cloud Shell で動くか** → **動く**
-   `email = "<講師のアカウント>"` が取得できた。
-   **`variable "user_email"` を追加する改修は不要。**
-   (これが動かない場合の影響範囲は S74 / S84 /
-   `gcp/lesson1/3. iam/iam.tf` / `gcp/lesson2/4. firewall/iap.tf` だった)
+1. **`data "google_client_openid_userinfo"` が Cloud Shell で動くか**
+   → **`unset GOOGLE_CLOUD_QUOTA_PROJECT` が要る**(2026-09-18 に判明)
+
+   当初「動く」と判断したが、**検証を `gcloud cloud-shell ssh` 経由で行っており、
+   受講者と同じブラウザの Cloud Shell では再現していなかった。**
+   SSH 経由だと `GOOGLE_CLOUD_QUOTA_PROJECT` が立たないため通ってしまう。
+
+   ブラウザの Cloud Shell では **必ず失敗する**。
+   対処は S66 で `~/.bashrc` に `unset` を書かせること。
+   詳細は S66 の講師メモ。
+
+   **`variable "user_email"` への改修は不要**(unset で解決するため)。
+   影響範囲は S74 / S84 / `gcp/lesson1/3. iam/iam.tf` /
+   `gcp/lesson2/4. firewall/iap.tf`。
+
+   > **★ Cloud Shell の検証は必ずブラウザの端末で行うこと。**
+   > `gcloud cloud-shell ssh` は環境変数が違うので、
+   > 受講者が踏む問題を再現できない。
 
 2. **権限借用の失敗メッセージの文言**(S82) → **スライドの文言は実物どおり**
    ただし実物には Troubleshooter URL と構造化された `reason` が続く。

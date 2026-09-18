@@ -384,6 +384,12 @@ GCPでは踏み台レスが推奨構成です
   プロジェクトが [プロジェクトID] になっていることを確認
   gcloud config get-value project
 
+  前回の設定が残っているかも確認(何も出なければOK)
+  echo $GOOGLE_CLOUD_QUOTA_PROJECT
+
+  ★ 何か出た人は ~/.bashrc に追記してください(第1回 S66)
+    echo 'unset GOOGLE_CLOUD_QUOTA_PROJECT' >> ~/.bashrc && source ~/.bashrc
+
 ◼作業ディレクトリを作る
   mkdir -p ~/works/lesson2
   cd ~/works/lesson2
@@ -1095,7 +1101,18 @@ resource "google_service_account_iam_member" "db_sa_user" {
 
 ★ 全部 インスタンス単位 / SA単位 で付けている
    前回話した「共有プロジェクトでプロジェクトIAMを触らない」の実践
+
+★ email is null のエラーが出たら(第1回 S66 でやった対処)
+     unset GOOGLE_CLOUD_QUOTA_PROJECT
 ```
+
+> **★ 講師メモ ★** `data "google_client_openid_userinfo"` は
+> Cloud Shell が立てる `GOOGLE_CLOUD_QUOTA_PROJECT` があると
+> 403 で失敗し、**プロバイダがそれを握りつぶして null を返す**。
+> 第1回 S66 で `~/.bashrc` に `unset` を書かせてあるので通常は起きないが、
+> **Cloud Shell のホームが作り直された人は再発する**
+> (120日アクセスが無いと消える)。
+> 原因と詳細は第1回 S66 の講師メモ。
 
 ---
 
