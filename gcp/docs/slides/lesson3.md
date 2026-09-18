@@ -1061,10 +1061,10 @@ resource "google_compute_firewall" "allow_lb_to_web" {
 
 ★ ヘルスチェックが通るまで30〜40秒かかります
    (check_interval_sec 10 × healthy_threshold 2 + Firewallの反映)
+```
 
 > **検証済み(2026-08-28)**: apply完了から37秒でHEALTHY + HTTP 200 を確認。
 > 20秒時点ではまだUNHEALTHY。
-```
 
 ---
 

@@ -847,13 +847,13 @@ resource "google_redis_instance" "cache" {
    (限定公開サービスアクセスのピアリングも含めて)
    待っている間に Spanner の話に進みます(S26へ)
 
-> **検証済み(2026-08-28)**: ピアリング + Memorystore で 6分5秒。
-> cache_host は貸し出しレンジから 172.16.200.84 が払い出された。
-
 ◼確認
   terraform output cache_host
   → 172.16.200.x
 ```
+
+> **検証済み(2026-08-28)**: ピアリング + Memorystore で 6分5秒。
+> cache_host は貸し出しレンジから 172.16.200.84 が払い出された。
 
 ---
 
@@ -1189,9 +1189,6 @@ resource "google_spanner_database_iam_member" "web" {
 ★ Spannerの作成は1〜2分で終わります
    Cloud SQL(15分)や Memorystore(6分)よりずっと速い
 
-> **検証済み(2026-08-28)**: インスタンス + データベース + IAM で 1分6秒。
-> インターリーブを含むDDLもそのまま通った。
-
 ◼確認
   terraform output spanner_database
   → projects/xxx/instances/yyy-spanner/databases/test-db
@@ -1199,6 +1196,9 @@ resource "google_spanner_database_iam_member" "web" {
   gcloud spanner instances list
   gcloud spanner databases ddl describe test-db --instance=[自分の名前]-spanner
 ```
+
+> **検証済み(2026-08-28)**: インスタンス + データベース + IAM で 1分6秒。
+> インターリーブを含むDDLもそのまま通った。
 
 ---
 
