@@ -392,7 +392,7 @@ terraform {
   required_version = ">= 1.9.0"
 
   backend "gcs" {
-    bucket = "[プロジェクトID]-tfstate-shiiman"   # ★受講者が自分の名前に書き換える
+    bucket = "[プロジェクトID]-tfstate-yamada-taro"   # ★受講者が自分の名前に書き換える
     prefix = "lessonN"
   }
 }

@@ -64,16 +64,16 @@ gcloud compute backend-services get-health [自分の名前]-web-bs --global
 ```
 
 ```
-backend: .../instanceGroups/shiiman-web-ig
+backend: .../instanceGroups/yamada-taro-web-ig
 status:
   healthStatus:
   - healthState: HEALTHY
-    instance: .../instances/shiiman-web
-backend: .../instanceGroups/shiiman-web-b-ig
+    instance: .../instances/yamada-taro-web
+backend: .../instanceGroups/yamada-taro-web-b-ig
 status:
   healthStatus:
   - healthState: HEALTHY
-    instance: .../instances/shiiman-web-b
+    instance: .../instances/yamada-taro-web-b
 ```
 
 ### 冗長化できていることを確かめる

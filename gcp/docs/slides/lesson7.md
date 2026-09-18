@@ -143,7 +143,7 @@ SA が既にあれば作成を飛ばしてロールだけ付けるので、**何
 手で打つ場合は次のとおり。
 
 ```
-for u in shiiman tanaka suzuki; do
+for u in yamada-taro tanaka suzuki; do
   gcloud iam service-accounts create "${u}-build" \
     --display-name="${u} cloud build" --project=[プロジェクトID]
 
@@ -232,7 +232,7 @@ gh variable set PROJECT_ID --repo [org]/[アプリ用リポジトリ] --body "$P
 
 > **★ 受講者ごとに違う値は Variables に入れないこと。**
 > 全員で1つのリポジトリを共有しているので、リポジトリ変数も全員で共有される。
-> ここに `SERVICE=shiiman-app` などと書くと、**他の人のビルドが壊れる**。
+> ここに `SERVICE=yamada-taro-app` などと書くと、**他の人のビルドが壊れる**。
 >
 > リポジトリ名 / サービス名 / SA は、ワークフロー側で
 > `${{ github.ref_name }}`(= ブランチ名 = 自分の名前)から組み立てる。
@@ -552,7 +552,7 @@ allUsers に公開しないとCDNも読めなかった
 
    ブランチ         トリガー              デプロイ先
    ─────────────────────────────────────────────
-   shiiman     →  shiiman-deploy   →   shiiman-app
+   yamada-taro     →  yamada-taro-deploy   →   yamada-taro-app
    tanaka      →  tanaka-deploy    →   tanaka-app
    suzuki      →  suzuki-deploy    →   suzuki-app
 
@@ -1346,7 +1346,7 @@ GitHub の箱は共通で、そこから2本に分かれる。
 
   ○ Workload Identity 連携
     [GitHub Actions] ──「私は sumzap/infra-study-app の
-                          refs/heads/shiiman です」(OIDCトークン)
+                          refs/heads/yamada-taro です」(OIDCトークン)
            │
            ▼
     [GCP] トークンをGitHubの公開鍵で検証
@@ -1370,7 +1370,7 @@ GitHub の箱は共通で、そこから2本に分かれる。
   そのトークンには「どのリポジトリの、どのブランチか」が入っている
 
     repository : sumzap/infra-study-app
-    ref        : refs/heads/shiiman
+    ref        : refs/heads/yamada-taro
 
   GCP側で「この条件に合うトークンなら、このSAを使ってよい」と
   書いておけば、鍵ファイルなしでGCPを操作できる
@@ -1491,7 +1491,7 @@ member の書き方だけが違う、という点を押さえてもらう。
 
 ◼ところが、実際に発行されたトークンの sub はこうでした
 
-  repo:sumzap@45473687/infra-study-app@1351899519:ref:refs/heads/shiiman
+  repo:sumzap@45473687/infra-study-app@1351899519:ref:refs/heads/yamada-taro
             ~~~~~~~~~                ~~~~~~~~~~~
             組織の数値ID              リポジトリの数値ID
 
@@ -1504,14 +1504,14 @@ member の書き方だけが違う、という点を押さえてもらう。
   repository と ref のクレームは、名前のまま素直に入っています
 
     repository : sumzap/infra-study-app
-    ref        : refs/heads/shiiman
+    ref        : refs/heads/yamada-taro
 
   プロバイダ側でこの2つを連結した属性を作ってあります
 
     attribute.repo_ref = assertion.repository + "@" + assertion.ref
 
   → principalSet://<プール>/attribute.repo_ref/
-       sumzap/infra-study-app@refs/heads/shiiman
+       sumzap/infra-study-app@refs/heads/yamada-taro
 
 ★ 「ドキュメントどおりに書いたのに PERMISSION_DENIED」は、
    だいたいこれか、audience の指定ミスです
@@ -1801,7 +1801,7 @@ GCPの他サービスとの連携   密(Cloud Deploy など)      gcloud 経由
 
 ```
    Terraform が知っている image     CI/CD が入れた image
-   infra-study-common/app     ≠    shiiman-repo/app:a1b2c3d
+   infra-study-common/app     ≠    yamada-taro-repo/app:a1b2c3d
 
    → 次の terraform apply で、Terraform は
      「ズレている」と判断して巻き戻そうとする

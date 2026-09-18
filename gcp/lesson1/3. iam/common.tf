@@ -13,7 +13,7 @@ terraform {
    * バケットは Step1 で gcloud コマンドを使って作成済み(Terraform管理外)
    * backendブロックには変数が使えないため、バケット名は直接書く必要がある
    * ★ bucket を自分の環境に合わせて書き換えること
-   *    例: my-project-tfstate-shiiman
+   *    例: my-project-tfstate-yamada-taro
    */
   backend "gcs" {
     bucket = "[プロジェクトID]-tfstate-[自分の名前]"

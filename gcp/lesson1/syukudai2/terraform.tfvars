@@ -2,4 +2,4 @@
 project_id = ""
 
 // ★ 自分の名前に書き換えること
-user_name = "shiiman"
+user_name = "yamada-taro"

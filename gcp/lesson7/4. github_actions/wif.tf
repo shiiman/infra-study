@@ -18,7 +18,7 @@
  * そのトークンには、こういう情報が入っています。
  *
  *   repository : sumzap/infra-study-app
- *   ref        : refs/heads/shiiman
+ *   ref        : refs/heads/yamada-taro
  *
  *   1. Actions がこのトークンを持って GCP に来る
  *   2. GCP は GitHub の公開鍵でトークンを検証する
@@ -83,7 +83,7 @@ variable "github_repository" {
  *
  * 実際に発行されたトークンの sub を見ると、こうなっていました。
  *
- *   repo:sumzap@45473687/infra-study-app@1351899519:ref:refs/heads/shiiman
+ *   repo:sumzap@45473687/infra-study-app@1351899519:ref:refs/heads/yamada-taro
  *             ^^^^^^^^^                ^^^^^^^^^^^
  *
  * GitHub の組織設定で
