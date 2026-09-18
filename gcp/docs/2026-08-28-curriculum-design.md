@@ -746,7 +746,16 @@ Cloud Run はイメージが存在しないと作成できず、
 
 `[プロジェクトID]` に対して第1回・第2回の全ステップと宿題を
 通しで `apply` → `destroy` した結果。実行環境はローカルの Mac + ADC
-(講師のアカウント)。**Cloud Shell では未実施**。
+(講師のアカウント)。**当時は Cloud Shell では未実施**だった。
+
+> **★ 2026-09-18 に Cloud Shell 実機で通し確認を完了した ★**
+>
+> `gcloud cloud-shell ssh --authorize-session --command='...'` で実行。
+> **第1回の最大の未検証項目だった `data "google_client_openid_userinfo"` は
+> Cloud Shell で問題なく動いた**(`variable "user_email"` を足す改修は不要)。
+> Step1〜Step3 の apply と destroy、バケットが残ることも確認済み。
+> なりすましは apply 完了から**51秒後**に通った(IAM の反映待ち)。
+> 詳細は第1回 付録B「動作確認」。
 
 | 確認項目 | 結果 |
 |---|---|

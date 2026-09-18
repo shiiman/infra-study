@@ -142,10 +142,25 @@ service.presentations().batchUpdate(presentationId=PID, body={"requests": reques
 
 - `deleteText` + `insertText` だけなら**フォントサイズは引き継がれる**(実測で確認)。
   文字数が増えて枠からはみ出すときだけ `updateTextStyle` でサイズを下げる。
-- 収まる最大サイズは 20pt から1ptずつ下げて、
-  `行数 x サイズ x 1.2` が枠高の95%以内、
-  `最大行幅(全角2換算) x サイズ x 0.6` が枠幅の95%以内になるまで。
-- **末尾の空段落も1行として数える**(数え落とすと1pt はみ出す)。
+
+> **★ 収まりは計算で判定しないこと。サムネイルを見ること(2026-09-18)★**
+>
+> 以前ここに「`行数 x サイズ x 1.2` が枠高の95%以内なら収まる」と書いていたが、
+> **この式は過剰に保守的で使えない。**
+> 実際には**手を加えていないページでも「はみ出す」と判定される**。
+> 式を信じてフォントを下げると、手調整済みのレイアウトを無駄に壊す。
+>
+> **`getThumbnail` で画像を取って目で見るのが唯一確実。**
+>
+> ```python
+> r = service.presentations().pages().getThumbnail(
+>         presentationId=PID, pageObjectId=oid,
+>         thumbnailProperties_thumbnailSize="LARGE").execute()
+> urllib.request.urlretrieve(r["contentUrl"], "page.png")
+> ```
+>
+> 2026-09-18 に第1回 p65(24行/14pt)と p85(22行/14pt)で試したところ、
+> **式は両方「はみ出す」と出たが、実際は下に余白が残っていた。**
 - 認証は `shiiman-google` プラグインの `lib/google_utils.py` の
   `load_credentials(get_token_path("<プロファイル名>"), SCOPES)` を使う。
 
@@ -154,10 +169,11 @@ service.presentations().batchUpdate(presentationId=PID, body={"requests": reques
 片付け手順を「受講者は1回だけ、2回目は講師がまとめて」に変えたため。
 フォントサイズは 8→7 / 7→6 / 16→14 / 16→12 pt に調整している。
 
-**2026-09-18 に第1回 p65「Terraform をインストールする」を差し替えた。**
-Terraform のバージョンを `1.16.0` → `1.16.3` に上げたため。
-**文字数がほぼ変わらない差し替えではフォントサイズを触らないこと。**
-収まり判定の式(行数 x サイズ x 1.2)は、このページの元の状態でも
-「はみ出す」と出る。式が保守的なだけなので、
-**差し替え前と文字数が同程度なら見た目は変わらない。**
-サイズを下げると手調整済みのレイアウトを壊す。
+**2026-09-18 に第1回の2枚を差し替えた。**
+
+| ページ | 何を |
+|---|---|
+| p65 Terraform をインストールする | バージョンを `1.16.0` → `1.16.3` に |
+| p85 Step3 実行 → 成功 | 「apply 直後は IAM 反映待ちで失敗する」の1行を追加 |
+
+どちらも**フォントは 14pt のまま触っていない**。サムネイルで収まりを確認済み。

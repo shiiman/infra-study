@@ -1951,8 +1951,11 @@ Terraformで作ると、`terraform destroy` が「自分のtfstateが乗って�
 消しにいく事故パターンになる。それを避けるために、ここだけ gcloud で作る。
 このバケットは第2回以降も使い続ける。
 
-> **制作TODO**: `describe` の出力キー(`versioning_enabled` など)は
-> 開催前に実機で1回確認して、スライドの表記を実物に合わせること。
+> **確認済み(2026-09-18、Cloud Shell 実機)**: `describe` の出力キーは
+> スライドの表記どおり(`location: ASIA-NORTHEAST1` /
+> `uniform_bucket_level_access: true` / `versioning_enabled: true`)。
+> 実物には `location_type: region` と `public_access_prevention: inherited` も出るが、
+> スライドで触れる必要はない。
 
 ---
 
@@ -2008,7 +2011,19 @@ resource "google_service_account" "app" {
    GCPのエラーは親切なので、まず全文を読む癖をつけること
 ```
 
-> **検証済み(2026-08-28)**: `[プロジェクトID]` で上記のエラーを実測。
+> **検証済み(2026-09-18、Cloud Shell 実機で再確認)**: 上記のエラー文言は実物どおり。
+>
+> **実物には続きがある。** スライドには載せていないが、当日は画面に出るので
+> 説明できるようにしておくこと。
+>
+> - `Remediate access with this Troubleshooter URL ...` という
+>   **コンソールの IAM トラブルシューターへのリンク**が付く。
+>   「エラーが原因の特定画面まで案内してくれる」として見せるとよい
+> - 冒頭に `WARNING: This command is using service account impersonation.` が出る
+> - 末尾に構造化された `reason: IAM_PERMISSION_DENIED` /
+>   `permission: iam.serviceAccounts.getAccessToken` が出る
+>
+> スライドは要点だけに絞ってあるので、**実物のほうが長い**ことを前提に話すこと。
 
 ---
 
@@ -2100,6 +2115,7 @@ resource "google_storage_bucket_iam_member" "app_object_viewer" {
   gs://[プロジェクトID]-tfstate-[自分の名前]/lesson1/
 
 ★ 通った
+   apply 直後は IAM 反映待ちで失敗します。約1分待つと通ります
 
 ◼書き込みは失敗することも確認する
   echo test > /tmp/test.txt
@@ -2117,6 +2133,21 @@ resource "google_storage_bucket_iam_member" "app_object_viewer" {
 
 > **検証済み(2026-08-28)**: 読み取り成功 / 書き込みは
 > `does not have storage.objects.create access` で拒否されることを実測。
+>
+> **2026-09-18 に Cloud Shell 実機で再確認**: 読み取りは
+> **apply 完了から51秒後(4回目の試行)に成功**。
+> 15秒間隔で試して3回失敗 → 4回目で通った。
+> 「約1分」という見立ては正しい。
+> (書き込み拒否のほうは 2026-09-18 には再確認していない)
+>
+> **この待ちはスライド本文にも1行入れた。**
+> 15人が別々のペースで進むので、講師の口頭説明だけだと
+> 先に進んだ人が「コードが間違っている」と思って触り始める。
+>
+> **入れられたのは1行だけ。** このページは 14pt で20行使っていて、
+> 枠(828x359pt)に入るのは21行が限界だった。
+> 文章を増やすならフォントを下げるしかないので、
+> 詳しい説明は [話す] に置いたままにしてある。
 
 ---
 
@@ -2647,20 +2678,40 @@ iam.roles.create,iam.roles.delete,iam.roles.undelete,iam.roles.update
 | google provider のバージョン | S71 | `~> 8.0` のまま行くか。8.0.0 は 2026-08-26 リリース |
 | 事前配布資料のページ番号 | S14 | スキップスライドのページ数と一致するか |
 
-## 動作確認が必要な箇所
+## 動作確認 — **2026-09-18 に Cloud Shell 実機で完了**
 
-1. **`data "google_client_openid_userinfo"` が Cloud Shell で動くか**
-   Cloud Shell の ADC に `userinfo.email` スコープが含まれている前提で書いている。
-   もし取得できない場合は `variable "user_email"` を追加して tfvars で渡す形に変更する。
-   影響: S74 / S84 / `gcp/lesson1/3. iam/iam.tf` / `gcp/lesson2/4. firewall/iap.tf`
+`gcloud cloud-shell ssh --authorize-session --command='...'` で
+講師の Cloud Shell に入って通しで実行した。**3項目すべてOK。**
 
-2. **権限借用の失敗メッセージの文言**(S82)
-   実際に実行してエラー文を確認し、スライドの文言を実物に合わせる。
+1. **`data "google_client_openid_userinfo"` が Cloud Shell で動くか** → **動く**
+   `email = "<講師のアカウント>"` が取得できた。
+   **`variable "user_email"` を追加する改修は不要。**
+   (これが動かない場合の影響範囲は S74 / S84 /
+   `gcp/lesson1/3. iam/iam.tf` / `gcp/lesson2/4. firewall/iap.tf` だった)
 
-3. **通しでの apply → destroy**
-   Step1(gcloud バケット)から Step3 まで通して apply し、
-   `terraform destroy` がバケットを残したまま通ることを確認する。
-   バケットの後片付けは `gcloud storage rm --recursive gs://.../`。
+2. **権限借用の失敗メッセージの文言**(S82) → **スライドの文言は実物どおり**
+   ただし実物には Troubleshooter URL と構造化された `reason` が続く。
+   詳細は S82 の講師メモ。
+
+3. **通しでの apply → destroy** → **通った**
+   - Step1: `gcloud storage buckets create` + `--versioning`。
+     `describe` の出力キーもスライドの表記どおり
+   - Step2: `terraform init` で GCS backend に接続、`apply` で SA 1個作成。
+     `gs://<バケット>/lesson1/default.tfstate` に state が保存されることを確認
+   - Step3: `apply` で IAM 2個追加(計3リソース)。
+     なりすましは **apply 完了から51秒後(4回目の試行)に成功**
+   - `destroy`: 3リソースすべて削除。**バケットは残る**(狙いどおり)。
+     state は `resources: 0` になる
+   - 後片付け: `gcloud storage rm --recursive` でバケットを削除済み
+
+> **★ Cloud Shell は `gcloud cloud-shell ssh` で操作できる ★**
+>
+> 非対話でも `--command` でコマンドを流せるので、
+> **実機検証を手作業でやる必要はない。**
+>
+> **注意: 非対話セッションでは `~/.bashrc` が読まれない。**
+> `~/bin` に入れた Terraform は PATH に乗らないので、
+> コマンドの先頭で `export PATH=$HOME/bin:$PATH` を明示すること。
 
 ## 設計書からの変更点
 
