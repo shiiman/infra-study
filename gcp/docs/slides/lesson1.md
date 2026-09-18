@@ -1485,8 +1485,8 @@ Terraform
 
   mkdir -p ~/bin
   cd /tmp
-  curl -sLO https://releases.hashicorp.com/terraform/1.16.0/terraform_1.16.0_linux_amd64.zip
-  unzip -o terraform_1.16.0_linux_amd64.zip -d ~/bin
+  curl -sLO https://releases.hashicorp.com/terraform/1.16.3/terraform_1.16.3_linux_amd64.zip
+  unzip -o terraform_1.16.3_linux_amd64.zip -d ~/bin
 
 ◼PATH を通します(~/.bashrc に書けば次回以降も有効)
 
@@ -1495,7 +1495,7 @@ Terraform
 
 ◼確認
   terraform version
-  → Terraform v1.16.0
+  → Terraform v1.16.3
 
 ★ この作業は初回だけ。第2回以降は不要です
 ```
@@ -1508,10 +1508,37 @@ Terraform
 (その場合も PATH は `~/.bashrc` に書く)。
 
 > **検証済み(2026-08-28)**: 実際のCloud Shellで上記手順を実行し、
-> `Terraform v1.16.0` の起動と、`~/.bashrc` 経由でのPATH永続化を確認。
+> 起動と `~/.bashrc` 経由でのPATH永続化を確認。
 > `~/bin` の容量は約115MB(ホームは5GBまで)。
+> このとき入れたのは当時の最新 `1.16.0`。
 
-> **制作TODO**: 開催直前にTerraformの最新版バージョン番号を確認して差し替える。
+> **★ バージョンを上げるときは、講師の Cloud Shell も入れ直すこと ★**
+>
+> **2026-09-18 に `1.16.0` → `1.16.3` に固定した。**
+>
+> インストールは**第1回の1回だけ**で、以降7ヶ月そのバージョンを使い続ける。
+> Terraform は**パッチが週1ペースで出る**(1.16.0 は 2026-08-26、
+> 1.16.3 は 2026-09-16)ので、スライドの番号は放っておくと必ず古くなり、
+> 受講者に `Your version of Terraform is out of date!` が出て不安にさせる。
+>
+> **「最新版を動的に取得する」方式は採らなかった。**
+> 講師の Cloud Shell には既に入っているため再インストールされず、
+> **講師だけ古いバージョンのまま**になって受講者とズレる。
+> 固定にしておけば、講師も同じ手順で入れ直せば揃う。
+>
+> ```
+> # 講師が入れ直すとき(受講者と同じ版に揃える)
+> rm -f ~/bin/terraform
+> cd /tmp && curl -sLO https://releases.hashicorp.com/terraform/1.16.3/terraform_1.16.3_linux_amd64.zip
+> unzip -o terraform_1.16.3_linux_amd64.zip -d ~/bin
+> terraform version   # → v1.16.3
+> ```
+>
+> 最新版の確認:
+> `curl -s https://api.releases.hashicorp.com/v1/releases/terraform/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])'`
+>
+> **上げるなら 10/5 の数日前までに、スライドと講師環境の両方を同時に。**
+> 当日に近すぎると講師環境の入れ直しを忘れる。
 
 ---
 
