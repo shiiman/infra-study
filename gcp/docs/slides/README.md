@@ -160,6 +160,13 @@ service.presentations().batchUpdate(presentationId=PID, body={"requests": reques
 >     print("★ 装飾あり。本文だけ差し替えると崩れる:", [e["objectId"] for e in deco])
 > ```
 >
+> **行を足せないページに注意書きを入れたいときは、既存要素に触らず
+> 空いている場所に吹き出しを1つ追加する**(`createShape` で
+> `WEDGE_ROUND_RECTANGLE_CALLOUT`)。2026-09-30 に第1回 p81 で使った
+> (objectId `note_network_p81`)。体裁は p65 の吹き出しに合わせた
+> (塗り `rgb(1, 0.949, 0.8)` / 枠 `DARK2` 0.75pt / Roboto Mono 14pt)。
+> 追加した図形は `deleteObject` で消せるので、既存の手調整を壊さない。
+>
 > 装飾があるページは、**行数を変えない差し替えに留めるか、
 > スライド側で手作業にするか**を先に決めること。
 > 行数が変わる内容を入れたいなら、装飾の無い別ページに置くほうが安全。
