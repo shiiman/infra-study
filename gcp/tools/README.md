@@ -116,12 +116,18 @@ Cloud Build のリポジトリリンク・Slack通知チャンネル名)だけ�
 
 ### 未検証の点
 
-**実際の受講者 state に対しては、まだ1度も流していない**(第1回が 2026-10-05)。
-全8回分の config が `terraform validate` を通ることと、
-backend の差し替えが効くことは確認済み。
+**第1回分は 2026-09-30 に実際の state で通した。** 使い捨ての受講者名で
+Step2 → Step3 を apply して作った state(SA + IAM 3リソース)に対し、
+dry-run で `3 to destroy` と出ること、`--apply` で削除され、`check-leftover.sh` が
+「きれい」になることを確認した。`cleanup.tfvars` も実値で作って通してある。
 
-**第1回の直後に、自分の state に対して1回 dry-run で試しておくこと。**
-そこで通れば以降は同じ形で動く。
+**第2回以降は未検証**(第2回が 2026-10-26)。全8回分の config が
+`terraform validate` を通ることと、backend の差し替えが効くことは確認済み。
+**各回の直後に、自分の state に対して1回 dry-run で試しておくこと。**
+
+`cleanup.tfvars` の実値のうち、**第7回の `cloudbuild_repository` と第8回の
+`notification_channel_name` は data 参照で実在の値が要る**(plan の段階で引きにいく)。
+`dns_zone_name`(第3回〜)も同じ。値が無い・違うと、その回の destroy が落ちる。
 
 ## create-build-sa.sh — 受講者ごとのビルド用SAを作る(第7回)
 
