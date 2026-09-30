@@ -1172,7 +1172,7 @@ resource "google_spanner_database_iam_member" "web" {
 ★ Spanner にはその悩み自体がありません
 ```
 
-**[話す]** 第1回の宿題2で「なぜ Secret Manager の値を Terraform に書かないのか」を
+**[話す]** 第1回の宿題2で「Secret Manager の値を tfstate に残さずに入れるには」を
 考えてもらった。Spannerでは、そもそも秘密が発生しない。
 これがマネージドサービスをIAMで統一することの利点。
 

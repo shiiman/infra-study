@@ -2343,14 +2343,18 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 ◼2. Secret Manager のシークレットを作り、
    リソース単位で読み取り権限を付けよう
 
-シークレットの「入れ物」だけをTerraformで作る
-中身(値)は gcloud で入れる。なぜか考えてみてください
+シークレットの値も Terraform で入れる
+ただし、値を tfstate に平文で残さないこと
+(ヒント: secret_data_wo / ephemeral を調べてみてください)
 
 回答例: gcp/lesson1/syukudai2/
 ```
 
-**[話す]** 2つ目の「なぜ値をTerraformに書かないか」は答えを言わないでおく。
+**[話す]** 2つ目は「値を tfstate に残さずに入れる方法」を各自で調べてもらう。
+答えは言わないでおく(`secret_data_wo` と ephemeral な変数)。
 分かった人は次回の冒頭で発表してもらう。
+**「なぜ Terraform の外から gcloud で入れる運用もあるのか」まで話せると、なお良い**
+(回答例の README に理由を4点書いてある)。
 
 > **★ 講師メモ: 宿題1は「ロール作成直後の付与」で400になる ★**
 >
@@ -2368,6 +2372,32 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 > 学生は自分でコードを書くので、待ちを入れずに踏む人が多い。
 > スライドに1行の対処(上の★)を入れてある。
 
+
+> **★ 講師メモ: 宿題2は「値を tfstate に残さずに入れる」(2026-09-30 に変更) ★**
+>
+> 以前は「値は gcloud で入れる。なぜか考えて」だったが、
+> **Terraform 1.11 以降は write-only 引数(`secret_data_wo`)で、
+> 値を tfstate に残さずに Terraform から入れられる**ので、課題の前提が古くなった。
+> 回答例もそれに合わせた。
+>
+> 実機で確認したこと:
+> - `secret_data_wo` の値は tfstate に**残らない**(0件)。従来の `secret_data` は平文で残る(1件)
+> - plan の出力にも値は出ない
+> - **値だけ変えても Terraform は検知しない**(`No changes`)。`secret_data_wo_version` を上げる
+> - バージョンを上げると**古い版は破棄される**(`1 to add, 1 to destroy`)
+> - 値を渡さず apply すると `Error 400: Field [payload] is required`(空のシークレットは作られない)
+> - **`secret_value` に既定値(空文字)が無いと、`terraform destroy` のたびに値を聞かれる。**
+>   `default = null` は使えない(`secret_data` か `secret_data_wo` のどちらかが必須と検証される)。
+>   S93 で受講者全員が destroy を打つので、既定値を入れてある
+>
+> 受講者が踏みそうな点:
+> - 値を `terraform.tfvars` に書いてしまう(リポジトリに残る)。環境変数 `TF_VAR_secret_value` で渡す
+> - `-var` で渡すとシェルの履歴に残る。`read -rs` で入力すると履歴にも残らない
+> - **`default = ""` を付け忘れて、destroy で値を聞かれて戸惑う**
+>
+> 「それでも gcloud で入れる運用が選ばれるのはなぜか」は、
+> 職務分離・更新の切り離し・値の受け渡し、の3点(回答例の README に理由を書いてある)。
+> 発表のときに聞くと、write-only を知っている人も考えが深まる。
 ---
 
 ### S91 | 宿題3 チュートリアルとドキュメント

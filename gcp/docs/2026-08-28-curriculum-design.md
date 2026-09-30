@@ -779,6 +779,23 @@ Cloud Run はイメージが存在しないと作成できず、
 > 直接測った伝播時間は 12.5〜18.0秒。
 > **回答例は `time_sleep` 30秒を挟む**ようにした(ゼロにはできない。
 > 待ち時間に理論上の上限が無いため)。宿題スライド p90 に吹き出しを追加。
+
+> **★ 2026-09-30: 宿題2-2(`syukudai2`)を write-only 方式に変更した ★**
+> 以前の課題は「Secret Manager の値は gcloud で入れる。なぜか考えて」で、
+> 答えは「Terraform に書くと tfstate に平文で残るから」だった。
+> **Terraform 1.11 以降は write-only 引数(`secret_data_wo`)で値を tfstate に残さずに
+> 入れられる**ため、この前提が古くなっていた(第4回 S43 は既に `password_wo` を
+> 教えていて、第1回だけが取り残されていた)。
+> 回答例は `secret_data_wo` + ephemeral な変数に変え、課題文は
+> 「値も Terraform で入れる。ただし tfstate に平文で残さない」にした。
+>
+> 実機で確認: `secret_data_wo` は state に残らない(0件)/ `secret_data` は平文で残る(1件)/
+> 値だけ変えても Terraform は検知しない(バージョン番号を上げる)/
+> **`secret_value` に `default = ""` が無いと `terraform destroy` のたびに値を聞かれる**
+> (`default = null` は不可)/ 値の渡し忘れは Secret Manager が
+> `Field [payload] is required` で拒否する。
+> 影響を受けた教材: 第1回 S90 と回答例、第2回 S03(答え合わせ)、第4回 S32 の [話す]。
+> 回答例の `required_version` を `>= 1.11.0` に上げた。
 > Step1〜Step3 の apply と destroy、バケットが残ることも確認済み。
 > なりすましは apply 完了から**51秒後**に通った(IAM の反映待ち)。
 > 詳細は第1回 付録B「動作確認」。
