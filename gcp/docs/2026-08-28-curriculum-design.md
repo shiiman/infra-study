@@ -762,6 +762,14 @@ Cloud Run はイメージが存在しないと作成できず、
 > (`variable "user_email"` への改修は不要)。詳細は第1回 S66 の講師メモ。
 >
 > **Cloud Shell の検証は必ずブラウザの端末で行うこと。**
+>
+> **★ 2026-09-30 にもう1つ判明: Cloud Shell のネットワークが不安定 ★**
+> 同じ `terraform plan` が **3〜5割の確率で**
+> `dial tcp [2001:...]:443: connect: cannot assign requested address` で失敗する
+> (VM に IPv6 の出口が無いのに DNS が IPv6 を返し、DNS 応答がときどき5秒かかる)。
+> **`sysctl` で IPv6 を無効化しても効かない**(元から無効)。
+> 対処は**もう一度実行する**だけで、何も作られず state も壊れない。
+> 第1回 S81 に吹き出しと講師メモを入れた。全10回で起きうる。
 > Step1〜Step3 の apply と destroy、バケットが残ることも確認済み。
 > なりすましは apply 完了から**51秒後**に通った(IAM の反映待ち)。
 > 詳細は第1回 付録B「動作確認」。

@@ -1994,6 +1994,15 @@ Terraformで作ると、`terraform destroy` が「自分のtfstateが乗って�
 
 ### S81 | Step2 サービスアカウントを作る
 
+**[図版]** `terraform init / plan / apply` の**右側の空きに黄色の吹き出しを置く**
+(第1回 p65 の吹き出しと同じ体裁。p81 の objectId は `note_network_p81`)。
+この回で**最初にネットワークを使う terraform 実行**なので、ここに書く。
+吹き出しの文言は次のとおり(3行)。
+
+> ★ 次のエラーが出たら、もう一度実行してください
+> 　connect: cannot assign requested address
+> 　(Cloud Shell のネットワークの不調です。コードは合っています)
+
 **[本文]**
 
 ```
@@ -2016,6 +2025,40 @@ resource "google_service_account" "app" {
 ★ init の段階で state は GCS backend に接続される
   → 以降の apply で state が GCS に保存される
 ```
+
+> **★★ 講師メモ: `cannot assign requested address` は Cloud Shell 側の不調で、教材とは無関係 ★★**
+>
+> **2026-09-30 に実機で再現した。** 同じ `terraform plan` を8回流して4回失敗、
+> 別の12回でも4回失敗(約3〜5割)。**全10回のどの terraform 実行でも起きうる。**
+>
+> ```
+> Error: ... dial tcp [2001:4860:...]:443: connect: cannot assign requested address
+> ```
+>
+> 分かっていること:
+> - Cloud Shell の VM に **IPv6 の出口が無い**(`Errno 99`)。カーネルの
+>   `disable_ipv6` は**最初から `1`**
+> - それなのに DNS は IPv6 アドレスを返す
+> - **DNS の応答が、ときどき丁度5秒かかる**(10回中1〜2回)。
+>   受講者の画面で `Read complete after 5s / 10s / 12s` と遅いのも同じ原因
+>
+> **`sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1` は効かない**(試した。
+> 既に `1` で、無効化後も12回中4回失敗)。回避策として受講者に配らないこと。
+>
+> 仕組みの推測(未確認): Go の名前解決は A と AAAA を並列に引くので、
+> 遅い方の応答が欠けると、返ってきた IPv6 だけで接続を試して即失敗する。
+>
+> **対処は「もう一度実行する」だけ。** 失敗は接続の段階で起きるので、
+> **何も作られず、state も壊れない。**
+>
+> ```
+> # 成功するまで繰り返す(plan の中身を確認した後で使うこと)
+> until terraform apply -auto-approve; do echo "--- リトライ ---"; sleep 3; done
+> ```
+>
+> 受講者は「自分のコードが間違っている」と思って触り始めるので、
+> **IAM 反映待ちと同じく、先に口頭で言っておくこと。**
+> スライドは p81 の吹き出し1枚だけにしてある(p81 は装飾が多く行を足せないため)。
 
 ---
 
