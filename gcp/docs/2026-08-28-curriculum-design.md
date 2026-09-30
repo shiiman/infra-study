@@ -1370,6 +1370,9 @@ source ~/.bashrc
 - `~/bin` の容量は約115MB(ホームは5GB)
 - 第1回に **S66「Terraform をインストールする」を新規追加**した(所要4分程度)
 - 第2回以降は不要。第1回でだけ発生する作業
+- 2026-09-30 に **S66-2「接続エラー対策(並列度の設定)」を追加**した(所要2分程度)。
+  Cloud Shell は同時接続が多いと `cannot assign requested address` で落ちるため、
+  `TF_CLI_ARGS_plan/apply/destroy="-parallelism=2"` を `~/.bashrc` に書かせる。実測は第1回 S66-2 の講師メモ
 
 ### 受講者相当の権限での検証結果(2026-08-28 実施)
 
