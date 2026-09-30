@@ -1575,6 +1575,57 @@ Terraform
 
 ---
 
+### S66-2 | 接続エラー対策(並列度の設定) ★新規
+
+**[図版]** 第1回 p65 を複製した1枚(デッキの p66)。グレーの枠は p65 と同じ体裁。
+S66-2 は番号を振り直さないための仮番号(S67 以降の参照を動かさないため)。
+`check-slide-sync.py` は `S\d+` だけを拾うので、このページは突き合わせの対象外。
+
+**[本文]**
+
+```
+◼Cloud Shell は同時接続が多いと失敗しやすい
+
+  connect: cannot assign requested address
+  → Terraform は既定で10個を同時に処理するため
+
+◼並列度を 2 に下げる設定を ~/.bashrc に書きます
+
+  echo 'export TF_CLI_ARGS_plan="-parallelism=2"'     >> ~/.bashrc
+  echo 'export TF_CLI_ARGS_apply="-parallelism=2"'    >> ~/.bashrc
+  echo 'export TF_CLI_ARGS_destroy="-parallelism=2"'  >> ~/.bashrc
+  source ~/.bashrc
+
+◼確認
+
+  env | grep TF_CLI_ARGS   → 3行出る
+
+★ これも初回だけ。すでにエラーが出た人も、設定後に再実行すれば通ります
+```
+
+**[話す]** S66 の PATH と同じく、初回だけの設定。Cloud Shell は同時に張れる接続が少ないらしく、
+Terraform の既定(10並列)だと `cannot assign requested address` で落ちる。
+2並列にすると落ちなくなる。**apply が少し遅くなるが、リソースが数個なので気にならない。**
+
+`TF_CLI_ARGS_plan` などはコマンド別の環境変数。`TF_CLI_ARGS` だけにすると
+`terraform init` がエラーになるので、3つに分けてある。
+
+> **★ 2026-09-30 の実測(講師の Cloud Shell、`lesson1/syukudai2` の `plan -destroy`)**
+>
+> | `-parallelism` | 失敗 |
+> |---|---|
+> | 10(既定) | 4/5 |
+> | 3 | 2/6 |
+> | **2** | **0/6** |
+> | **1** | **0/5** |
+>
+> `TF_CLI_ARGS_plan` 経由でも 6/6 成功、`init` も通る。
+> 同じ Cloud Shell から `curl` で `iam` / `storage` / `secretmanager` を各5回叩くと全部成功する。
+> **ネットワークが壊れているのではなく、同時接続数が詰まっている。**
+> `GODEBUG=netdns=go` / `cgo` は効かなかった。
+
+---
+
 ### S67 | 作業スペースの準備
 
 **[本文]**
@@ -2045,10 +2096,12 @@ resource "google_service_account" "app" {
 > **`sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1` は効かない**(試した。
 > 既に `1` で、無効化後も12回中4回失敗)。回避策として受講者に配らないこと。
 >
-> 仕組みの推測(未確認): Go の名前解決は A と AAAA を並列に引くので、
-> 遅い方の応答が欠けると、返ってきた IPv6 だけで接続を試して即失敗する。
+> **★ 続報(同日夜): 根本対策は `-parallelism=2`。** 失敗率は並列度で決まっていた
+> (既定10で 4/5 失敗、2 で 0/6)。第1回 S66-2 で `~/.bashrc` に設定させる。
+> 上の「DNS が5秒かかる」「IPv6」の話は、原因ではなく見えていた症状だった可能性が高い。
+> 実測の表は S66-2 の講師メモを参照。
 >
-> **対処は「もう一度実行する」だけ。** 失敗は接続の段階で起きるので、
+> **設定してもまれに出たら、「もう一度実行する」で通る。** 失敗は接続の段階で起きるので、
 > **何も作られず、state も壊れない。**
 >
 > ```
