@@ -75,11 +75,17 @@ Cloud Shell から terraform apply が通った
 tfstate を GCS に置いた
 
 ◼宿題2の答え合わせ
-なぜ Secret Manager の値を Terraform に書かないのか
+Secret Manager の値を、tfstate に残さずに入れる方法は?
 ```
 
-**[話す]** 宿題2-2の「なぜ値をTerraformに書かないのか」を受講者に答えてもらう。
-答え: tfstateに平文で入るから。tfstateはGCSにあるので、バケットを読める人全員に見える。
+**[話す]** 宿題2-2の「値を tfstate に残さずに入れる方法」を受講者に答えてもらう。
+答え: `secret_data_wo`(write-only 引数)に、**ephemeral な変数**で受けた値を渡す。
+従来の `secret_data` は tfstate に平文で入る。tfstate は GCS にあるので、
+バケットを読める人全員に見えてしまう。write-only なら残らない。
+
+さらに「それでも gcloud で入れる運用が選ばれるのはなぜか」を聞けると良い。
+**職務分離**(apply する人に値を見せない)/ **更新の切り離し**
+(値だけ変えても Terraform は検知しない)/ **値の受け渡し**(結局どこかに出どころがある)。
 
 ---
 
