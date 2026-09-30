@@ -2467,10 +2467,14 @@ Terraform Google Provider
 宿題などで作成したリソースは必ず削除してください！
 今回は全員で1つのプロジェクトを共有しています。消し忘れがQuotaを圧迫して、他の人のapplyが止まります
 
-
-◼リソースの削除
+◼リソースの削除(最後に apply したディレクトリで実行)
+  cd ~/works/lesson1/syukudai2              ← 宿題2まで
+  cd ~/works/lesson1/syukudai1              ← 宿題1まで
+  cd ~/works/lesson1/"3. iam"               ← 講義 Step3 まで
+  cd ~/works/lesson1/"2. service_account"   ← 講義 Step2 まで
 
   terraform destroy
+  → 確認で yes と入力
 
   → サービスアカウント / IAMバインディング2つ が削除される
     宿題までやった人は、カスタムロールとシークレットも一緒に消えます
@@ -2486,7 +2490,11 @@ Terraform Google Provider
   gcloud storage rm --recursive gs://[プロジェクトID]-tfstate-[自分の名前]/
 ```
 
-**[話す]** 第2回以降も `terraform destroy` はそのまま実行してよい。
+**[話す]** destroy は「最後に apply したディレクトリ」で打つ。宿題2までやった人は
+`~/works/lesson1/syukudai2`、宿題1までなら `syukudai1`、講義のハンズオンだけなら `3. iam`(Step2 で止まった人は `2. service_account`)
+(ディレクトリ名に空白があるので `"3. iam"` のように引用符で囲む)。tfstate は全部同じ場所(prefix `lesson1`)を見ている。
+確認プロンプトは `yes` と3文字入力する(`y` では `Apply cancelled.` になる)。
+第2回以降も `terraform destroy` はそのまま実行してよい。
 バケットだけが Terraform の管理外にあるので、毎回きれいに消えて、
 置き場所だけが残る。
 

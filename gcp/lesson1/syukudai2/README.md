@@ -45,6 +45,19 @@ terraform apply
 unset TF_VAR_secret_value         # 終わったら消す
 ```
 
+- **値は何でもよい**(`test-secret-123` など)。空だけは通らない。本物のパスワードや API キーは入れない
+- **確認プロンプトには `yes` と3文字入力する**。`y` や Enter だけだと `Apply cancelled.` になる
+- **`gcloud` には `--project=[プロジェクトID]` を付ける**。Cloud Shell には既定のプロジェクトが無く、
+  付けないと `Failed to find attribute [project]` になる
+
+値が入ったことを確認する(自分のアカウントで読める)。
+
+```
+gcloud secrets versions access latest \
+  --secret=[自分の名前]-app-secret \
+  --project=[プロジェクトID]
+```
+
 値を渡し忘れて apply すると、Secret Manager が拒否する(空のシークレットは作られない)。
 
 ```
@@ -68,6 +81,7 @@ apply し直し、もう一度同じコマンドを打ってみる(今度は平�
 ```
 gcloud secrets versions access latest \
   --secret=[自分の名前]-app-secret \
+  --project=[プロジェクトID] \
   --impersonate-service-account=[自分の名前]-app@[プロジェクトID].iam.gserviceaccount.com
 ```
 
@@ -80,6 +94,7 @@ gcloud secrets versions access latest \
 ```
 gcloud secrets versions access latest \
   --secret=[他の人の名前]-app-secret \
+  --project=[プロジェクトID] \
   --impersonate-service-account=[自分の名前]-app@[プロジェクトID].iam.gserviceaccount.com
 ```
 
