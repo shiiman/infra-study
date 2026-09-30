@@ -4,6 +4,11 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 8.0"
     }
+    // 待ち時間を作るために使う(custom_role.tf の time_sleep)
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.13"
+    }
   }
 
   required_version = ">= 1.9.0"
