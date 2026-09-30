@@ -163,9 +163,11 @@ service.presentations().batchUpdate(presentationId=PID, body={"requests": reques
 > **行を足せないページに注意書きを入れたいときは、既存要素に触らず
 > 空いている場所に吹き出しを1つ追加する**(`createShape` で
 > `WEDGE_ROUND_RECTANGLE_CALLOUT`)。2026-09-30 に第1回 p81 で使った
-> (objectId `note_network_p81`)。体裁は p65 の吹き出しに合わせた
+> (objectId `note_network_p81`)と第1回 p90(objectId `note_delay_p90`)。体裁は p65 の吹き出しに合わせた
 > (塗り `rgb(1, 0.949, 0.8)` / 枠 `DARK2` 0.75pt / Roboto Mono 14pt)。
 > 追加した図形は `deleteObject` で消せるので、既存の手調整を壊さない。
+> **p90 のように手で色を付けた行(赤字)があるページは、本文の全差し替えで
+> 色が消える**ので、この方法が安全。
 >
 > 装飾があるページは、**行数を変えない差し替えに留めるか、
 > スライド側で手作業にするか**を先に決めること。

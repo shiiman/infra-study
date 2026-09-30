@@ -51,6 +51,19 @@ ERROR: (gcloud.storage.cp) HTTPError 403: ... does not have storage.objects.crea
 
 ## ハマりどころ
 
+- **カスタムロールを作った直後に付与すると 400 で失敗する。**
+  `Creation complete` と出たのに、次のエラーになる:
+
+  ```
+  Error 400: Role (projects/.../roles/...) does not exist in the resource's hierarchy, invalid
+  ```
+
+  ロールは実在する。**作った直後は、付与先(バケット側のIAM)からまだ見えない**だけ
+  (結果整合性)。実測では作成から 12〜18秒で見えるようになり、まれに20秒を超える。
+  回答例では `time_sleep` で30秒待ってから付与している(`custom_role.tf`)。
+  **待つのは作成時だけ**で、2回目以降の apply では待たない。
+  自分で書いたコードでこのエラーが出たら、待ちを入れるか、少し置いてもう一度 apply する
+  (ロールは作成済みなので、付与だけが追加される)
 - `role_id` にハイフンは使えない。`replace()` 関数で `_` に変換している
 - カスタムロールを `terraform destroy` で削除しても、7日間は「削除済み」状態で残る。
   同じ `role_id` ですぐに作り直すとエラーになるので注意
