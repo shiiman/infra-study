@@ -1191,6 +1191,23 @@ Spanner をメインに据えた構成で検証。**教材のバグを2件見つ
 | アプリから Cloud SQL / Memorystore への接続 | OK |
 | destroy | **1回では終わらない**(下記バグ3) |
 
+> **★ 2026-09-30: `db_password` を ephemeral + `default = ""` に変更した ★**
+>
+> `variable "db_password"` に default が無く、**`terraform destroy` でも値を聞かれた**
+> (`No value for required variable`)。第1回宿題2の `secret_value` と同じ問題。
+> `type = string` / `sensitive = true` / `ephemeral = true` / `default = ""` にし、
+> `google_sql_user` に `precondition`(`var.db_password != ""`)を置いた。
+>
+> **Secret Manager と違い、`precondition` が要る。** Secret Manager は空の値を API が弾くが、
+> Cloud SQL は**空のパスワードを受け付ける**ので、`default = ""` だけだと
+> 渡し忘れで**パスワード無し・`host = "%"` のユーザー**ができる。
+>
+> 検証結果(実際の `google_sql_user` で): 値なし apply → precondition で停止 /
+> 値あり → `password_wo = (write-only attribute)` / 値なし destroy → 聞かれず通る。
+> `default = null` は `password` / `password_wo` の ExactlyOneOf に引っかかって使えない。
+> `required_version` は write-only の要件に合わせて `>= 1.11.0` に上げた。
+> `tools/cleanup.tfvars.example` から `db_password` のダミーは外した(不要になった)。
+
 **見つけたバグ1: 貸し出しレンジが小さすぎた**
 
 `private_service_cidr = "172.16.200.0/24"` にしていたが、

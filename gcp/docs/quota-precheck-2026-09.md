@@ -293,7 +293,7 @@ gcp/tools/cleanup-lesson.sh 8 --names-file=<名簿> \
 ```
 
 必要な変数は全員共通の値だけ(`user_name` と `project_id` はスクリプトが上書き、
-`db_password` と `alert_email` は destroy にしか使わないのでダミーで可)。
+`alert_email` は destroy にしか使わないのでダミーで可。`db_password` は不要)。
 
 **未検証:** 実際の受講者 state に対してはまだ流していない(第1回が 2026-10-05)。
 全8回分の config が `terraform validate` を通ることと backend 差し替えが効くことは
