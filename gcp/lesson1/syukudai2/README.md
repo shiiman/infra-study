@@ -11,6 +11,10 @@ Secret Manager にシークレットを作り、
 
 `secret_manager.tf` を参照。
 
+`syukudai1` の内容(カスタムロールを含む)に、`secret_manager.tf` を足したもの。
+**宿題1の続きで作業している場合、足すのは `secret_manager.tf` だけでよい。**
+`custom_role.tf` を含めずに plan すると、宿題1で作ったカスタムロールが destroy の対象に出る。
+
 ## シークレットの値を、tfstate に残さずに入れる
 
 シークレットの「入れ物」と「値」の両方を Terraform で作る。

@@ -4,6 +4,12 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 8.0"
     }
+
+    // 待ち時間を作るために使う(custom_role.tf の time_sleep)
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.13"
+    }
   }
 
   // ephemeral な変数(1.10〜)と write-only 引数(1.11〜)を使うので 1.11 以上が要る
