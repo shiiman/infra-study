@@ -82,13 +82,23 @@ resource "google_sql_database" "app" {
  * 値そのものは terraform.tfvars にも書かず、
  * 環境変数 TF_VAR_db_password から渡す。
  *
- *   export TF_VAR_db_password='...'
+ *   read -rs TF_VAR_db_password; export TF_VAR_db_password
  *   terraform apply
+ *   unset TF_VAR_db_password
  *
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/sql_user
  */
 variable "db_password" {
+  type      = string
   sensitive = true
+
+  // 値を plan / state のどちらにも残さない(write-only 引数に渡せるのは ephemeral な値だけ)
+  ephemeral = true
+
+  // default が無いと terraform destroy でも値を聞かれてしまう
+  // (destroy には使わない値なのに、変数の宣言があるだけで必須になる)
+  // 空のまま apply されるのは下の precondition で止める
+  default = ""
 }
 
 resource "google_sql_user" "app" {
@@ -99,6 +109,16 @@ resource "google_sql_user" "app" {
   // password ではなく password_wo を使う(tfstateに残らない)
   password_wo         = var.db_password
   password_wo_version = 1
+
+  lifecycle {
+    // 渡し忘れると host="%" のパスワード無しユーザーができてしまうので、apply の前に止める
+    // (Secret Manager と違い、Cloud SQL は空のパスワードを受け付ける)
+    // destroy のときは評価されないので、値なしで消せる
+    precondition {
+      condition     = var.db_password != ""
+      error_message = "db_password が空です。TF_VAR_db_password を設定してから apply してください。"
+    }
+  }
 }
 
 output "db_host" {

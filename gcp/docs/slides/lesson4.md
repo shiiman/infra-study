@@ -1450,9 +1450,13 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
   "wo" は write-only の略
   この引数に渡した値は tfstate に保存されません
 
-◼値は環境変数から渡す
-  export TF_VAR_db_password='...'
+◼値は環境変数から渡す(ephemeral な変数)
+  read -rs TF_VAR_db_password
+  export TF_VAR_db_password
   terraform apply
+
+◼変数には default = "" を書いておく(destroy で値を聞かれない)
+  空のまま apply しないよう precondition で止める
 
 ★ 第1回の宿題2でやった「tfstateに秘密を残さない」の実践
 ```
@@ -1465,6 +1469,12 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
 > ```
 >
 > パスワードの実値で grep しても0件。確かに保存されていない。
+
+**[話す]** destroy のときに値を聞かれるのは、変数に default が無いから。
+消すだけなのにパスワードを打たせるのは筋が悪いので `default = ""` にしてある。
+ただしそのままだと、渡し忘れたときに**パスワード無しのユーザー**ができてしまう
+(Cloud SQL は空のパスワードを受け付ける。Secret Manager は空の値を弾くので事情が違う)。
+だから `precondition` で apply の前に止めている。destroy のときは評価されないので値なしで消せる。
 
 ---
 

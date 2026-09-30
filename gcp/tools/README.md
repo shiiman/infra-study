@@ -109,7 +109,8 @@ cp cleanup.tfvars.example cleanup.tfvars
 必要な値は**全員共通のもの**(サブネットCIDR・DNSゾーン名・社内IP・
 Cloud Build のリポジトリリンク・Slack通知チャンネル名)だけ。
 `user_name` と `project_id` はスクリプトが1人ずつ上書きする。
-`db_password` と `alert_email` は destroy にしか使わないのでダミーで構わない。
+`alert_email` は destroy にしか使わないのでダミーで構わない。
+`db_password` は不要(変数に `default = ""` があり、destroy では値を聞かれない)。
 
 **`cleanup.tfvars` は `.gitignore` 済み**(社内IPなどの実値を含むため)。
 

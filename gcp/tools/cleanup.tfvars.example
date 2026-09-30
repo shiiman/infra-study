@@ -25,10 +25,6 @@ dns_zone_name = ""
 // 第3回・第6回: 社内IP
 company_ip = []
 
-// 第4回: Cloud SQL のパスワード
-//   destroy にしか使わないのでダミーで構わない
-db_password = "dummy-for-destroy"
-
 // 第7回: 講師が作った Cloud Build のリポジトリリンク
 cloudbuild_repository = ""
 

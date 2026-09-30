@@ -10,10 +10,15 @@
 `db.tf` を参照。`syukudai1` の内容に Cloud SQL を足したもの。
 
 ```
-export TF_VAR_db_password='任意のパスワード'
+read -rs TF_VAR_db_password      # パスワードを入力(画面には出ない)
+export TF_VAR_db_password
 terraform plan
 terraform apply
+unset TF_VAR_db_password
 ```
+
+`db_password` は **ephemeral な変数**(値が plan にも tfstate にも残らない)。
+渡し忘れると `db_password が空です` で apply の前に止まる。
 
 ★ 作成に **約10分** かかる。
 
@@ -68,6 +73,19 @@ for r in d['values']['root_module']['resources']:
 
 > パスワードを変えたいときは `password_wo_version` を 2 に上げる。
 > 値だけ変えても Terraform は差分を検知できない(値を持っていないため)。
+
+### なぜ `default = ""` と `precondition` があるのか
+
+変数に default が無いと、`terraform destroy` でも値を聞かれる。
+消すだけなのにパスワードを打たせたくないので `default = ""` にしてある。
+
+ただし空のままだと、渡し忘れたときに **パスワード無し・接続元 `%` のユーザー**ができる
+(Cloud SQL は空のパスワードを受け付ける)。
+そこで `google_sql_user` に `precondition` を置き、**apply の前に止めている**。
+destroy のときは評価されないので、値なしで消せる。
+
+> Secret Manager の `secret_data_wo`(第1回の宿題2)は、空の値を API が弾くので
+> `precondition` が無くても事故にならない。**弾いてくれるかどうかがこの差の理由。**
 
 ## ポイント3: アプリを Cloud SQL に向ける
 
