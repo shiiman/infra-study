@@ -113,7 +113,7 @@ gcloud compute instances list --project=[プロジェクトID]
 gcloud compute networks list --project=[プロジェクトID]
 gcloud compute backend-services list --project=[プロジェクトID]
 
-# クォータの余裕を見る(vCPU が最初に当たる)
+# クォータの余裕を見る(vCPU の使用量。第8回の残骸があると効いてくる)
 gcloud compute regions describe asia-northeast1 --project=[プロジェクトID] \
   --format="value(quotas)" | tr ';' '\n' | grep -A2 CPUS
 ```

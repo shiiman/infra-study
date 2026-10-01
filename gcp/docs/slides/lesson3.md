@@ -47,29 +47,20 @@
      読み込むため、push されていないと `terraform init` が失敗する
 4. 受講者が第2回のリソースを destroy 済みであること
    - `0. before` が同名のVPCを作るため、残っていると名前が衝突する
-5. **★ vCPU クォータに余裕があること(この回が全10回で最大・最重要)★**
+5. **vCPU クォータに余裕があること**
    - この回は**1人あたり e2-medium を2台**(zone a と b)作る。
      全10回で1人あたりのVM台数が最大になるのがこの回
-   - 人数分が同時に存在するため、`asia-northeast1` の vCPU 枠を食い切ると
+   - 人数分が同時に存在するので、`asia-northeast1` の vCPU 枠(`CPUS`)を食い切ると
      **後から apply した人だけが失敗する**。原因が分かりにくい事故になる
 
-   > **2026-09-18 時点の状況**: 受講者15名で **60 vCPU** を使う。
-   > 現行値は **64 のまま承認待ち**なので、**余裕は4(e2-medium 2台分)しかない**。
-   > **開催前に必ず反映を確認すること。**
-   > 通っていなければ、講師の検証環境を当日は立てないなどの回避が要る。
-   - 確認:
+   > **2026-10-01 時点の状況**: 増枠(64 → 200)は**却下された**ので、上限は **64 のまま**。
+   > **ただし実測で、共有コアの VM は 1台 = 1 vCPU と数えられると分かった。**
+   > 15人 × 2台 = **30 vCPU** なので、**余裕は34ある**。増枠は要らない。
+   > 足りなくなるのは、**前回までの残骸が残っているとき**(第10回に第8回の残骸、など)だけ。
+   - 確認(`CPUS` の usage が 64 に近くないこと。停止中のVMは数えられない):
      ```
      gcloud compute regions describe asia-northeast1 --project=[プロジェクトID] \
        --format="value(quotas)" | tr ';' '\n' | grep -A2 CPUS
-     ```
-   - 足りなければ引き上げを申請する(反映に数日かかる場合がある):
-     ```
-     gcloud quotas preferences create \
-       --service=compute.googleapis.com --project=[プロジェクトID] \
-       --quota-id=CPUS-per-project-region --preferred-value=200 \
-       --dimensions=region=asia-northeast1 \
-       --justification="社内インフラ勉強会・20名が同時ハンズオン" \
-       --email=[講師のメールアドレス]
      ```
    - 詳細は `gcp/docs/quota-precheck-2026-09.md`
 

@@ -478,7 +478,7 @@ GCPも「VPC → サブネット → LB → インスタンス」と構造がほ
 | ~~アンケート Google Form の作成~~ | — | **完了(2026-08-31)**。`docs/survey.md` にURLと設問 |
 | ~~試験1の Google Form 化~~ | — | **完了(2026-08-31)**。自動採点まで設定済み |
 | 提出用 GitHub リポジトリ | 第10回 | 第7回のアプリ用とは別に作る |
-| **クォータ事前申請(20人前提)** | **2026-09-16 に申請済み** | `docs/quota-precheck-2026-09.md`。`gcloud quotas preferences create` で申請できる。Router / VPC / Cloud Armor は反映済み、**`CPUS-per-project-region`(64→200)のみ承認待ち**。第3回の宿題3で 80 vCPU に達するので第2回前に反映を確認する |
+| **クォータ事前申請(20人前提)** | **2026-09-16 に申請済み** | `docs/quota-precheck-2026-09.md`。`gcloud quotas preferences create` で申請できる。Router / VPC / Cloud Armor は反映済み。**`CPUS-per-project-region`(64→200)は 2026-09-30 に却下**されたが、共有コアは1台 = 1 vCPU と数えられると実測で分かり(第3回・第10回のピークは15人で 30 vCPU)、増枠は不要 |
 | 受講者への権限付与(12ロール) | 第1回まで | **付与直後は反映待ちで失敗するので前日までに** |
 | 共通イメージの用意 | 第6回まで | `infra-study-common`(作成済み) |
 | GitHub App + Cloud Build 接続 | 第7回まで | **作成済み** |
