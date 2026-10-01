@@ -48,6 +48,7 @@
 第7回で使うアプリ用リポジトリ(`infra-study-app`)とは別物。
 
 **この回の準備は「受講者に write 権限を付ける」だけ。**
+(2026-10-01 に全員分を付与済み。**第10回の前は、全員が書き込めることの確認だけでよい**。後から増えた人は個別に付ける)
 
 ```
 gh api -X PUT repos/[org]/infra-study-exam/collaborators/[GitHubユーザー名] \
