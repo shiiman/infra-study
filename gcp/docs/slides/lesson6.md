@@ -129,9 +129,9 @@
 
 ---
 
-### S02 | ロードマップ
+### S02 | インフラ勉強会 スケジュール
 
-**[図版]** 第1回 S06 と同じスライドを複製。今日の行(1月18日)にマーカーを移す。
+**[図版]** 第2回 S02 と同じスライドを複製。今日の行のマーカーは付けない。
 
 ---
 
@@ -234,13 +234,12 @@ Cloud Run は VPC の外にいる
 ライフサイクル      別リソース             バケットの属性
 中身がある削除      手動で空にする必要      force_destroy = true で可
 
-★ AWS版の注意事項に
-   「S3の中身があると削除できないので手動で削除してください」
-   とあったが、GCPは force_destroy で解決する
+★ S3は中身があるとバケットを削除できず、手動で空にする必要がありますが
+   GCP では force_destroy で解決する
 ```
 
-**[話す]** AWS版の第7回の最後に「S3の中身は手動で削除してください」という
-注意書きがあった。あれが要らなくなる。
+**[話す]** S3は中身が残っているとバケットを削除できず、手動で空にする必要がある。
+GCPは force_destroy = true でそれが要らなくなる。
 
 ---
 
@@ -398,7 +397,15 @@ GCPはどのクラスも即座に読める。料金だけが違う。
   のように段階的にコストを下げるのが定番
 
 ★ どちらも宿題でやってもらいます
+```
 
+---
+
+### S11b | バージョニングとライフサイクル(続き)
+
+**[本文]**
+
+```
 ◼おまけ: ソフト削除(Soft Delete)
 
   バージョニングとは別に、GCPには「消したものを7日間保持する」
@@ -443,7 +450,7 @@ GCPはどのクラスも即座に読める。料金だけが違う。
   オリジンの保護
     バケットへのリクエストが減る
 
-★ AWS版では「S3のスロットリング」も理由に挙げられていた
+★ S3では「スロットリング」も理由の1つになります
    (1プレフィックスあたり 5,500 GET/秒 で 503 が返る)
    GCPにも同様の上限があるので、考え方は同じ
 ```
@@ -488,14 +495,14 @@ GCPはどのクラスも即座に読める。料金だけが違う。
   Cloud CDN   ロードバランサが既にあるので、配信先を足すだけ
               証明書もドメインも既存のものを使う
 
-★ AWS版では「CloudFront用のACMは us-east-1 で作る必要がある」
-   という罠があった。GCPにはその制約がない
+★ AWSでは「CloudFront用のACMは us-east-1 で作る必要がある」
+   という罠があります。GCPにはその制約がない
    第3回で作った証明書をそのまま使えます
 ```
 
-**[話す]** AWS版第7回のコードを見ると、ACMのために
-`provider = aws.us_east` という別プロバイダーを定義していた。
-「なぜここだけリージョンが違うのか」を毎回説明する必要があった。
+**[話す]** AWSでCloudFrontを使うときは、ACMのために
+`provider = aws.us_east` という別プロバイダーを定義する必要がある。
+「なぜここだけリージョンが違うのか」を毎回説明する必要がある。
 GCPにはこれが無い。
 
 ---
@@ -552,7 +559,7 @@ GCPにはこれが無い。
 **[本文]**
 
 ```
-参照: gcp/lesson6/1. storage/before.tf
+cd ~/works/lesson6/ && cp -rf ~/infra-study/gcp/lesson6/start/ ./
 
 module "before" {
   source = "github.com/shiiman/infra-study//gcp/lesson6/0. before"
@@ -618,7 +625,7 @@ module "before" {
 **[本文]**
 
 ```
-参照: gcp/lesson6/1. storage/storage.tf
+cd ~/works/lesson6/ && cp -rf ~/infra-study/gcp/lesson6/1.\ storage/ ./
 
 resource "google_storage_bucket" "static" {
   name     = "${var.project_id}-static-${var.user_name}"
@@ -673,7 +680,7 @@ resource "google_storage_bucket_object" "index" {
   max-age     ブラウザのキャッシュ時間(秒)
   s-maxage    CDN(共有キャッシュ)の時間(秒)
 
-★ AWS版では aws s3 sync を手で叩いていた
+★ 手で gcloud storage cp を叩いて置く方法もあります
 ★ Terraformで置くとコード管理できる
    ただし1ファイル1リソースになるので、大量のファイルには向かない
    実務ではCI/CDから gcloud storage rsync することが多い
@@ -718,8 +725,7 @@ resource "google_storage_bucket_object" "index" {
 ```
 ◼コードは書けているので、先に apply を流してください
 
-  cd ~/works/lesson6
-  (2. cdn のファイルをコピー)
+cd ~/works/lesson6/ && cp -rf ~/infra-study/gcp/lesson6/2.\ cdn/ ./
 
   terraform init
   terraform apply
@@ -821,7 +827,7 @@ Step2 で転送ルールを作った瞬間から発行が走る。
 **[本文]**
 
 ```
-参照: gcp/lesson6/2. cdn/lb.tf
+参照: 2. cdn/lb.tf
 
 resource "google_compute_url_map" "main" {
   name            = "${var.user_name}-urlmap"
@@ -895,6 +901,7 @@ CDN                 なし            なし             enable_cdn
 
    gcloud compute ssl-certificates describe [自分の名前]-web-cert \
      --global --format="value(managed.status)"
+
    → PROVISIONING が ACTIVE になるまで待つ
 
 ◼アクセスしてみる
@@ -906,8 +913,16 @@ CDN                 なし            なし             enable_cdn
   <Error><Code>AccessDenied</Code><Message>Access denied.</Message></Error>
 
   ★ Cloud Storage が返したXMLがそのまま出てきます
-     AWS版で見た「Access Denied」と同じ文字列
+     AWSのS3でも出る「Access Denied」と同じ文字列
+```
 
+---
+
+### S24b | Step2 実行 → 繋がらない(続き)
+
+**[本文]**
+
+```
 ◼アプリの方は動いている
   https://[自分の名前].[勉強会のドメイン]/
 
@@ -922,9 +937,9 @@ CDN                 なし            なし             enable_cdn
 なぜだと思いますか？
 ```
 
-**[話す]** AWS版でも同じ場面があった。
+**[話す]** AWSでも同じ場面がある。
 CloudFrontを作ってアクセスしたら Access Denied になり、
-S3バケットポリシーを追加して解決した。
+S3バケットポリシーを追加して解決する。
 
 ---
 
@@ -968,7 +983,7 @@ S3バケットポリシーを追加して解決した。
 **[本文]**
 
 ```
-参照: gcp/lesson6/3. public/public.tf
+cd ~/works/lesson6/ && cp -rf ~/infra-study/gcp/lesson6/3.\ public/ ./
 
 resource "google_storage_bucket_iam_member" "public" {
   bucket = google_storage_bucket.static.name
@@ -1427,7 +1442,15 @@ Cloud CDN ドキュメント
 
 ★★ 皆さんは 1 を打つだけで大丈夫です ★★
    翌日にもう1回打つ必要はありません
+```
 
+---
+
+### S43b | 注意事項(続き)
+
+**[本文]**
+
+```
 ★ 課金されるリソースは1回目で全部消えています
    VMもSpannerもMemorystoreもCloud Runもロードバランサも消えます
    残るのはVPCとサブネットだけ(どちらも無料)
@@ -1445,7 +1468,7 @@ Cloud CDN ドキュメント
 
 ★ バケットは force_destroy = true にしてあるので、
    バージョニングで残った古い版ごと消えます
-   AWS版のような「手動で空にする」作業は不要です
+   S3のような「手動で空にする」作業は不要です
 
 ★ 次回(第7回)は2月8日です
 ```

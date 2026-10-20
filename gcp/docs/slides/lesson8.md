@@ -136,9 +136,9 @@ Cloud Monitoring / Cloud Logging は既定で有効。
 
 ---
 
-### S02 | ロードマップ
+### S02 | インフラ勉強会 スケジュール
 
-**[図版]** 第1回 S06 と同じスライドを複製。今日の行(3月1日)にマーカーを移す。
+**[図版]** 第2回 S02 と同じスライドを複製。今日の行のマーカーは付けない。
 
 ---
 
@@ -562,7 +562,7 @@ SLO                     SLO モニタリング          SLO
 **[本文]**
 
 ```
-参照: gcp/lesson8/1. logging/before.tf
+cd ~/works/lesson8/ && cp -rf ~/infra-study/gcp/lesson8/start/ ./
 
 module "before" {
   source = "github.com/shiiman/infra-study//gcp/lesson8/0. before"
@@ -617,7 +617,7 @@ module "before" {
 **[本文]**
 
 ```
-参照: gcp/lesson8/1. logging/logging.tf
+cd ~/works/lesson8/ && cp -rf ~/infra-study/gcp/lesson8/1.\ logging/ ./
 
 resource "google_logging_metric" "app_error" {
   name = "${var.user_name}-app-error"
@@ -795,7 +795,7 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 **[本文]**
 
 ```
-参照: gcp/lesson8/2. monitoring/monitoring.tf
+cd ~/works/lesson8/ && cp -rf ~/infra-study/gcp/lesson8/2.\ monitoring/ ./
 
 resource "google_monitoring_uptime_check_config" "web" {
   display_name = "${var.user_name}-uptime"
@@ -819,7 +819,15 @@ resource "google_monitoring_uptime_check_config" "web" {
 
   selected_regions = ["ASIA_PACIFIC", "USA_OREGON", "EUROPE"]
 }
+```
 
+---
+
+### S22b | Uptime check(外形監視)(続き)
+
+**[本文]**
+
+```
 ◼「外から見て生きているか」を確かめる
 
   Cloud Run のメトリクスは
@@ -1013,6 +1021,8 @@ resource "google_monitoring_dashboard" "app" {
 **[本文]**
 
 ```
+cd ~/works/lesson8/ && cp -rf ~/infra-study/gcp/lesson8/3.\ alert/ ./
+
 data "google_monitoring_notification_channel" "slack" {
   display_name = var.notification_channel_name
 }
@@ -1103,7 +1113,18 @@ resource "google_monitoring_alert_policy" "uptime" {
 
   「何が起きたか」だけでなく
   「まず何を見ればいいか」 を書いておく
+```
 
+**[話す]** 「まず何を見るか」が書けないアラートは、
+作った本人しか対応できない。それは運用として弱い。
+
+---
+
+### S32b | documentation を書く ★(続き)
+
+**[本文]**
+
+```
 ★★ Slack は Markdown を解釈しません ★★
 
    mime_type = "text/markdown" と書いても、
@@ -1120,8 +1141,8 @@ resource "google_monitoring_alert_policy" "uptime" {
 ★ 書けないなら、そのアラートは要らないかもしれません
 ```
 
-**[話す]** 「まず何を見るか」が書けないアラートは、
-作った本人しか対応できない。それは運用として弱い。
+**[話す]** 通知の届く先は Slack なので、Markdown で書いても記号がそのまま見える。
+素のテキストで書く、と覚えておく。(コンソールの画面では整形される)
 
 ---
 
@@ -1168,7 +1189,7 @@ resource "google_monitoring_alert_policy" "uptime" {
 ```
 ◼監視対象の文字列を正しく直します
 
-  gcp/lesson8/3. alert/monitoring.tf
+  3. alert/monitoring.tf
 
     content = "ALL SYSTEMS NORMAL"
     ↓
@@ -1781,7 +1802,7 @@ Cloud Digital Leader の出題範囲を見ながら、
 
 | Step | ディレクトリ | 作るもの | 確認すること |
 |---|---|---|---|
-| 0 | `0. before/` | 第2〜6回の全リソース(38個) | 約10分 |
+| 0 | `start/` | `0. before/`(第2〜6回の全リソース、38個)を読み込むだけ | 約10分 |
 | 1 | `1. logging/` | ログベース指標 + シンク + バケット | シンクは権限が無いと静かに失敗する |
 | 2 | `2. monitoring/` | Uptime check + ダッシュボード | **失敗しているのに誰も気づかない** |
 | 3 | `3. alert/` | アラートポリシー(Slackチャンネル参照) | **Slack が鳴る** |

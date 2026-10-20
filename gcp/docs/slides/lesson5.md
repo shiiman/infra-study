@@ -123,9 +123,9 @@
 
 ---
 
-### S02 | ロードマップ
+### S02 | インフラ勉強会 スケジュール
 
-**[図版]** 第1回 S06 と同じスライドを複製。今日の行(12月24日)にマーカーを移す。
+**[図版]** 第2回 S02 と同じスライドを複製。今日の行のマーカーは付けない。
 
 ---
 
@@ -213,8 +213,8 @@ GCPの視点を足すので**一部差し替え**。
 ★ GCPのコンテナサービスは、この流れの延長にある
 ```
 
-**[話す]** AWS版では「Dockerが2013年に登場して〜」という一般的な流れだった。
-GCPの回では「Kubernetesを作ったのはGoogle」という背景に触れると、
+**[話す]** 「Dockerが2013年に登場して〜」という一般的な流れの後、
+「Kubernetesを作ったのはGoogle」という背景に触れると、
 GKEとCloud Runの位置づけが分かりやすくなる。
 
 ---
@@ -294,12 +294,12 @@ AWS Batch                Cloud Run Jobs
 ★ AWSは用途ごとにサービスが分かれている
 ★ GCPは Cloud Run が広くカバーする
 
-   AWS版では App Runner の「デメリット」として
-   「WAFが設定できない」「実績が少ない」が挙げられていた
+   AWSの App Runner は「実績が少ない」ことなどから
+   本番での採用に慎重になるケースがありました
    Cloud Run はそのあたりの制約がなく、本番でも普通に使われる
 ```
 
-**[話す]** AWS版のスライドで App Runner の評価が辛口だったのを覚えている人。
+**[話す]** AWSの App Runner は評価が分かれることがある。
 Cloud Run は App Runner の立ち位置でありながら、
 Cloud Armor も付けられるし LB の後ろにも置ける。そこが違う。
 
@@ -517,7 +517,7 @@ GKEは「Standardか Autopilotか」を選ぶ
 **[本文]**
 
 ```
-参照: gcp/lesson5/1. artifact_registry/
+cd ~/works/lesson5/ && cp -rf ~/infra-study/gcp/lesson5/1.\ artifact_registry/ ./
 
 resource "google_artifact_registry_repository" "app" {
   location      = "asia-northeast1"
@@ -648,14 +648,14 @@ resource "google_artifact_registry_repository" "app" {
 
 ---
 
-### S22 | ECS + Fargate の構成(復習)
+### S22 | ECS + Fargate の構成
 
 **[図版]** AWS版 第6回「ECS」の構成図をそのまま流用。**比較のために残す**。
 
 **[本文]**
 
 ```
-◼AWS版で作ったもの
+◼AWSで作るもの
 
   ECSクラスター
   ECSタスク定義       CPU / メモリ / コンテナ定義 / 環境変数 / シークレット
@@ -703,8 +703,8 @@ resource "google_artifact_registry_repository" "app" {
 ★ 残るのは「アプリが何をしてよいか」を決めるサービスアカウントだけ
 ```
 
-**[話す]** AWS版のスライドを見ると、IAMロールの設定だけで1枚使っていた。
-「タスクロールとタスク実行ロールの違い」は毎回説明が必要な概念だった。
+**[話す]** AWSの場合、IAMロールの設定だけで1枚使うほど要素が多い。
+「タスクロールとタスク実行ロールの違い」は毎回説明が必要な概念。
 Cloud Run にはその区別がない。
 
 ---
@@ -714,7 +714,7 @@ Cloud Run にはその区別がない。
 **[本文]**
 
 ```
-参照: gcp/lesson5/2. cloud_run/cloud_run.tf
+cd ~/works/lesson5/ && cp -rf ~/infra-study/gcp/lesson5/2.\ cloud_run/ ./
 
 resource "google_service_account" "run" {
   account_id   = "${var.user_name}-run"
@@ -760,7 +760,15 @@ resource "google_cloud_run_v2_service" "app" {
       resources {
         limits = { cpu = "1000m", memory = "512Mi" }
       }
+```
 
+---
+
+### S25b | Terraform コード(Cloud Run 続き 2)
+
+**[本文]**
+
+```
       env { name = "DB_KIND"          value = "spanner" }
       env { name = "SPANNER_DATABASE" value = module.before.spanner_database }
       env { name = "CACHE_HOST"       value = module.before.cache_host }
@@ -974,7 +982,7 @@ Cloud Run のインスタンスが VPC 内にIPを持つ様子。
 **[本文]**
 
 ```
-参照: gcp/lesson5/3. vpc_egress/cloud_run.tf
+cd ~/works/lesson5/ && cp -rf ~/infra-study/gcp/lesson5/3.\ vpc_egress/ ./
 
 resource "google_cloud_run_v2_service" "app" {
   template {
@@ -1098,7 +1106,7 @@ resource "google_cloud_run_v2_service" "app" {
    docker run -p 8080:8080 -e ... [イメージ]
 ```
 
-**[話す]** AWS版第6回のハイライトが ECS Exec だった。
+**[話す]** AWSでは ECS Exec でコンテナに入れる。
 GCPにはこれが無い、というのは移行時に必ず話題になる。
 ただ「入れない」のは制約というより設計思想の違い。
 第8回(監視・運用)でログの読み方を詳しくやる。
@@ -1171,7 +1179,7 @@ GCPにはこれが無い、というのは移行時に必ず話題になる。
 **[本文]**
 
 ```
-参照: gcp/lesson5/4. loadbalancer/serverless_neg.tf
+cd ~/works/lesson5/ && cp -rf ~/infra-study/gcp/lesson5/4.\ loadbalancer/ ./
 
 resource "google_compute_region_network_endpoint_group" "run" {
   name                  = "${var.user_name}-run-neg"
@@ -1191,7 +1199,15 @@ resource "google_compute_backend_service" "run" {
     group = google_compute_region_network_endpoint_group.run.id
   }
 }
+```
 
+---
+
+### S39b | Terraform コード(切り替え 続き)
+
+**[本文]**
+
+```
 resource "google_compute_url_map" "main" {
   name            = "${var.user_name}-urlmap"
   default_service = google_compute_backend_service.run.id   ← ここ
@@ -1497,7 +1513,17 @@ Cloud Run のインスタンス自動スケーリング
         ★ 手動では削除できません
 
    4. terraform destroy
+```
 
+**[話す]** 年末年始を挟む回なので、片付けを特に強く言う。
+
+---
+
+### S50b | 注意事項(続き)
+
+**[本文]**
+
+```
 ★★ 皆さんは 1 と 2 まででOKです ★★
 
    3 の解放待ちがあるので、この場では終わりません。
@@ -1517,8 +1543,7 @@ Cloud Run のインスタンス自動スケーリング
 ★ tfstate用のバケットは残しておいてください
 ```
 
-**[話す]** 年末年始を挟む回なので、片付けを特に強く言う。
-消し忘れると3週間分課金される。
+**[話す]** 消し忘れると3週間分課金される。
 
 ---
 

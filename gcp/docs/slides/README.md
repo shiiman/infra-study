@@ -6,17 +6,17 @@
 | 回 | テーマ | 枚数 | Google スライド |
 |---|---|---:|---|
 | 第1回 | GCP基礎 / IAM / Terraform | 94 | https://docs.google.com/presentation/d/1LGC9jpgPpKj1ObDw7JFDw1x_OG3sMO_ZdxkUQ4mqU6k/edit |
-| 第2回 | ネットワーク | 63 | https://docs.google.com/presentation/d/1p0NGtqsvkGYxFewE8AjoPYqh8kgkvTjyVEjLA6Fmkvs/edit |
-| 第3回 | コンピューティング | 56 | https://docs.google.com/presentation/d/1cxkYA6EAxoyUp-iMQILfCvJ_CjR8SuccNb7cRbhMc0s/edit |
-| 第4回 | データベース | 55 | https://docs.google.com/presentation/d/1Cn3LTns2BdgXLAwhyPbr-LbEZU1Je_4m3NZLSRkLufM/edit |
-| 第5回 | コンテナ | 51 | https://docs.google.com/presentation/d/1ow1DPEjkCakiMKhQ-TknYS3u_9yezEQYnRvaovz_sqs/edit |
-| 第6回 | ストレージ + CDN | 46 | https://docs.google.com/presentation/d/1kuYTeNuWkzd8-_Mj1u2RNBKO4-xh8ycWsvlxO0hbXYo/edit |
-| 第7回 | CI/CD | 58 | https://docs.google.com/presentation/d/1gRqC2I-lme3uUlA2DX2L3aRYAkpB0DQokDFzI2yKI3I/edit |
-| 第8回 | 監視・運用 + その他リソース | 54 | https://docs.google.com/presentation/d/1T5uKWZNngdzsw9JepsK4pJiwgir7dz3mwUgFueaoiDc/edit |
+| 第2回 | ネットワーク | 66 | https://docs.google.com/presentation/d/1p0NGtqsvkGYxFewE8AjoPYqh8kgkvTjyVEjLA6Fmkvs/edit |
+| 第3回 | コンピューティング | 58 | https://docs.google.com/presentation/d/1cxkYA6EAxoyUp-iMQILfCvJ_CjR8SuccNb7cRbhMc0s/edit |
+| 第4回 | データベース | 56 | https://docs.google.com/presentation/d/1Cn3LTns2BdgXLAwhyPbr-LbEZU1Je_4m3NZLSRkLufM/edit |
+| 第5回 | コンテナ | 54 | https://docs.google.com/presentation/d/1ow1DPEjkCakiMKhQ-TknYS3u_9yezEQYnRvaovz_sqs/edit |
+| 第6回 | ストレージ + CDN | 49 | https://docs.google.com/presentation/d/1kuYTeNuWkzd8-_Mj1u2RNBKO4-xh8ycWsvlxO0hbXYo/edit |
+| 第7回 | CI/CD | 59 | https://docs.google.com/presentation/d/1gRqC2I-lme3uUlA2DX2L3aRYAkpB0DQokDFzI2yKI3I/edit |
+| 第8回 | 監視・運用 + その他リソース | 56 | https://docs.google.com/presentation/d/1T5uKWZNngdzsw9JepsK4pJiwgir7dz3mwUgFueaoiDc/edit |
 | 第9回 | 試験対策 | 46 | https://docs.google.com/presentation/d/18HRSIFBcPvDAH5Gg19AFevZtYdSj1R2hUVhX-U0vzLg/edit |
 | 第10回 | 実践テスト + 総まとめ | 24 | https://docs.google.com/presentation/d/1P4OApYaqHR4UPyu6Se5YiW0lZAORxva7wqCikm1-C_E/edit |
 
-計 547枚(2026-09-16 に Slides API で実測)。
+計 562枚(2026-10-16 時点。文字が小さいページの分割で第3〜8回が増え、第2回は S33 の削除で1枚減った)。
 
 > 第1回は 2026-09-11 に大幅改訂(導入・インフラ基礎の増補、ハンズオンの gcloud 化)。
 > ハンズオンの gcloud 化でデッキから3枚(Step1実行 / backend切り替え / state移行)を削除した。
@@ -47,6 +47,11 @@
 > このため**第1回は p66 以降のページ番号が「原稿の S番号」より1大きい**
 > (例: 注意事項は S93 だが **p94**、宿題2は S90 だが **p91**)。
 > 以前のメモや会話にある p81 / p85 / p90 / p93 は、今は p82 / p86 / p91 / p94。
+>
+> **第2回も 2026-10-16 にセクション区切り7枚を足し、本文の無い S17「VPC作成完了」・S22「サブネット作成完了」と S29「休憩」を削除した(63→67枚)。さらに S33「AWSのSGとの書き換え」のスライドが削除され、66枚になった。**
+> 原稿側は S05-2 / S13-2 / S17-2 / S22-2 / S29-2 / S43-2 / S48-2 という仮番号にして、S番号は振り直していない(S17 / S22 / S29 は欠番)。
+> このため第2回は **p6 以降のページ番号が S番号とずれる**(区切りの数だけ後ろにずれる)。
+> 区切りは TITLE プレースホルダが無い図形だけのページなので、`check-slide-sync.py` の対象外。
 >
 > デッキ側を触るときは**必ずタイトルで該当ページを探すこと**。
 > Slides API なら次で一覧できる。

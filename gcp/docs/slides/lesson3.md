@@ -92,9 +92,9 @@
 
 ---
 
-### S02 | ロードマップ
+### S02 | インフラ勉強会 スケジュール
 
-**[図版]** 第1回 S06 と同じスライドを複製。今日の行(11月16日)にマーカーを移す。
+**[図版]** 第2回 S02 と同じスライドを複製。今日の行のマーカーは付けない。
 
 ---
 
@@ -217,7 +217,7 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 **[本文]**
 
 ```
-参照: gcp/lesson3/1. web_instance/before.tf
+cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/start/ ./
 
 variable "subnet_public_cidr" {}
 variable "subnet_private_cidr" {}
@@ -352,8 +352,8 @@ OSとその初期状態をまとめたもの。AWSのAMIに相当
    GCPはファミリー名で書けるし、グローバルに同じ名前が使える
 ```
 
-**[話す]** AWS版の第3回・第4回では `ami-02c3627b04781eada` を直書きしていた。
-あれがリージョンを跨げず、時間が経つと古くなるのが地味に不便だった。
+**[話す]** AWSでは `ami-02c3627b04781eada` のようなIDを直書きすることが多い。
+これはリージョンを跨げず、時間が経つと古くなるのが地味に不便。
 GCPはここが楽。
 
 ---
@@ -389,11 +389,12 @@ PDはゾーン単位なのは同じだが、
 
 **[図版]** AWS版 第4回「EC2」のコードスライドを流用。コードを差し替え。
 **`ami` と `key_name` が消えることを強調する**。
+**1枚には収まらないので2枚に分ける。** `google_compute_instance` を `boot_disk` の終わりで区切る。
 
-**[本文]**
+**[本文]** (1枚目)
 
 ```
-参照: gcp/lesson3/1. web_instance/
+cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/1.\ web_instance/ ./
 
 resource "google_service_account" "web" {
   account_id   = "${var.user_name}-web"
@@ -414,6 +415,19 @@ resource "google_compute_instance" "web" {
       type  = "pd-balanced"
     }
   }
+
+  # (次のページに続く)
+```
+
+---
+
+### S13b | webインスタンスを作る(続き)
+
+**[本文]** (2枚目)
+
+```
+resource "google_compute_instance" "web" {
+  # (前のページの続き)
 
   network_interface {
     subnetwork = module.before.private_subnet_id
@@ -444,14 +458,19 @@ resource "google_compute_instance" "web" {
   terraform plan
   terraform apply
 
-◼確認
+◼確認(主な項目のみ抜粋)
   gcloud compute instances list --filter="name:[自分の名前]-web"
-
-  NAME         ZONE               INTERNAL_IP  EXTERNAL_IP  STATUS
-  yamada-taro-web  asia-northeast1-a  172.16.10.2               RUNNING
+  NAME: yamada-taro-web
+  ZONE: asia-northeast1-a
+  INTERNAL_IP: 172.16.10.2
+  EXTERNAL_IP:
+  STATUS: RUNNING
 
 ★ EXTERNAL_IP が空
 ```
+
+**[話す]** 出力は「項目名: 値」の縦並びで出る。スライドは主な項目だけを抜粋している。
+実際には `MACHINE_TYPE`(e2-medium)や `PREEMPTIBLE`(空)も出る。
 
 ---
 
@@ -482,8 +501,7 @@ SSM セッションマネージャーに相当する
   SSHキー不要 / 22番をインターネットに開けない / IAMで制御 / ログが残る
 ```
 
-**[話す]** AWS版の第4回では、第3回で使った踏み台+SSH鍵をやめて
-SSMセッションマネージャーに切り替える、という流れだった。
+**[話す]** AWSでは踏み台+SSH鍵ではなく、SSMセッションマネージャーが推奨される。
 GCPは第2回の時点で既にIAPを使っているので、同じ方法のまま続けられる。
 
 ---
@@ -524,7 +542,7 @@ GCPは第2回の時点で既にIAPを使っているので、同じ方法のま�
 **[話す]** `git clone` が通るのは、第2回で作った Cloud NAT があるから。
 NATを消してしまった人はここで詰まる。前回の内容がそのまま効いてくる。
 
-このアプリはAWS版で使ったものと同じGoのアプリ。
+このアプリはシンプルなGoのアプリ。
 hostnameを返すので、あとで冗長化したときに振り分けが見える。
 
 **★ ここは時間がかかる。実測で約2分。**
@@ -840,12 +858,12 @@ GCPは独立したリソース → 複数のバックエンドサービスで使
 ### S29 | Terraform コード(LB)
 
 **[図版]** AWS版 第4回「ALB」のコードスライドを流用。
-**AWS版は1枚に3リソース収まっていたが、GCP版は2枚に分ける。**
+**AWS版は1枚に3リソース収まっていたが、GCP版は3枚に分ける**(インスタンスグループ+ヘルスチェック / バックエンドサービス / 残りの4リソース)。
 
 **[本文]** (1枚目)
 
 ```
-参照: gcp/lesson3/2. loadbalancer/lb.tf
+cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/2.\ loadbalancer/ ./
 
 resource "google_compute_instance_group" "web" {
   name      = "${var.user_name}-web-ig"
@@ -870,7 +888,15 @@ resource "google_compute_health_check" "web" {
     request_path = "/"
   }
 }
+```
 
+---
+
+### S29b | Terraform コード(LB)(続き)
+
+**[本文]** (2枚目)
+
+```
 resource "google_compute_backend_service" "web" {
   name          = "${var.user_name}-web-bs"
   protocol      = "HTTP"
@@ -886,9 +912,9 @@ resource "google_compute_backend_service" "web" {
 
 ---
 
-### S30 | Terraform コード(LB)続き
+### S30 | Terraform コード(LB)(続き2)
 
-**[本文]** (2枚目)
+**[本文]** (3枚目)
 
 ```
 resource "google_compute_url_map" "web" {
@@ -926,7 +952,7 @@ resource "google_compute_global_forwarding_rule" "web_http" {
 
 ### S31 | Step2 実行 → 繋がらない
 
-**[図版]** **502エラーのブラウザ画面を撮る**(★この回で撮る3枚のうちの1枚)。
+**[図版]** **503エラーのブラウザ画面を撮る**(★この回で撮る3枚のうちの1枚)。
 `get-health` の UNHEALTHY 出力は**撮らない**(2026-09-18 判断)。
 文言は本文に載せてあり、当日は受講者の画面に実物が出る。
 
@@ -1014,7 +1040,7 @@ Googleのロードバランサは、次の2つの固定レンジから来る
 ★ GCPのロードバランサで一番よくあるハマりどころ
 ```
 
-**[話す]** 「LBを作ったのに502が返る」は、9割これ。
+**[話す]** 「LBを作ったのに503が返る」は、9割これ。
 覚えて帰ってほしい2つのレンジ。
 
 ---
@@ -1024,7 +1050,7 @@ Googleのロードバランサは、次の2つの固定レンジから来る
 **[本文]**
 
 ```
-参照: gcp/lesson3/2. loadbalancer/firewall_lb.tf
+参照: 2. loadbalancer/firewall_lb.tf
 
 resource "google_compute_firewall" "allow_lb_to_web" {
   name    = "${var.user_name}-allow-lb-to-web"
@@ -1079,8 +1105,8 @@ resource "google_compute_firewall" "allow_lb_to_web" {
 
 ★ インターネットから、外部IPを持たないVMに繋がった
 
-◼AWS版との違い
-AWS版ではALBのDNS名(xxx.ap-northeast-1.elb.amazonaws.com)でアクセスした
+◼AWSのALBとの違い
+AWSのALBはDNS名(xxx.ap-northeast-1.elb.amazonaws.com)でアクセスする
 GCPはIPアドレスが固定で払い出されるので、IPで直接アクセスできる
 ```
 
@@ -1126,9 +1152,8 @@ DNSSEC対応
   <自分の名前>.[勉強会のドメイン]
 ```
 
-**[話す]** AWS版では `[AWS版のドメイン]` を使っていた。
-GCP版は別ゾーンを切って、Cloud DNS に委譲してある。
-AWS版の設定には影響しない。
+**[話す]** 勉強会専用の別ゾーンを切って、Cloud DNS に委譲してある。
+他のドメインの設定には影響しない。
 
 ---
 
@@ -1151,7 +1176,7 @@ data "google_dns_managed_zone" "public" {
   resource で書くと → 誰か1人の terraform destroy で
                       全員のドメインが消えます
 
-◼AWS版でも同じでした
+◼AWSでも同じです
   data "aws_route53_zone" "public" { ... }
 
 ★ 「共有しているものは data で参照する」
@@ -1171,7 +1196,7 @@ data "google_dns_managed_zone" "public" {
 **[本文]**
 
 ```
-参照: gcp/lesson3/3. dns/dns.tf
+cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/3.\ dns/ ./
 
 variable "dns_zone_name" {}
 
@@ -1193,7 +1218,7 @@ resource "google_dns_record_set" "web" {
    なので "${var.user_name}." と繋ぐと
    "yamada-taro.[勉強会のドメイン]." になります
 
-★ AWS版はALBへの alias レコードでした
+★ AWSではALBへの alias レコードを使います
    GCPはLBが固定IPを持つので、普通のAレコードでよい
 ```
 
@@ -1255,7 +1280,7 @@ resource "google_dns_record_set" "web" {
 ◼AWSのACMとの違い
 
 ACM   DNS検証用のCNAMEレコードを自分で作る必要があった
-      (AWS版のコードでは for_each で検証レコードを生成していた)
+      (Terraformでは for_each で検証レコードを生成する)
 
 GCP   対象ドメインがこのロードバランサを向いていることを
       Google側が確認して自動で発行する
@@ -1268,8 +1293,8 @@ CloudFront用のACMは us-east-1 で作らないといけない、という
 ★ そのぶんコードが短くなります
 ```
 
-**[話す]** AWS版のACMのコードは `domain_validation_options` を
-`for_each` で回して検証レコードを作る、という少し複雑なものだった。
+**[話す]** AWSのACMでは `domain_validation_options` を
+`for_each` で回して検証レコードを作る、という少し複雑なコードが要る。
 GCPはそれが丸ごと要らない。
 
 ---
@@ -1287,6 +1312,10 @@ GCPはそれが丸ごと要らない。
 **[本文]**
 
 ```
+  PROVISIONING ──(DNSが正しく引ける)──> ACTIVE
+       │
+       └──(引けない / 向き先が違う)──> FAILED_NOT_VISIBLE
+
 ★ 証明書の発行は 10分程度 かかります ★
 
   PROVISIONING          発行処理中
@@ -1326,7 +1355,7 @@ apply してから ACTIVE になるまで待つので、その間に別の話を
 **[本文]**
 
 ```
-参照: gcp/lesson3/4. ssl/ssl.tf
+cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/4.\ ssl/ ./
 
 resource "google_compute_managed_ssl_certificate" "web" {
   name = "${var.user_name}-web-cert"
@@ -1475,7 +1504,7 @@ MIGを使えば自動で台数を維持できる(今回は非マネージドを�
   35.191.0.0/16
 
   この2つのレンジからの通信を Firewall Rules で許可しないと
-  ヘルスチェックが通らず、502が返り続ける
+  ヘルスチェックが通らず、503が返り続ける
 
 ◼Cloud DNS
 共有しているゾーンは data で参照する。resource で書かない
@@ -1684,7 +1713,7 @@ Cloud SQL / Memorystore
 |---|---|---|---|
 | 0 | `0. before/` | 第2回のネットワーク一式(モジュール) | 前回と同じものができる |
 | 1 | `1. web_instance/` | web VM + IAP用Firewall/IAM | IAPで入って `curl localhost` が通る。外からは見えない |
-| 2 | `2. loadbalancer/` | LB 6リソース + ヘルスチェック用Firewall | **502 → Firewall追加 → LBのIPでアクセスできる** |
+| 2 | `2. loadbalancer/` | LB 6リソース + ヘルスチェック用Firewall | **503 → Firewall追加 → LBのIPでアクセスできる** |
 | 3 | `3. dns/` | Aレコード | ドメインでアクセスできる |
 | 4 | `4. ssl/` | マネージド証明書 + HTTPSプロキシ + 443転送ルール | HTTPSでアクセスできる |
 
@@ -1793,7 +1822,7 @@ URLマップ / HTTPプロキシ / HTTPSプロキシ / グローバルIP / 転送
 
 | | 何を | なぜ残すか |
 |---|---|---|
-| S31 | **502エラーのブラウザ画面** | 「こうなるはず」を先に見せる価値がある。`get-health` の UNHEALTHY 出力は端末なので不要 |
+| S31 | **503エラーのブラウザ画面** | 「こうなるはず」を先に見せる価値がある。`get-health` の UNHEALTHY 出力は端末なので不要 |
 | S34 | **LBのIPでのブラウザ表示** | 同上 |
 | S45 | **HTTPS表示(鍵マークが見えるように)** | 同上。鍵マークは口頭では伝わらない |
 
