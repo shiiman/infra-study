@@ -37,7 +37,7 @@
 > 押した場合の削り所: S06〜S07(DBの歴史)は口頭のみで圧縮できる。
 > S39(マルチリージョン構成)も飛ばせる。
 >
-> **削ってはいけないのは S17〜S19**(3種類の接続方式)と
+> **削ってはいけないのは S17〜S19**(4種類の接続方式)と
 > **S28〜S34**(Spannerの構成と主キー設計)。この回の核心。
 
 ## 事前準備(講師)
@@ -88,9 +88,9 @@
 
 ---
 
-### S02 | ロードマップ
+### S02 | インフラ勉強会 スケジュール
 
-**[図版]** 第1回 S06 と同じスライドを複製。今日の行(12月10日)にマーカーを移す。
+**[図版]** 第2回 S02 と同じスライドを複製。今日の行のマーカーは付けない。
 
 **[話す]** 次回(第5回)は12/24の木曜日。年末なので今日の宿題は控えめにしてある。
 
@@ -129,14 +129,14 @@ Cloud DNS でドメインを割り当て、マネージドSSL証明書でHTTPS�
 
 ◼アジェンダ
   データベースの選び方
-  3種類の接続方式(GCP独自の話)
+  4種類の接続方式(GCP独自の話)
   Memorystore
   Spanner        ← ここが本編
   Cloud SQL      ← 軽く
 ```
 
-**[話す]** AWS版ではAurora(Cloud SQL相当)が主役だった。
-GCP版はSpannerを主役にする。実務で使っているものを深くやりたいので。
+**[話す]** リレーショナルDBといえばAurora / Cloud SQLが定番だが、
+今回はSpannerを主役にする。実務で使っているものを深くやりたいので。
 
 ---
 
@@ -217,7 +217,7 @@ JOINを諦める」という割り切りだった。Spannerはそこを諦めな
    キャッシュ                Memorystore            ElastiCache
    ドキュメント              Firestore              DynamoDB
    ワイドカラム(大規模)      Bigtable               DynamoDB
-   データ分析                BigQuery               Redshift / Athena
+★ データ分析                BigQuery               Redshift / Athena
 
 ★ Spanner と BigQuery は AWS に相当するものが無い
    GCPを選ぶ理由になりやすい2つ
@@ -263,7 +263,7 @@ PostgreSQL互換の高性能DB。AWSのAuroraに近い
 ### S10 | 今日のゴール
 
 **[図版]** **新規作成**。第3回のゴール図をベースに、右側に3つの接続先を描く。
-**接続経路が3種類あることが見えるように描くのがポイント。**
+**接続経路(ピアリング / Google API 経由)が別々であることが見えるように描くのがポイント。**
 
 ```
  ┌─ 自分のVPC ──────────┐
@@ -318,7 +318,7 @@ PostgreSQL互換の高性能DB。AWSのAuroraに近い
 **[本文]**
 
 ```
-参照: gcp/lesson4/1. web/before.tf
+cd ~/works/lesson4/ && cp -rf ~/infra-study/gcp/lesson4/1.\ web/ ./
 
 module "before" {
   source = "github.com/shiiman/infra-study//gcp/lesson4/0. before"
@@ -385,7 +385,7 @@ module "before" {
   SPANNER_DATABASE
   CACHE_HOST
 
-★ AWS版ではmain.goを書き換えてビルドし直していました
+★ 接続先をmain.goに直書きすると、変更のたびにビルドし直しです
    環境変数にしておくと、接続先を変えるたびにビルドしなくて済みます
    第5回のCloud Runでも同じやり方が使えます
 
@@ -461,7 +461,7 @@ Spannerのクライアントライブラリ(Google Cloud Go SDK + gRPC)は依存
 
 ---
 
-# 3種類の接続方式
+# 4種類の接続方式
 
 ---
 
@@ -616,7 +616,7 @@ Cloud Storage や Secret Manager と同じ仕組み
 **[本文]**
 
 ```
-参照: gcp/lesson4/2. cache/private_service_access.tf
+cd ~/works/lesson4/ && cp -rf ~/infra-study/gcp/lesson4/2.\ cache/ ./
 
 resource "google_compute_global_address" "private_service" {
   name          = "${var.user_name}-private-service-range"
@@ -749,7 +749,7 @@ nishiki は①と③が両方入っている。「どちらかに統一する」
 **[本文]**
 
 ```
-◼AWS版で作っていたもの → GCP版でどうなるか
+◼AWSで必要なもの → GCPでどうなるか
 
   DBサブネットグループ          → 不要
   ElastiCacheサブネットグループ → 不要
@@ -784,11 +784,11 @@ nishiki は①と③が両方入っている。「どちらかに統一する」
 
 ◼ElastiCache との違い
 
-  AWS版は4リソース
+  AWSは4リソース
     セキュリティグループ / サブネットグループ /
     パラメータグループ / レプリケーショングループ
 
-  GCP版は1リソース
+  GCPは1リソース
     google_redis_instance
 
     サブネットグループ   → 限定公開サービスアクセスで代替
@@ -807,7 +807,7 @@ nishiki は①と③が両方入っている。「どちらかに統一する」
 **[本文]**
 
 ```
-参照: gcp/lesson4/2. cache/cache.tf
+参照: 2. cache/cache.tf
 
 resource "google_redis_instance" "cache" {
   name           = "${var.user_name}-cache"
@@ -1068,7 +1068,7 @@ TrueTimeの詳細まで踏み込まなくてよいが、
 **[本文]**
 
 ```
-参照: gcp/lesson4/3. spanner/spanner.tf
+cd ~/works/lesson4/ && cp -rf ~/infra-study/gcp/lesson4/3.\ spanner/ ./
 
 resource "google_spanner_instance" "main" {
   name         = "${var.user_name}-spanner"
@@ -1372,12 +1372,12 @@ TrueTime という仕組みが支えている
 
 ◼RDS との違い
 
-  AWS版で作っていたもの(6リソース)
+  AWSで作るもの(6リソース)
     セキュリティグループ / DBサブネットグループ /
     パラメータグループ / クラスターパラメータグループ /
     RDSクラスター / RDSクラスターインスタンス × 2
 
-  GCP版(3リソース)
+  GCP(3リソース)
     google_sql_database_instance   本体
     google_sql_database            データベース
     google_sql_user                ユーザー
@@ -1434,7 +1434,7 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
 ◼Spanner にはパスワードが無かった
 ◼Cloud SQL にはある。どう扱うか
 
-◼AWS版はこうしていた
+◼直書きするとこうなる
   master_password = "[ROOT_PASSWORD]"
   → tfstateに平文で残る
 
@@ -1512,7 +1512,7 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
 **[本文]**
 
 ```
-◼GCPのマネージドDBは接続方式が3種類ある
+◼GCPのマネージドDBは接続方式が4種類ある
 
   Google API 経由    Spanner / BigQuery
                      Private Google Access があれば届く
@@ -1521,6 +1521,10 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
   VPCピアリング       Cloud SQL / Memorystore
                      限定公開サービスアクセスの設定が必要
                      Firewall Rules は不要
+
+  PSC                Cloud SQL / Memorystore
+                     エンドポイントIPを1つ立てて繋ぐ
+                     ①の後継(社内では今こちらが主流)
 
   Auth Proxy         Cloud SQL(別解)
 
@@ -1687,8 +1691,25 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 ★ destroy にも時間がかかります
    時間に余裕を持って実行してください
 
-★★ destroy は素直に終わりません ★★
+★ deletion_protection / force_destroy の設定を確認
+   本番では逆にする(消せないようにする)設定です
 
+★ tfstate用のバケットは残しておいてください
+
+★★ ただし destroy は素直に終わりません ★★
+   次のページで、失敗する理由と手順を説明します
+```
+
+**[話す]** destroy は一度では終わらない。失敗する理由と手順は次のページ(S52b)で説明する。
+
+---
+
+### S52b | 注意事項(続き)
+
+**[本文]**
+
+```
+★★ destroy は素直に終わりません ★★
    Cloud SQL / Memorystore を消したあと、
    限定公開サービスアクセスの接続を消そうとして失敗します
 
@@ -1700,7 +1721,6 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
    Google側がピアリングを解放してくれないのが原因です
 
    ◼手順(この順でやってください)
-
    1. terraform destroy
         → DBは消える。ピアリングの削除で失敗する
 
@@ -1713,11 +1733,6 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
         → 残りが消える
 
 ★ 待っても解決しません。手順2が必要です
-
-★ deletion_protection / force_destroy の設定を確認
-   本番では逆にする(消せないようにする)設定です
-
-★ tfstate用のバケットは残しておいてください
 ```
 
 ---
@@ -1907,11 +1922,11 @@ roles/servicenetworking.networksAdmin
 
 | スライド | 内容 | 優先度 |
 |---|---|---|
-| S17 | 3種類の接続方式(AWS/GCP比較) | **最高** |
+| S17 | 4種類の接続方式(AWS/GCP比較) | **最高** |
 | S29 | 主キーとスプリット / ホットスポット | **最高** |
 | S27 | Aurora / DynamoDB / Spanner の比較表 | 高 |
 | S19 | VPCピアリング(レンジの貸し出し) | 高 |
-| S10 | ゴール構成図(接続経路が3種類) | 高 |
+| S10 | ゴール構成図(接続経路が2系統) | 高 |
 | S26 | Spannerの立ち位置(2軸図) | 中 |
 | S28 | Spannerの構成単位 | 中 |
 | S30 | インターリーブの物理配置 | 中 |
@@ -1932,5 +1947,5 @@ roles/servicenetworking.networksAdmin
 
 - アプリの設定を環境変数化した。1つのイメージで MySQL / Spanner の
   両方に繋げるようにしてある(`DB_KIND` で切り替え)
-- 「3種類の接続方式」は設計書5章の「置換では済まない設計判断」に
+- 「4種類の接続方式」は設計書5章の「置換では済まない設計判断」に
   追加すべき項目。第5回(Cloud Run)でも接続方式の話が出てくる

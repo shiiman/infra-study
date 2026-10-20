@@ -297,9 +297,9 @@ Cloud Build は既に有効。Cloud Deploy は宿題で使う。
 
 ---
 
-### S02 | ロードマップ
+### S02 | インフラ勉強会 スケジュール
 
-**[図版]** 第1回 S06 と同じスライドを複製。今日の行(2月8日)にマーカーを移す。
+**[図版]** 第2回 S02 と同じスライドを複製。今日の行のマーカーは付けない。
 
 ---
 
@@ -420,14 +420,14 @@ allUsers に公開しないとCDNも読めなかった
 
 ---
 
-### S07 | AWS版でやったこと
+### S07 | AWSのCI/CDサービス
 
 **[図版]** AWS版 第8回の構成図をそのまま流用。
 
 **[本文]**
 
 ```
-◼AWS版 第8回で作ったもの
+◼AWSのCI/CD(Code系サービス)
 
   CodeCommit    ソースコードを置く
   CodeBuild     ビルドする
@@ -484,8 +484,8 @@ allUsers に公開しないとCDNも読めなかった
    Cloud Deploy を足す → 今日の宿題
 ```
 
-**[話す]** AWS版のコードを開くと、IAMロールとポリシーの定義だけで
-かなりの行数がある。今日はサービスアカウント1つで済む。
+**[話す]** AWSのCode系サービスをTerraformで書くと、IAMロールとポリシーの定義だけで
+かなりの行数になる。今日はサービスアカウント1つで済む。
 その代わり「どの権限を付けるか」を自分で考える必要があって、
 そこが後半の山場になる。
 
@@ -671,7 +671,7 @@ options:
 **[本文]**
 
 ```
-参照: gcp/lesson7/1. artifact_registry/before.tf
+cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/start/ ./
 
 module "before" {
   source = "github.com/shiiman/infra-study//gcp/lesson7/0. before"
@@ -704,7 +704,7 @@ module "before" {
 **[本文]**
 
 ```
-参照: gcp/lesson7/1. artifact_registry/artifact_registry.tf
+cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/1.\ artifact_registry/ ./
 
 resource "google_artifact_registry_repository" "app" {
   location      = "asia-northeast1"
@@ -866,7 +866,7 @@ resource "google_artifact_registry_repository_iam_member" "build_writer" {
 **[本文]**
 
 ```
-参照: gcp/lesson7/2. cloud_build/cloud_build.tf
+cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/2.\ cloud_build/ ./
 
 resource "google_cloudbuild_trigger" "app" {
   name     = "${var.user_name}-deploy"
@@ -1023,8 +1023,8 @@ cloudbuild_repository = ""
 なぜだと思いますか？
 ```
 
-**[話す]** ここは全員止まる。AWS版でも CodePipeline のロール不足で
-同じような場面があった。エラーメッセージを一緒に読む時間を取る。
+**[話す]** ここは全員止まる。AWSでも CodePipeline のロール不足で
+同じような場面がある。エラーメッセージを一緒に読む時間を取る。
 
 ---
 
@@ -1093,7 +1093,7 @@ cloudbuild_repository = ""
   roles/iam.serviceAccountUser
 
 ★ AWSでいうと iam:PassRole と同じ考え方
-   AWS版 第8回でも CodePipeline のロールに PassRole を入れていました
+   AWSでも CodePipeline のロールには PassRole を入れます
 ```
 
 **[話す]** ここは今日一番大事なところ。
@@ -1135,7 +1135,7 @@ GCPでもAWSでも、CI/CDを組むたびに出てくる。
 **[本文]**
 
 ```
-参照: gcp/lesson7/3. deploy/deploy.tf
+cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/3.\ deploy/ ./
 
 // 1. デプロイ先を更新する権限
 resource "google_cloud_run_v2_service_iam_member" "build_developer" {
@@ -1443,7 +1443,7 @@ GitHub の箱は共通で、そこから2本に分かれる。
 **[本文]**
 
 ```
-参照: gcp/lesson7/4. github_actions/wif.tf
+cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/4.\ github_actions/ ./
 
 resource "google_service_account_iam_member" "gha_wif" {
   service_account_id = data.google_service_account.build.name
@@ -1457,20 +1457,23 @@ resource "google_service_account_iam_member" "gha_wif" {
   ])
 }
 
-  cd ~/works/lesson7 && cp -r "~/infra-study/gcp/lesson7/4. github_actions/"* .
   terraform apply
-
-★ ここで apply したら、すぐには push しないでください
-   IAMの反映に数分かかります。次の2枚を聞いている間に反映されます
 
 ★ principalSet:// で始まるのが、外部IDを指す書き方です
 ★ @refs/heads/<自分の名前> で、自分のブランチだけに絞っています
    ここを消すと、誰のブランチからでも自分のSAが使えてしまいます
+
+★ apply の直後に push しないでください
+   IAM の反映に時間がかかり、早すぎると getAccessToken が denied になります
+   (数分〜10分ほど。落ちたら少し待って Re-run)
 ```
 
 **[話す]** ここは1リソースだけ。Step3 でやった
 `google_service_account_iam_member` と同じリソースタイプで、
 member の書き方だけが違う、という点を押さえてもらう。
+
+apply したらすぐには push せず、次の3枚(S34e2・S34f・S34f2)を説明している間に時間を稼ぐ。
+IAMの反映は、実測では数分では足りず、約10分後の再実行で通った(S34i 参照)。
 
 ---
 
@@ -1535,7 +1538,7 @@ member の書き方だけが違う、という点を押さえてもらう。
 **[本文]**
 
 ```
-参照: gcp/lesson7/app/.github/workflows/deploy.yml
+参照: app/.github/workflows/deploy.yml
 
 name: deploy
 on:
@@ -1560,7 +1563,26 @@ jobs:
           echo "service=${NAME}-app" >> "$GITHUB_OUTPUT"
           echo "sa=${NAME}-build@${{ vars.PROJECT_ID }}.iam.gserviceaccount.com" \
             >> "$GITHUB_OUTPUT"
+```
 
+**[話す]** `permissions: id-token: write` を忘れるのが一番多いミス。
+書かないと OIDC トークンが発行されず、
+`Unable to get ACTIONS_ID_TOKEN_REQUEST_URL` で落ちる。
+ここは先に「忘れると落ちます」と言っておく。
+
+---
+
+### S34f2 | ワークフローを書いて push する(続き)
+
+**[本文]**
+
+```
+参照: app/.github/workflows/deploy.yml
+
+jobs:
+  deploy:
+    steps:
+      ...
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
@@ -1581,10 +1603,12 @@ jobs:
 ★ ビルドに5分ほどかかります。待っている間に別の話をします
 ```
 
-**[話す]** `permissions: id-token: write` を忘れるのが一番多いミス。
-書かないと OIDC トークンが発行されず、
-`Unable to get ACTIONS_ID_TOKEN_REQUEST_URL` で落ちる。
-ここは先に「忘れると落ちます」と言っておく。
+**[話す]** 前のページでブランチ名から名前を組み立て、このページで認証してデプロイする。
+認証は鍵ファイルではなく、S34e で許可した WIF 経由。
+`service_account` に渡しているのは、前のページで組み立てた自分のビルド用SA。
+デプロイの中身は cloudbuild.yaml と同じなので、ここでは説明を広げない。
+
+push したらビルドが始まる(約5分)。待っている間に次の S34g・S34h を説明する。
 
 ---
 
@@ -1738,16 +1762,9 @@ SOPSの位置づけが分かりやすい。
     → permissions: id-token: write を書いていない
 
   Permission 'iam.serviceAccounts.getAccessToken' denied
-    → ★ まず「紐付けの反映待ち」を疑ってください
-       apply の直後に push すると、これで落ちます
-       実測では 1〜2分では足りず、10分後の再実行で通りました
-       失敗したジョブは GitHub の画面から Re-run できます
-
-    → 何度やっても駄目なら、ブランチ名が合っているか
-       (terraform output の repo_ref と、自分のブランチ名)
-
-    → それでも分からなければ、S34e2 のやり方で
-       トークンの中身を実際に出して確かめる
+    → Step4 の apply をしていない、またはブランチ名が合っていない
+    → 紐付けを作った直後は反映待ちのことがある(数分〜10分ほど。時間をおいて Re-run)
+    → それでも駄目なら S34e2 のやり方でトークンの中身を確かめる
 
   denied: Permission "artifactregistry.repositories.uploadArtifacts" denied
     → Step1 で付けた権限が、このSAに付いているか確認
@@ -1755,6 +1772,11 @@ SOPSの位置づけが分かりやすい。
 ★ 3つ目は Cloud Build のときと同じエラーです
    ビルドする場所が変わっても、必要な権限は同じです
 ```
+
+**[話す]** (スライドには載せていない補足)getAccessToken の denied は、まず「紐付けの反映待ち」を疑う。
+apply の直後に push すると、これで落ちる。実測では 1〜2分では足りず、10分後の再実行で通った(スライドの「数分〜10分ほど」の根拠)。
+失敗したジョブは GitHub の画面から Re-run できる。
+何度やっても駄目なら、ブランチ名が合っているか(terraform output の repo_ref と、自分のブランチ名)を見る。
 
 ---
 
@@ -2155,7 +2177,7 @@ Cloud Logging / Cloud Monitoring / アラート
 
 | Step | ディレクトリ | 作るもの | 確認すること |
 |---|---|---|---|
-| 0 | `0. before/` | 第2〜6回の全リソース(38個) | 約9分 |
+| 0 | `start/`(`0. before/` をモジュールとして読み込む) | 第2〜6回の全リソース(38個) | 約9分 |
 | 1 | `1. artifact_registry/` | Artifact Registry + ビルド用SA + 権限2つ | まだ自動化されていない |
 | 2 | `2. cloud_build/` | トリガー | **push → deploy で失敗** |
 | 3 | `3. deploy/` | 権限2つ(run.developer + serviceAccountUser) | **push → 成功** |

@@ -406,7 +406,7 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 ```
 
 **[話す]** 開始前に「残り5分で必ずpush」をもう一度言う。
-AWS版でも、時間切れで提出できなかった人がいた。
+時間切れで提出できない人が出がち。
 
 ---
 
