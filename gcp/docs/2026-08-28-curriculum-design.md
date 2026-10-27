@@ -377,7 +377,7 @@ gcp/
   `syukudai2` は `syukudai1` の内容を含む
 - `0. before/` は前回の完成状態を引き継ぐ回にのみ置く。
   第1回・第2回は自己完結なので不要(AWS版も第3回には無かった)
-- 第3〜8回は `0. before` から開始し、`prepare-step.sh` で同じ作業場所へ展開する。詳細は [ハンズオン手順](handson-step-workflow.md) を参照。
+- 第3〜8回は `0. before` から開始し、通常の `cp` で同じ作業場所へコピーする。第3回以降は共通の `configure.py` で、コピー後に個人設定3項目だけを反映する。詳細は [ハンズオン手順](handson-step-workflow.md) を参照。
 - `common.tf` の中身(第1回で確定)
 
 ```hcl

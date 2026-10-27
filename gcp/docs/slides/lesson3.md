@@ -209,6 +209,30 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 
 ---
 
+### 個人設定の補助（第3回から）
+
+**[本文]**
+
+```
+教材のコピーは、第1・2回と同じ cp を使います。
+第3回からは、コピー後の個人設定だけを補助します。
+
+コピー後、~/works/lesson3 で次を実行します。
+python3 ~/infra-study/gcp/tools/configure.py
+
+初回：project ID・user name・作成済みtfstateバケット名を入力
+次回：保存した3項目を反映（変更する場合は --edit）
+保存先：~/.config/infra-study/profile.json（Git管理外）
+
+common.tf のbackend bucketと、terraform.tfvars の
+project_id・user_name だけを反映します。prefix・stateは変更しません。
+DNSやサブネットなど、コピーで戻った値は別途確認してください。
+
+スクリプトはコピー・バケット作成・Terraform実行を行いません。
+```
+
+---
+
 ### S07 | 前回までの構成を作成する
 
 **[図版]** AWS版と同じく、前回までの完成コードから開始する。
@@ -217,24 +241,24 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 3 "0. before"
 cd ~/works/lesson3
+cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 0. before は、前回のネットワークの完成コードです。
 VPC / public・private subnet / Cloud Router / Cloud NAT
 
-最初に自分の設定を入力
-common.tf：backend の bucket を自分の tfstate バケットに変更
-terraform.tfvars：project_id・user_name・サブネットの値を設定
+初回だけ project ID・user name・tfstateバケット名を入力します。
+次回以降は保存した値を反映します。サブネットなどの値は別途確認します。
 
 この作業ディレクトリで、次のページの init → plan → apply を実行します。
 
 以降も同じ作業ディレクトリへ、番号順にコードを追加します。
-個人設定と state は保持され、前回分のリソースは引き継がれます。
-追加の変数は terraform.tfvars.example と比較して設定してください。
+コピー後に個人設定を再反映し、前回分のリソースとstateを引き継ぎます。
+コピーで各回固有の設定も戻るため、DNSやサブネットなどを確認してください。
 ```
 
-**[話す]** `0. before` は開始時点の完成コードです。後続ステップも同じ作業ディレクトリで進め、個人設定とstateを保持します。追加変数は `terraform.tfvars.example` を参照します。
+**[話す]** `0. before` は開始時点の完成コードです。後続ステップも同じ作業ディレクトリで進め、コピー後に `configure.py` で3項目を再反映します。各回固有の値はコピー後に確認・設定します。stateはそのまま使います。
 
 ---
 
@@ -381,7 +405,9 @@ PDはゾーン単位なのは同じだが、
 **[本文]** (1枚目)
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 3 "1. web_instance"
+cd ~/works/lesson3
+cp -rf ~/infra-study/gcp/lesson3/"1. web_instance"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_service_account" "web" {
   account_id   = "${var.user_name}-web"
@@ -850,7 +876,9 @@ GCPは独立したリソース → 複数のバックエンドサービスで使
 **[本文]** (1枚目)
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 3 "2. loadbalancer"
+cd ~/works/lesson3
+cp -rf ~/infra-study/gcp/lesson3/"2. loadbalancer"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_instance_group" "web" {
   name      = "${var.user_name}-web-ig"
@@ -1183,7 +1211,9 @@ data "google_dns_managed_zone" "public" {
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 3 "3. dns"
+cd ~/works/lesson3
+cp -rf ~/infra-study/gcp/lesson3/"3. dns"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 variable "dns_zone_name" {}
 
@@ -1342,7 +1372,9 @@ apply してから ACTIVE になるまで待つので、その間に別の話を
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 3 "4. ssl"
+cd ~/works/lesson3
+cp -rf ~/infra-study/gcp/lesson3/"4. ssl"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_managed_ssl_certificate" "web" {
   name = "${var.user_name}-web-cert"
