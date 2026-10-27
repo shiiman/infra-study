@@ -82,6 +82,32 @@ class ConfigureTest(unittest.TestCase):
         (self.work / 'common.tf').symlink_to(ROOT / 'gcp/lesson3/0. before/common.tf')
         self.assertNotEqual(self.run_script().returncode, 0)
 
+    def test_copy_keeps_step_directories_and_shared_backend(self):
+        # 検証用教材には個人設定だけを複製し、実環境のキャッシュやstateは読み込まない。
+        sources = Path(self.tmp.name) / 'sources'
+        works = Path(self.tmp.name) / 'works'
+        for n in range(3, 9):
+            parent = works / f'lesson{n}'
+            parent.mkdir(parents=True)
+            for common in sorted((ROOT / f'gcp/lesson{n}').glob('*/common.tf')):
+                step = common.parent.name
+                source = sources / f'lesson{n}' / step
+                source.mkdir(parents=True)
+                for name in ('common.tf', 'terraform.tfvars'):
+                    shutil.copyfile(common.parent / name, source / name)
+                subprocess.run(['cp', '-rf', str(source), './'], cwd=parent, check=True)
+                target = parent / step
+                self.assertTrue((target / 'common.tf').is_file())
+                self.assertFalse((parent / 'common.tf').exists())
+                result = self.run_script(cwd=target, stdin='example-project\ntest-user\nexample-state\n')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                text = (target / 'common.tf').read_text()
+                self.assertIn('bucket = "example-state"', text)
+                self.assertIn(f'prefix = "lesson{n}"', text)
+                # 同じディレクトリをもう一度コピーしても、余分な階層を作らない。
+                subprocess.run(['cp', '-rf', str(source), './'], cwd=parent, check=True)
+                self.assertFalse((target / step).exists())
+
 
 if __name__ == '__main__':
     unittest.main()

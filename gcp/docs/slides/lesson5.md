@@ -455,7 +455,8 @@ GKEは「Standardか Autopilotか」を選ぶ
 ```
 cd ~/infra-study && git pull
 mkdir -p ~/works/lesson5 && cd ~/works/lesson5 && \
-cp -rf ~/infra-study/gcp/lesson5/"0. before"/* ./
+cp -rf ~/infra-study/gcp/lesson5/"0. before" ./
+cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 
 第4回のリソースが削除済みであることを確認してください。
@@ -470,10 +471,10 @@ terraform plan
 terraform apply
 
 作成には時間がかかります。待っている間に「コンテナの歴史」へ進みます。
-以降は同じ作業ディレクトリで作業し、コピー後に個人設定を再反映します。stateはそのまま使います。
+各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
 ```
 
-**[話す]** `0. before` は開始時点の完成コードです。後続ステップも同じ作業ディレクトリで進め、コピー後に `configure.py` で3項目を再反映します。各回固有の値はコピー後に確認・設定します。stateはそのまま使います。
+**[話す]** `0. before` は開始時点の完成コードです。後続ステップはそれぞれのディレクトリに移動し、コピー後に `configure.py` で3項目を再反映します。各回固有の値はコピー後に確認・設定します。stateはそのまま使います。
 
 ---
 
@@ -512,7 +513,8 @@ terraform apply
 **[本文]**
 
 ```
-cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"1. artifact_registry"/* ./
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"1. artifact_registry" ./
+cd "1. artifact_registry"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_artifact_registry_repository" "app" {
@@ -543,6 +545,7 @@ resource "google_artifact_registry_repository" "app" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -581,7 +584,9 @@ resource "google_artifact_registry_repository" "app" {
    GCPは1行。ログイン中の権限がそのまま使われる
 
 ◼ビルドして push
-  REPO=$(terraform -chdir=~/works/lesson5 output -raw repository_url)
+  REPO=$(terraform \
+    -chdir="$HOME/works/lesson5/1. artifact_registry" \
+    output -raw repository_url)
 
   docker build -t $REPO/app .
   docker push $REPO/app
@@ -710,7 +715,8 @@ Cloud Run にはその区別がない。
 **[本文]**
 
 ```
-cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"2. cloud_run"/* ./
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"2. cloud_run" ./
+cd "2. cloud_run"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_service_account" "run" {
@@ -818,6 +824,7 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -979,7 +986,8 @@ Cloud Run のインスタンスが VPC 内にIPを持つ様子。
 **[本文]**
 
 ```
-cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"3. vpc_egress"/* ./
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"3. vpc_egress" ./
+cd "3. vpc_egress"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_cloud_run_v2_service" "app" {
@@ -1018,6 +1026,7 @@ resource "google_cloud_run_v2_service" "app" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -1177,7 +1186,8 @@ GCPにはこれが無い、というのは移行時に必ず話題になる。
 **[本文]**
 
 ```
-cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"4. loadbalancer"/* ./
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"4. loadbalancer" ./
+cd "4. loadbalancer"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_region_network_endpoint_group" "run" {
@@ -1268,6 +1278,7 @@ resource "google_compute_global_forwarding_rule" "https" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 

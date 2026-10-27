@@ -559,7 +559,8 @@ GCPにはこれが無い。
 **[本文]**
 
 ```
-cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"0. before"/* ./
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"0. before" ./
+cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 
 第2〜5回の構成を再作成します。
@@ -575,7 +576,7 @@ terraform apply
 
 LBのフロント側は、今回パスルール付きで作ります。
 Cloud Run は講師の共通リポジトリのイメージを使います。
-以降も同じ作業ディレクトリで作業し、コピー後に個人設定を再反映します。stateはそのまま使います。
+各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
 ```
 
 ---
@@ -619,7 +620,8 @@ Cloud Run は講師の共通リポジトリのイメージを使います。
 **[本文]**
 
 ```
-cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"1. storage"/* ./
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"1. storage" ./
+cd "1. storage"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_storage_bucket" "static" {
@@ -688,6 +690,7 @@ resource "google_storage_bucket_object" "index" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -720,7 +723,8 @@ resource "google_storage_bucket_object" "index" {
 ```
 ◼コードは書けているので、先に apply を流してください
 
-cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"2. cdn"/* ./
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"2. cdn" ./
+cd "2. cdn"
 python3 ~/infra-study/gcp/tools/configure.py
 
   terraform init
@@ -979,7 +983,8 @@ S3バケットポリシーを追加して解決する。
 **[本文]**
 
 ```
-cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"3. public"/* ./
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"3. public" ./
+cd "3. public"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_storage_bucket_iam_member" "public" {
@@ -1005,6 +1010,7 @@ resource "google_storage_bucket_iam_member" "public" {
 **[本文]**
 
 ```
+  terraform init
   terraform apply
 
 ◼もう一度アクセス
