@@ -562,14 +562,14 @@ SLO                     SLO モニタリング          SLO
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 8 "0. before"
-cd ~/works/lesson8
+cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"0. before"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 第6回までの構成を再作成します。
 Cloud Run / Cloud Storage / ロードバランサなど
 
-common.tf：backend の bucket を自分の tfstate バケットに変更
-terraform.tfvars：project_id・user_name・DNSなどの値を設定
+configure.py：project_id・user_name・backendのbucketだけを反映
+terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
 
 terraform init
 terraform plan
@@ -577,7 +577,7 @@ terraform apply
 
 第7回のCI/CDは含めていません。
 監視を学ぶために必要なアプリと配信基盤から始めます。
-以降も同じ作業ディレクトリで作業し、個人設定と state を保持します。
+以降も同じ作業ディレクトリで作業し、コピー後に個人設定を再反映します。stateはそのまま使います。
 ```
 
 ---
@@ -612,7 +612,8 @@ terraform apply
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 8 "1. logging"
+cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"1. logging"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_logging_metric" "app_error" {
   name = "${var.user_name}-app-error"
@@ -790,7 +791,8 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 8 "2. monitoring"
+cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"2. monitoring"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_monitoring_uptime_check_config" "web" {
   display_name = "${var.user_name}-uptime"
@@ -1016,7 +1018,8 @@ resource "google_monitoring_dashboard" "app" {
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 8 "3. alert"
+cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"3. alert"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 data "google_monitoring_notification_channel" "slack" {
   display_name = var.notification_channel_name

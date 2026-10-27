@@ -1,15 +1,38 @@
-# 第3〜8回のハンズオンの進め方
+# ハンズオンのコピーと個人設定（第3〜8回共通）
 
-各回は `0. before` から開始し、同じ作業ディレクトリへ番号順に今回のコードを追加します。`start` ディレクトリは使いません。
+教材のコピーは通常の `cp` で行います。`configure.py` はコピー済みファイルの個人設定3項目だけを反映します。Python 3の標準ライブラリのみを使用し、追加パッケージは不要です。
 
-## 初回の準備（第3回の例）
+## 第3回の初回設定
+
+第1回で作成済みのtfstate用GCSバケットを使用します。第3回の開始用教材をコピーします。第1・2回の講義資料と手順は変更しません。
 
 ```bash
-bash ~/infra-study/gcp/tools/prepare-step.sh 3 "0. before"
-cd ~/works/lesson3
+mkdir -p ~/works/lesson3
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 ```
 
-`common.tf` の GCS backend の bucket と `terraform.tfvars` の project_id・user_name・その他の必須値を、自分の環境に合わせて設定します。backend の prefix は回ごとに `lesson3` などを使います。前回のリソースの削除確認は従来どおり各回の準備で行います。
+初回は次の3項目を入力します。
+
+- project ID
+- user name（社用メールの `@` より前の `_` を `-` に置換）
+- 作成済みのtfstate用GCSバケット名（`gs://` は不要）
+
+設定は `~/.config/infra-study/profile.json` に、本人だけが読み書きできる権限で保存します。リポジトリ外なのでGit管理に含まれません。認証情報やパスワードは保存しません。保存値を変更するときは同じコマンドに `--edit` を付けます。
+
+変更対象は `common.tf` のGCS backendの `bucket` と、`terraform.tfvars` の `project_id`・`user_name` だけです。回ごとのbackendの `prefix`、その他の変数、`.terraform`、stateは変更しません。コピー・バケット作成・認証設定・Terraform実行は行いません。
+
+## 次回以降・次のステップ
+
+各回の作業ディレクトリで、教材を番号順にコピーします。第3回以降は `0. before` から開始します。
+
+```bash
+mkdir -p ~/works/lesson3
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
+```
+
+次回以降は入力不要で、保存済みの3項目が反映されます。表示された値を確認してください。
 
 ```bash
 terraform init
@@ -17,37 +40,29 @@ terraform plan
 terraform apply
 ```
 
-## 次のステップ
+次のステップも同じ流れです。
 
 ```bash
-bash ~/infra-study/gcp/tools/prepare-step.sh 3 "1. web_instance"
-cd ~/works/lesson3
-terraform init
-terraform plan
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 ```
 
-スクリプトはコードを展開するだけで、Terraform は実行しません。`common.tf`・`terraform.tfvars`・`.terraform`・stateを上書きしません。各ステップの初期値は `terraform.tfvars.example` に配置されるので、増えた変数だけを自分の設定へ追加します。plan の内容を確認してから apply してください。
+**移動とコピーは `cd … && cp …` の1コマンドです。設定反映の `python3 …/configure.py` は別コマンドで実行します。** コピーが成功してから設定を反映してください。 `cp` は既存の教材ファイルを上書きします。DNS・サブネット・GitHub連携など3項目以外の値も教材の初期値に戻るので、各回の説明に従って確認・再設定してからplanします。独自に編集したコードも、必要ならコピー前に別途退避してください。
 
-ステップは各回の番号順に進めます。前のステップへ戻すときや別の宿題へ切り替えるとき、作業先に余分な `.tf` がある場合は停止します。スクリプトによる削除やstateの初期化は行いません。
+コピー元はGitから取得した未実行の教材を使い、Terraformは `~/works/lessonN` で実行します。`/*` によりディレクトリ自体でなく中身をコピーし、`.terraform` などの隠しファイルをコピーしません。コピー先の既存ファイルは削除しないため、前のステップや別の宿題へ切り替える場合は余分な `.tf` が残っていないか確認してください。
 
-## コードの構成とstate
+## リソースとstateの引き継ぎ
 
-- `0. before/before.tf` に、今回の開始時点で必要な前回分のリソースを直接定義します。
-- 後続の各スナップショットにも同じ `before.tf` を含めます。各回の途中で `module.before` に切り替えません。
-- 既存リソースは `google_compute_network.vpc.id` などで直接参照します。
-- 第5・6回は今回作り直すLBのフロント側を開始状態から外す既存の構成を維持します。第8回は第7回のCI/CDを含めません。
-- 第9回は試験対策、第10回は実技課題で、前回分の一括作成手順はありません。
+第3〜8回の `0. before/before.tf` は開始時点のリソースを直接定義します。後続のスナップショットにも同じ定義を含め、途中で `module.before` へ切り替えません。第5・6回のLBフロント側や、第8回のCI/CDの扱いは各回の説明どおりです。第9回は試験対策、第10回は実技課題のため、この共通コピー手順の対象外です。
 
-旧版の `module.before` で作成済みの環境向けに `before_moved.tf` を各スナップショットへ同梱しています。これは同一state内の管理名を引き継ぐための宣言で、別backendへの移行は行いません。既存環境では従来と同じbackendを選び、planで意図しない破棄・再作成が出ないことを確認してください。新規環境では移動元がないため影響しません。
+旧 `module.before` からの `before_moved.tf` は維持しています。同一state内の管理名の移行用で、backendは移行しません。既存環境では従来と同じbackendを使い、planで意図しない破棄・再作成がないことを確認してください。
 
-この変更によってスライドに掲載した手順とローカルコードは揃いますが、受講者が `git pull` で取得できるようにするには、変更のcommit・pushが必要です。
+## ローカル検証
 
-## 検証結果（2026-10-27）
+```bash
+python3 -B gcp/tools/test_configure.py
+python3 -B gcp/tools/check-step-workflow.py
+git diff --check
+```
 
-- 第3〜10回のGoogle Slidesを確認し、第3〜8回の計34ページを更新しました。再取得した本文に旧 `start/` 手順や `module.before` 参照が残っていないことを確認しました。
-- 変更ページを画像で確認し、開始手順の古いコード枠と長いコード行の表示を調整しました。
-- 宿題を含む42構成で `terraform fmt`・`terraform validate` とmock providerによるplanテストが成功しました。テストには架空のproject・DNS・サービスアカウントなどを使用しています。
-- `python3 gcp/tools/check-step-workflow.py` で42構成の管理名・移行宣言と、6回分の個人設定・backend・state保持を確認しました。余分な定義がある場合に変更せず停止することも確認しています。
-- `git diff --check` が成功しました。
-
-実際のGCP環境に対するplan・apply・destroyは実行していません。既存環境での移行結果は、その環境のstateとbackendを使ったplanで確認する必要があります。
+個人設定の初回入力・再利用・変更、対象3項目以外の保持、不正入力時の非更新、リポジトリ内やシンボリックリンク経由の実行拒否を確認します。クラウドのplan・apply・destroyは実行しません。

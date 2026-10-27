@@ -671,15 +671,15 @@ options:
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 7 "0. before"
-cd ~/works/lesson7
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"0. before"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 第6回の完成形を再作成します。
 ネットワーク / Memorystore / Spanner / Cloud Run /
 Cloud Storage / バックエンドバケット / ロードバランサ
 
-common.tf：backend の bucket を自分の tfstate バケットに変更
-terraform.tfvars：project_id・user_name・DNSなどの値を設定
+configure.py：project_id・user_name・backendのbucketだけを反映
+terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
 
 terraform init
 terraform plan
@@ -687,7 +687,7 @@ terraform apply
 
 今日は、この構成に自動デプロイの仕組みを追加します。
 Cloud Run に追加した lifecycle は Step3 で説明します。
-以降も同じ作業ディレクトリで作業し、個人設定と state を保持します。
+以降も同じ作業ディレクトリで作業し、コピー後に個人設定を再反映します。stateはそのまま使います。
 ```
 
 ---
@@ -697,7 +697,8 @@ Cloud Run に追加した lifecycle は Step3 で説明します。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 7 "1. artifact_registry"
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"1. artifact_registry"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_artifact_registry_repository" "app" {
   location      = "asia-northeast1"
@@ -859,7 +860,8 @@ resource "google_artifact_registry_repository_iam_member" "build_writer" {
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 7 "2. cloud_build"
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"2. cloud_build"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_cloudbuild_trigger" "app" {
   name     = "${var.user_name}-deploy"
@@ -1128,7 +1130,8 @@ GCPでもAWSでも、CI/CDを組むたびに出てくる。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 7 "3. deploy"
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"3. deploy"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 // 1. デプロイ先を更新する権限
 resource "google_cloud_run_v2_service_iam_member" "build_developer" {
@@ -1436,7 +1439,8 @@ GitHub の箱は共通で、そこから2本に分かれる。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 7 "4. github_actions"
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"4. github_actions"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_service_account_iam_member" "gha_wif" {
   service_account_id = data.google_service_account.build.name

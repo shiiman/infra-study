@@ -454,25 +454,26 @@ GKEは「Standardか Autopilotか」を選ぶ
 
 ```
 cd ~/infra-study && git pull
-bash ~/infra-study/gcp/tools/prepare-step.sh 5 "0. before"
-cd ~/works/lesson5
+mkdir -p ~/works/lesson5 && cd ~/works/lesson5 && \
+cp -rf ~/infra-study/gcp/lesson5/"0. before"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 第4回のリソースが削除済みであることを確認してください。
 ネットワーク / VM / DNS / SSL証明書 / Memorystore / Spanner を再作成します。
 LBのフロント側は今回の後半で作ります。
 
-common.tf：backend の bucket を自分の tfstate バケットに変更
-terraform.tfvars：project_id・user_name・DNSなどの値を設定
+configure.py：project_id・user_name・backendのbucketだけを反映
+terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
 
 terraform init
 terraform plan
 terraform apply
 
 作成には時間がかかります。待っている間に「コンテナの歴史」へ進みます。
-以降は同じ作業ディレクトリで作業し、個人設定と state を保持します。
+以降は同じ作業ディレクトリで作業し、コピー後に個人設定を再反映します。stateはそのまま使います。
 ```
 
-**[話す]** `0. before` は開始時点の完成コードです。後続ステップも同じ作業ディレクトリで進め、個人設定とstateを保持します。追加変数は `terraform.tfvars.example` を参照します。
+**[話す]** `0. before` は開始時点の完成コードです。後続ステップも同じ作業ディレクトリで進め、コピー後に `configure.py` で3項目を再反映します。各回固有の値はコピー後に確認・設定します。stateはそのまま使います。
 
 ---
 
@@ -511,7 +512,8 @@ terraform apply
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 5 "1. artifact_registry"
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"1. artifact_registry"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_artifact_registry_repository" "app" {
   location      = "asia-northeast1"
@@ -708,7 +710,8 @@ Cloud Run にはその区別がない。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 5 "2. cloud_run"
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"2. cloud_run"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_service_account" "run" {
   account_id   = "${var.user_name}-run"
@@ -976,7 +979,8 @@ Cloud Run のインスタンスが VPC 内にIPを持つ様子。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 5 "3. vpc_egress"
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"3. vpc_egress"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_cloud_run_v2_service" "app" {
   template {
@@ -1173,7 +1177,8 @@ GCPにはこれが無い、というのは移行時に必ず話題になる。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 5 "4. loadbalancer"
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"4. loadbalancer"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_region_network_endpoint_group" "run" {
   name                  = "${var.user_name}-run-neg"

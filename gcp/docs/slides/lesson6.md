@@ -559,15 +559,15 @@ GCPにはこれが無い。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 6 "0. before"
-cd ~/works/lesson6
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"0. before"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 第2〜5回の構成を再作成します。
 ネットワーク / Memorystore / Spanner / Cloud Run /
 サーバレスNEG / グローバルIP / SSL証明書 / DNS
 
-common.tf：backend の bucket を自分の tfstate バケットに変更
-terraform.tfvars：project_id・user_name・DNSなどの値を設定
+configure.py：project_id・user_name・backendのbucketだけを反映
+terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
 
 terraform init
 terraform plan
@@ -575,7 +575,7 @@ terraform apply
 
 LBのフロント側は、今回パスルール付きで作ります。
 Cloud Run は講師の共通リポジトリのイメージを使います。
-以降も同じ作業ディレクトリで作業し、個人設定と state を保持します。
+以降も同じ作業ディレクトリで作業し、コピー後に個人設定を再反映します。stateはそのまま使います。
 ```
 
 ---
@@ -619,7 +619,8 @@ Cloud Run は講師の共通リポジトリのイメージを使います。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 6 "1. storage"
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"1. storage"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_storage_bucket" "static" {
   name     = "${var.project_id}-static-${var.user_name}"
@@ -719,7 +720,8 @@ resource "google_storage_bucket_object" "index" {
 ```
 ◼コードは書けているので、先に apply を流してください
 
-bash ~/infra-study/gcp/tools/prepare-step.sh 6 "2. cdn"
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"2. cdn"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
   terraform init
   terraform apply
@@ -977,7 +979,8 @@ S3バケットポリシーを追加して解決する。
 **[本文]**
 
 ```
-bash ~/infra-study/gcp/tools/prepare-step.sh 6 "3. public"
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"3. public"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_storage_bucket_iam_member" "public" {
   bucket = google_storage_bucket.static.name
