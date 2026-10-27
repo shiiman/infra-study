@@ -216,8 +216,9 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 ```
 第3回からは、コピー後の個人設定だけを補助します。
 
-各ページのコマンドをまとめて実行します。
-cd … && cp … && python3 …/configure.py
+移動とコピーは cd … && cp … の1コマンドです。
+個人設定の反映は別コマンドで実行します。
+python3 ~/infra-study/gcp/tools/configure.py
 
 初回：project ID・user name・作成済みtfstateバケット名を入力
 次回：保存した3項目を反映（変更する場合は --edit）
@@ -240,8 +241,8 @@ DNSやサブネットなど、コピーで戻った値は別途確認してく�
 **[本文]**
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 0. before は、前回のネットワークの完成コードです。
 VPC / public・private subnet / Cloud Router / Cloud NAT
@@ -403,8 +404,8 @@ PDはゾーン単位なのは同じだが、
 **[本文]** (1枚目)
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_service_account" "web" {
   account_id   = "${var.user_name}-web"
@@ -873,8 +874,8 @@ GCPは独立したリソース → 複数のバックエンドサービスで使
 **[本文]** (1枚目)
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"2. loadbalancer"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"2. loadbalancer"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_instance_group" "web" {
   name      = "${var.user_name}-web-ig"
@@ -1207,8 +1208,8 @@ data "google_dns_managed_zone" "public" {
 **[本文]**
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"3. dns"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"3. dns"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 variable "dns_zone_name" {}
 
@@ -1367,8 +1368,8 @@ apply してから ACTIVE になるまで待つので、その間に別の話を
 **[本文]**
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"4. ssl"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"4. ssl"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_managed_ssl_certificate" "web" {
   name = "${var.user_name}-web-cert"

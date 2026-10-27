@@ -455,7 +455,7 @@ GKEは「Standardか Autopilotか」を選ぶ
 ```
 cd ~/infra-study && git pull
 mkdir -p ~/works/lesson5 && cd ~/works/lesson5 && \
-cp -rf ~/infra-study/gcp/lesson5/"0. before"/* ./ && \
+cp -rf ~/infra-study/gcp/lesson5/"0. before"/* ./
 python3 ~/infra-study/gcp/tools/configure.py
 
 第4回のリソースが削除済みであることを確認してください。
@@ -512,8 +512,8 @@ terraform apply
 **[本文]**
 
 ```
-cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"1. artifact_registry"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"1. artifact_registry"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_artifact_registry_repository" "app" {
   location      = "asia-northeast1"
@@ -710,8 +710,8 @@ Cloud Run にはその区別がない。
 **[本文]**
 
 ```
-cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"2. cloud_run"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"2. cloud_run"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_service_account" "run" {
   account_id   = "${var.user_name}-run"
@@ -979,8 +979,8 @@ Cloud Run のインスタンスが VPC 内にIPを持つ様子。
 **[本文]**
 
 ```
-cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"3. vpc_egress"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"3. vpc_egress"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_cloud_run_v2_service" "app" {
   template {
@@ -1177,8 +1177,8 @@ GCPにはこれが無い、というのは移行時に必ず話題になる。
 **[本文]**
 
 ```
-cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"4. loadbalancer"/* ./ && \
-  python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"4. loadbalancer"/* ./
+python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_region_network_endpoint_group" "run" {
   name                  = "${var.user_name}-run-neg"
