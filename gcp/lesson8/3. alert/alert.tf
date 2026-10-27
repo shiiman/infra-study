@@ -122,9 +122,9 @@ resource "google_monitoring_alert_policy" "uptime" {
       ${var.user_name} のサイトが外から見えなくなっています。
 
       確認すること
-      1. ブラウザで https://${module.before.web_domain}/ を開く
+      1. ブラウザで https://${"${var.user_name}.${trimsuffix(data.google_dns_managed_zone.public.dns_name, ".")}"}/ を開く
       2. Cloud Run のログを見る
-         gcloud logging read 'resource.labels.service_name="${module.before.cloud_run_name}"' --limit=20
+         gcloud logging read 'resource.labels.service_name="${google_cloud_run_v2_service.app.name}"' --limit=20
       3. ダッシュボード「${var.user_name} インフラ勉強会」でリクエスト数とエラー数を見る
 
       よくある原因

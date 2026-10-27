@@ -453,32 +453,26 @@ GKEは「Standardか Autopilotか」を選ぶ
 **[本文]**
 
 ```
-◼Cloud Shell を立ち上げる
+cd ~/infra-study && git pull
+bash ~/infra-study/gcp/tools/prepare-step.sh 5 "0. before"
+cd ~/works/lesson5
 
-◼作業ディレクトリを作る
-  mkdir -p ~/works/lesson5
-  cd ~/works/lesson5
+第4回のリソースが削除済みであることを確認してください。
+ネットワーク / VM / DNS / SSL証明書 / Memorystore / Spanner を再作成します。
+LBのフロント側は今回の後半で作ります。
 
-◼サンプルコードを更新
-  cd ~/infra-study && git pull
-  cd ~/works/lesson5
+common.tf：backend の bucket を自分の tfstate バケットに変更
+terraform.tfvars：project_id・user_name・DNSなどの値を設定
 
-◼まず apply を流してください(20分かかります)
-  terraform init
-  terraform apply
+terraform init
+terraform plan
+terraform apply
 
-★ 第4回のリソースは destroy しておいてください
-
-★ 0. before が今までで一番重いです
-   ネットワーク / VM / ロードバランサ / DNS / SSL証明書 /
-   限定公開サービスアクセス / Memorystore / Spanner
-
-   待っている間にコンテナとGKEの話をします(S05へ)
+作成には時間がかかります。待っている間に「コンテナの歴史」へ進みます。
+以降は同じ作業ディレクトリで作業し、個人設定と state を保持します。
 ```
 
-**[話す]** この回は最初に apply を流してから解説に入る。
-証明書の発行(10分)と Cloud SQL 相当の待ちが重なるので、
-先に走らせておかないと後半が詰まる。
+**[話す]** `0. before` は開始時点の完成コードです。後続ステップも同じ作業ディレクトリで進め、個人設定とstateを保持します。追加変数は `terraform.tfvars.example` を参照します。
 
 ---
 
@@ -517,7 +511,7 @@ GKEは「Standardか Autopilotか」を選ぶ
 **[本文]**
 
 ```
-cd ~/works/lesson5/ && cp -rf ~/infra-study/gcp/lesson5/1.\ artifact_registry/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 5 "1. artifact_registry"
 
 resource "google_artifact_registry_repository" "app" {
   location      = "asia-northeast1"
@@ -714,7 +708,7 @@ Cloud Run にはその区別がない。
 **[本文]**
 
 ```
-cd ~/works/lesson5/ && cp -rf ~/infra-study/gcp/lesson5/2.\ cloud_run/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 5 "2. cloud_run"
 
 resource "google_service_account" "run" {
   account_id   = "${var.user_name}-run"
@@ -722,8 +716,8 @@ resource "google_service_account" "run" {
 }
 
 resource "google_spanner_database_iam_member" "run" {
-  instance = module.before.spanner_instance_name
-  database = module.before.spanner_database_name
+  instance = google_spanner_instance.main.name
+  database = google_spanner_database.app.name
   role     = "roles/spanner.databaseUser"
   member   = "serviceAccount:${google_service_account.run.email}"
 }
@@ -770,8 +764,8 @@ resource "google_cloud_run_v2_service" "app" {
 
 ```
       env { name = "DB_KIND"          value = "spanner" }
-      env { name = "SPANNER_DATABASE" value = module.before.spanner_database }
-      env { name = "CACHE_HOST"       value = module.before.cache_host }
+      env { name = "SPANNER_DATABASE" value = google_spanner_database.app.id }
+      env { name = "CACHE_HOST"       value = google_redis_instance.cache.host }
     }
   }
 
@@ -982,14 +976,14 @@ Cloud Run のインスタンスが VPC 内にIPを持つ様子。
 **[本文]**
 
 ```
-cd ~/works/lesson5/ && cp -rf ~/infra-study/gcp/lesson5/3.\ vpc_egress/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 5 "3. vpc_egress"
 
 resource "google_cloud_run_v2_service" "app" {
   template {
     ...
     vpc_access {
       network_interfaces {
-        subnetwork = module.before.private_subnet_id
+        subnetwork = google_compute_subnetwork.private.id
       }
       egress = "PRIVATE_RANGES_ONLY"
     }
@@ -1179,7 +1173,7 @@ GCPにはこれが無い、というのは移行時に必ず話題になる。
 **[本文]**
 
 ```
-cd ~/works/lesson5/ && cp -rf ~/infra-study/gcp/lesson5/4.\ loadbalancer/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 5 "4. loadbalancer"
 
 resource "google_compute_region_network_endpoint_group" "run" {
   name                  = "${var.user_name}-run-neg"
@@ -1216,13 +1210,13 @@ resource "google_compute_url_map" "main" {
 resource "google_compute_target_https_proxy" "main" {
   name             = "${var.user_name}-https-proxy"
   url_map          = google_compute_url_map.main.id
-  ssl_certificates = [module.before.ssl_certificate_id]      ← 第3回の証明書
+  ssl_certificates = [google_compute_managed_ssl_certificate.web.id]
 }
 
 resource "google_compute_global_forwarding_rule" "https" {
   name       = "${var.user_name}-https-fr"
   target     = google_compute_target_https_proxy.main.id
-  ip_address = module.before.global_address_id               ← 第3回のIP
+  ip_address = google_compute_global_address.web.id
   port_range = "443"
 }
 ```
@@ -1589,7 +1583,7 @@ AWS版 第6回との対応:
 ## `0. before` に LBのフロント側を含めていない理由
 
 第5回では URLマップの向き先を Cloud Run に差し替える。
-URLマップがモジュールの中にあると外から変更できないため、
+今回の段階的な構築手順を示すため、
 URLマップ / HTTPSプロキシ / 転送ルール は `0. before` から外し、
 第5回で作る構成にしている。
 

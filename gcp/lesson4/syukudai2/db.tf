@@ -36,7 +36,7 @@ resource "google_sql_database_instance" "db" {
     ip_configuration {
       // パブリックIPを持たせない。VPC内からのみ接続する
       ipv4_enabled                                  = false
-      private_network                               = module.before.vpc_id
+      private_network                               = google_compute_network.vpc.id
       enable_private_path_for_google_cloud_services = true
     }
 

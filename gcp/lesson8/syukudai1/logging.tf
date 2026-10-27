@@ -42,7 +42,7 @@ resource "google_logging_metric" "app_error" {
    */
   filter = <<-EOT
     resource.type="cloud_run_revision"
-    resource.labels.service_name="${module.before.cloud_run_name}"
+    resource.labels.service_name="${google_cloud_run_v2_service.app.name}"
     textPayload:"失敗"
   EOT
 
@@ -102,7 +102,7 @@ resource "google_logging_project_sink" "app_logs" {
   // 自分の Cloud Run のログだけを流す
   filter = <<-EOT
     resource.type="cloud_run_revision"
-    resource.labels.service_name="${module.before.cloud_run_name}"
+    resource.labels.service_name="${google_cloud_run_v2_service.app.name}"
   EOT
 
   /**

@@ -313,31 +313,27 @@ PostgreSQL互換の高性能DB。AWSのAuroraに近い
 
 ---
 
-### S12 | 前回までの完成状態を読み込む
+### S12 | 前回までの構成を作成する
 
 **[本文]**
 
 ```
-cd ~/works/lesson4/ && cp -rf ~/infra-study/gcp/lesson4/1.\ web/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 4 "0. before"
+cd ~/works/lesson4
 
-module "before" {
-  source = "github.com/shiiman/infra-study//gcp/lesson4/0. before"
+第2・3回の構成を再作成します。
+ネットワーク / Web VM / ロードバランサ / DNS / SSL証明書
 
-  project_id          = var.project_id
-  subnet_public_cidr  = var.subnet_public_cidr
-  subnet_private_cidr = var.subnet_private_cidr
-  dns_zone_name       = var.dns_zone_name
-  user_name           = var.user_name
-}
+common.tf：backend の bucket を自分の tfstate バケットに変更
+terraform.tfvars：project_id・user_name・DNSなどの値を設定
 
-◼中身は第2回 + 第3回で作ったもの(23リソース)
-  ネットワーク / webインスタンス / ロードバランサ / DNS / SSL証明書
+terraform init
+terraform plan
+terraform apply
 
-  terraform init
-  terraform apply
-
-★ 証明書の発行にまた10分かかります
-   先に apply を流してから、次の解説に入ります
+証明書の発行を待つ間に、次の解説へ進みます。
+以降も同じ作業ディレクトリで作業し、個人設定と state を保持します。
+1. web はアプリのコード例です。Web VMはここで作成済みです。
 ```
 
 ---
@@ -616,7 +612,7 @@ Cloud Storage や Secret Manager と同じ仕組み
 **[本文]**
 
 ```
-cd ~/works/lesson4/ && cp -rf ~/infra-study/gcp/lesson4/2.\ cache/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 4 "2. cache"
 
 resource "google_compute_global_address" "private_service" {
   name          = "${var.user_name}-private-service-range"
@@ -624,11 +620,11 @@ resource "google_compute_global_address" "private_service" {
   address_type  = "INTERNAL"
   address       = split("/", var.private_service_cidr)[0]
   prefix_length = var.private_service_prefix_length
-  network       = module.before.vpc_id
+  network       = google_compute_network.vpc.id
 }
 
 resource "google_service_networking_connection" "private_service" {
-  network                 = module.before.vpc_id
+  network                 = google_compute_network.vpc.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_service.name]
 }
@@ -817,7 +813,7 @@ resource "google_redis_instance" "cache" {
   tier          = "STANDARD_HA"
   redis_version = "REDIS_7_2"
 
-  authorized_network = module.before.vpc_id
+  authorized_network = google_compute_network.vpc.id
   connect_mode       = "PRIVATE_SERVICE_ACCESS"
 
   redis_configs = {
@@ -1068,7 +1064,7 @@ TrueTimeの詳細まで踏み込まなくてよいが、
 **[本文]**
 
 ```
-cd ~/works/lesson4/ && cp -rf ~/infra-study/gcp/lesson4/3.\ spanner/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 4 "3. spanner"
 
 resource "google_spanner_instance" "main" {
   name         = "${var.user_name}-spanner"
@@ -1152,7 +1148,7 @@ resource "google_spanner_database_iam_member" "web" {
   instance = google_spanner_instance.main.name
   database = google_spanner_database.app.name
   role     = "roles/spanner.databaseUser"
-  member   = "serviceAccount:${module.before.web_service_account_email}"
+  member   = "serviceAccount:${google_service_account.web.email}"
 }
 
 ◼Spanner には DBユーザーもパスワードも無い

@@ -36,7 +36,7 @@ resource "google_compute_instance" "web_b" {
   }
 
   network_interface {
-    subnetwork = module.before.private_subnet_id
+    subnetwork = google_compute_subnetwork.private.id
   }
 
   metadata = {

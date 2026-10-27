@@ -554,34 +554,28 @@ GCPにはこれが無い。
 
 ---
 
-### S16 | 前回までの完成状態を読み込む
+### S16 | 前回までの構成を作成する
 
 **[本文]**
 
 ```
-cd ~/works/lesson6/ && cp -rf ~/infra-study/gcp/lesson6/start/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 6 "0. before"
+cd ~/works/lesson6
 
-module "before" {
-  source = "github.com/shiiman/infra-study//gcp/lesson6/0. before"
-  ...
-}
+第2〜5回の構成を再作成します。
+ネットワーク / Memorystore / Spanner / Cloud Run /
+サーバレスNEG / グローバルIP / SSL証明書 / DNS
 
-◼中身は第2回〜第5回で作ったもの(30リソース)
-  ネットワーク / Memorystore / Spanner /
-  Cloud Run / サーバレスNEG /
-  グローバルIP / SSL証明書 / DNSレコード
+common.tf：backend の bucket を自分の tfstate バケットに変更
+terraform.tfvars：project_id・user_name・DNSなどの値を設定
 
-  terraform init
-  terraform apply
+terraform init
+terraform plan
+terraform apply
 
-★ 10分ほどかかります。先に流してから解説に入ります
-
-★ ロードバランサのフロント(URLマップ・プロキシ・転送ルール)は
-   含まれていません。今日パスルール付きで作り直すためです
-
-★ Artifact Registry のリポジトリも含まれていません
-   Cloud Run が使うイメージは、講師が用意した共通リポジトリのものです
-   (理由は次のスライド)
+LBのフロント側は、今回パスルール付きで作ります。
+Cloud Run は講師の共通リポジトリのイメージを使います。
+以降も同じ作業ディレクトリで作業し、個人設定と state を保持します。
 ```
 
 ---
@@ -614,7 +608,7 @@ module "before" {
    (今度は push すると自動でビルドされるようになります)
 ```
 
-**[話す]** 「モジュールにまとめられるのは、順番に依存しないものだけ」
+**[話す]** 「1回の apply にまとめるには、途中に手作業を挟まない構成にする」
 という話でもある。ビルドと apply が交互に必要な工程は
 1回の apply には畳めない。第7回の CI/CD はまさにそこを自動化する回。
 
@@ -625,7 +619,7 @@ module "before" {
 **[本文]**
 
 ```
-cd ~/works/lesson6/ && cp -rf ~/infra-study/gcp/lesson6/1.\ storage/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 6 "1. storage"
 
 resource "google_storage_bucket" "static" {
   name     = "${var.project_id}-static-${var.user_name}"
@@ -725,7 +719,7 @@ resource "google_storage_bucket_object" "index" {
 ```
 ◼コードは書けているので、先に apply を流してください
 
-cd ~/works/lesson6/ && cp -rf ~/infra-study/gcp/lesson6/2.\ cdn/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 6 "2. cdn"
 
   terraform init
   terraform apply
@@ -831,7 +825,7 @@ Step2 で転送ルールを作った瞬間から発行が走る。
 
 resource "google_compute_url_map" "main" {
   name            = "${var.user_name}-urlmap"
-  default_service = module.before.run_backend_service_id
+  default_service = google_compute_backend_service.run.id
 
   host_rule {
     hosts        = ["*"]
@@ -840,7 +834,7 @@ resource "google_compute_url_map" "main" {
 
   path_matcher {
     name            = "main"
-    default_service = module.before.run_backend_service_id
+    default_service = google_compute_backend_service.run.id
 
     path_rule {
       paths   = ["/static", "/static/*"]
@@ -983,7 +977,7 @@ S3バケットポリシーを追加して解決する。
 **[本文]**
 
 ```
-cd ~/works/lesson6/ && cp -rf ~/infra-study/gcp/lesson6/3.\ public/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 6 "3. public"
 
 resource "google_storage_bucket_iam_member" "public" {
   bucket = google_storage_bucket.static.name

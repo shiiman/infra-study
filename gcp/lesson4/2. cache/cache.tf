@@ -27,7 +27,7 @@ resource "google_redis_instance" "cache" {
   redis_version = "REDIS_7_2"
 
   // 限定公開サービスアクセスで接続する
-  authorized_network = module.before.vpc_id
+  authorized_network = google_compute_network.vpc.id
   connect_mode       = "PRIVATE_SERVICE_ACCESS"
 
   // AWSのパラメータグループに相当

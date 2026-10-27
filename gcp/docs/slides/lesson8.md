@@ -557,32 +557,27 @@ SLO                     SLO モニタリング          SLO
 
 ---
 
-### S15 | 前回までの完成状態を読み込む
+### S15 | 前回までの構成を作成する
 
 **[本文]**
 
 ```
-cd ~/works/lesson8/ && cp -rf ~/infra-study/gcp/lesson8/start/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 8 "0. before"
+cd ~/works/lesson8
 
-module "before" {
-  source = "github.com/shiiman/infra-study//gcp/lesson8/0. before"
-  ...
-}
+第6回までの構成を再作成します。
+Cloud Run / Cloud Storage / ロードバランサなど
 
-◼中身は第2回〜第6回で作ったもの(38リソース)
+common.tf：backend の bucket を自分の tfstate バケットに変更
+terraform.tfvars：project_id・user_name・DNSなどの値を設定
 
-  terraform init
-  terraform apply
+terraform init
+terraform plan
+terraform apply
 
-★ 10分ほどかかります。先に流してから解説に入ります
-
-★★ 第7回の CI/CD は入れていません ★★
-
-   「積み上げ」は原則ですが、
-   ビルドトリガーがあってもなくても監視の話は変わりません
-   変数が1つ増える分だけ邪魔になるので外しました
-
-   その回に関係ないものまで積む必要はありません
+第7回のCI/CDは含めていません。
+監視を学ぶために必要なアプリと配信基盤から始めます。
+以降も同じ作業ディレクトリで作業し、個人設定と state を保持します。
 ```
 
 ---
@@ -617,14 +612,14 @@ module "before" {
 **[本文]**
 
 ```
-cd ~/works/lesson8/ && cp -rf ~/infra-study/gcp/lesson8/1.\ logging/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 8 "1. logging"
 
 resource "google_logging_metric" "app_error" {
   name = "${var.user_name}-app-error"
 
   filter = <<-EOT
     resource.type="cloud_run_revision"
-    resource.labels.service_name="${module.before.cloud_run_name}"
+    resource.labels.service_name="${google_cloud_run_v2_service.app.name}"
     textPayload:"失敗"
   EOT
 
@@ -665,7 +660,7 @@ resource "google_logging_project_sink" "app_logs" {
 
   filter = <<-EOT
     resource.type="cloud_run_revision"
-    resource.labels.service_name="${module.before.cloud_run_name}"
+    resource.labels.service_name="${google_cloud_run_v2_service.app.name}"
   EOT
 
   unique_writer_identity = true
@@ -795,7 +790,7 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 **[本文]**
 
 ```
-cd ~/works/lesson8/ && cp -rf ~/infra-study/gcp/lesson8/2.\ monitoring/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 8 "2. monitoring"
 
 resource "google_monitoring_uptime_check_config" "web" {
   display_name = "${var.user_name}-uptime"
@@ -813,7 +808,7 @@ resource "google_monitoring_uptime_check_config" "web" {
     type = "uptime_url"
     labels = {
       project_id = var.project_id
-      host       = module.before.web_domain
+      host       = "${var.user_name}.${trimsuffix(data.google_dns_managed_zone.public.dns_name, ".")}"
     }
   }
 
@@ -1021,7 +1016,7 @@ resource "google_monitoring_dashboard" "app" {
 **[本文]**
 
 ```
-cd ~/works/lesson8/ && cp -rf ~/infra-study/gcp/lesson8/3.\ alert/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 8 "3. alert"
 
 data "google_monitoring_notification_channel" "slack" {
   display_name = var.notification_channel_name
@@ -1802,7 +1797,7 @@ Cloud Digital Leader の出題範囲を見ながら、
 
 | Step | ディレクトリ | 作るもの | 確認すること |
 |---|---|---|---|
-| 0 | `start/` | `0. before/`(第2〜6回の全リソース、38個)を読み込むだけ | 約10分 |
+| 0 | `0. before/` | `0. before/`(第2〜6回の全リソース、38個)を読み込むだけ | 約10分 |
 | 1 | `1. logging/` | ログベース指標 + シンク + バケット | シンクは権限が無いと静かに失敗する |
 | 2 | `2. monitoring/` | Uptime check + ダッシュボード | **失敗しているのに誰も気づかない** |
 | 3 | `3. alert/` | アラートポリシー(Slackチャンネル参照) | **Slack が鳴る** |

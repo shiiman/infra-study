@@ -666,35 +666,28 @@ options:
 
 ---
 
-### S15 | 前回までの完成状態を読み込む
+### S15 | 前回までの構成を作成する
 
 **[本文]**
 
 ```
-cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/start/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 7 "0. before"
+cd ~/works/lesson7
 
-module "before" {
-  source = "github.com/shiiman/infra-study//gcp/lesson7/0. before"
-  ...
-}
+第6回の完成形を再作成します。
+ネットワーク / Memorystore / Spanner / Cloud Run /
+Cloud Storage / バックエンドバケット / ロードバランサ
 
-◼中身は第2回〜第6回で作ったもの(38リソース)
-  ネットワーク / Memorystore / Spanner /
-  Cloud Run / サーバレスNEG /
-  Cloud Storage / バックエンドバケット / ロードバランサ一式
+common.tf：backend の bucket を自分の tfstate バケットに変更
+terraform.tfvars：project_id・user_name・DNSなどの値を設定
 
-  terraform init
-  terraform apply
+terraform init
+terraform plan
+terraform apply
 
-★ 10分ほどかかります。先に流してから解説に入ります
-
-★ 今回は第6回の完成形が「まるごと」入っています
-   第5回・第6回では「今日いじるものは外す」方針でしたが、
-   今日いじるのは Terraform のコードではなく
-   **デプロイの仕組み** なので、インフラの形はそのまま使います
-
-★ ただし Cloud Run に1ブロックだけ足してあります
-   何を足したかは Step3 で説明します
+今日は、この構成に自動デプロイの仕組みを追加します。
+Cloud Run に追加した lifecycle は Step3 で説明します。
+以降も同じ作業ディレクトリで作業し、個人設定と state を保持します。
 ```
 
 ---
@@ -704,7 +697,7 @@ module "before" {
 **[本文]**
 
 ```
-cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/1.\ artifact_registry/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 7 "1. artifact_registry"
 
 resource "google_artifact_registry_repository" "app" {
   location      = "asia-northeast1"
@@ -866,7 +859,7 @@ resource "google_artifact_registry_repository_iam_member" "build_writer" {
 **[本文]**
 
 ```
-cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/2.\ cloud_build/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 7 "2. cloud_build"
 
 resource "google_cloudbuild_trigger" "app" {
   name     = "${var.user_name}-deploy"
@@ -887,7 +880,7 @@ resource "google_cloudbuild_trigger" "app" {
   substitutions = {
     _REGION  = "asia-northeast1"
     _REPO    = google_artifact_registry_repository.app.repository_id
-    _SERVICE = module.before.cloud_run_name
+    _SERVICE = google_cloud_run_v2_service.app.name
   }
 }
 
@@ -1135,19 +1128,19 @@ GCPでもAWSでも、CI/CDを組むたびに出てくる。
 **[本文]**
 
 ```
-cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/3.\ deploy/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 7 "3. deploy"
 
 // 1. デプロイ先を更新する権限
 resource "google_cloud_run_v2_service_iam_member" "build_developer" {
-  name     = module.before.cloud_run_name
-  location = module.before.cloud_run_location
+  name     = google_cloud_run_v2_service.app.name
+  location = google_cloud_run_v2_service.app.location
   role     = "roles/run.developer"
   member   = "serviceAccount:${data.google_service_account.build.email}"
 }
 
 // 2. 実行SAになりすます権限
 resource "google_service_account_iam_member" "build_act_as_run" {
-  service_account_id = module.before.cloud_run_sa_id
+  service_account_id = google_service_account.run.id
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${data.google_service_account.build.email}"
 }
@@ -1443,7 +1436,7 @@ GitHub の箱は共通で、そこから2本に分かれる。
 **[本文]**
 
 ```
-cd ~/works/lesson7/ && cp -rf ~/infra-study/gcp/lesson7/4.\ github_actions/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 7 "4. github_actions"
 
 resource "google_service_account_iam_member" "gha_wif" {
   service_account_id = data.google_service_account.build.name
@@ -2177,7 +2170,7 @@ Cloud Logging / Cloud Monitoring / アラート
 
 | Step | ディレクトリ | 作るもの | 確認すること |
 |---|---|---|---|
-| 0 | `start/`(`0. before/` をモジュールとして読み込む) | 第2〜6回の全リソース(38個) | 約9分 |
+| 0 | `0. before/`(開始時点の構成を直接作成する) | 第2〜6回の全リソース(38個) | 約9分 |
 | 1 | `1. artifact_registry/` | Artifact Registry + ビルド用SA + 権限2つ | まだ自動化されていない |
 | 2 | `2. cloud_build/` | トリガー | **push → deploy で失敗** |
 | 3 | `3. deploy/` | 権限2つ(run.developer + serviceAccountUser) | **push → 成功** |

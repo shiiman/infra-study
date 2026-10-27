@@ -38,7 +38,7 @@ resource "google_compute_instance" "web" {
   }
 
   network_interface {
-    subnetwork = module.before.private_subnet_id
+    subnetwork = google_compute_subnetwork.private.id
     // access_configを書かない = 外部IPなし
   }
 

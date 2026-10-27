@@ -80,7 +80,7 @@ resource "google_cloudbuild_trigger" "app" {
   substitutions = {
     _REGION  = "asia-northeast1"
     _REPO    = google_artifact_registry_repository.app.repository_id
-    _SERVICE = module.before.cloud_run_name
+    _SERVICE = google_cloud_run_v2_service.app.name
   }
 }
 

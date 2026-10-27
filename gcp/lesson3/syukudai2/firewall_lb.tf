@@ -19,7 +19,7 @@
  */
 resource "google_compute_firewall" "allow_lb_to_web" {
   name    = "${var.user_name}-allow-lb-to-web"
-  network = module.before.vpc_name
+  network = google_compute_network.vpc.name
 
   direction = "INGRESS"
   priority  = 1000
