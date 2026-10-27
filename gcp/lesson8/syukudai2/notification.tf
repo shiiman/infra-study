@@ -85,7 +85,7 @@ resource "google_monitoring_alert_policy" "app_error" {
 
       確認すること
       1. どのログか見る
-         gcloud logging read 'resource.labels.service_name="${module.before.cloud_run_name}" AND textPayload:"失敗"' --limit=20
+         gcloud logging read 'resource.labels.service_name="${google_cloud_run_v2_service.app.name}" AND textPayload:"失敗"' --limit=20
       2. Spanner / Memorystore に繋がっているか
       3. 第4回でやった「3種類の接続方式」を思い出す
     EOT

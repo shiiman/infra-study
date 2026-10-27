@@ -81,7 +81,7 @@ resource "google_monitoring_uptime_check_config" "web" {
     type = "uptime_url"
     labels = {
       project_id = var.project_id
-      host       = module.before.web_domain
+      host       = "${var.user_name}.${trimsuffix(data.google_dns_managed_zone.public.dns_name, ".")}"
     }
   }
 
@@ -168,7 +168,7 @@ resource "google_monitoring_dashboard" "app" {
                     filter = join(" AND ", [
                       "metric.type=\"run.googleapis.com/request_count\"",
                       "resource.type=\"cloud_run_revision\"",
-                      "resource.labels.service_name=\"${module.before.cloud_run_name}\"",
+                      "resource.labels.service_name=\"${google_cloud_run_v2_service.app.name}\"",
                     ])
                     aggregation = {
                       alignmentPeriod    = "60s"
@@ -197,7 +197,7 @@ resource "google_monitoring_dashboard" "app" {
                     filter = join(" AND ", [
                       "metric.type=\"run.googleapis.com/request_latencies\"",
                       "resource.type=\"cloud_run_revision\"",
-                      "resource.labels.service_name=\"${module.before.cloud_run_name}\"",
+                      "resource.labels.service_name=\"${google_cloud_run_v2_service.app.name}\"",
                     ])
                     aggregation = {
                       alignmentPeriod  = "60s"

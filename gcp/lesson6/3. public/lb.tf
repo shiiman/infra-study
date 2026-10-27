@@ -17,7 +17,7 @@ resource "google_compute_url_map" "main" {
   name = "${var.user_name}-urlmap"
 
   // どのルールにも当たらなかったとき
-  default_service = module.before.run_backend_service_id
+  default_service = google_compute_backend_service.run.id
 
   host_rule {
     hosts        = ["*"]
@@ -26,7 +26,7 @@ resource "google_compute_url_map" "main" {
 
   path_matcher {
     name            = "main"
-    default_service = module.before.run_backend_service_id
+    default_service = google_compute_backend_service.run.id
 
     // /static/ 以下は Cloud Storage から配信する
     path_rule {
@@ -41,20 +41,18 @@ resource "google_compute_target_https_proxy" "main" {
   url_map = google_compute_url_map.main.id
 
   // 第3回で作った証明書をそのまま使う
-  ssl_certificates = [module.before.ssl_certificate_id]
+  ssl_certificates = [google_compute_managed_ssl_certificate.web.id]
 }
 
 resource "google_compute_global_forwarding_rule" "https" {
   name       = "${var.user_name}-https-fr"
   target     = google_compute_target_https_proxy.main.id
-  ip_address = module.before.global_address_id
+  ip_address = google_compute_global_address.web.id
   port_range = "443"
 }
 
-output "web_https_url" {
-  value = module.before.web_https_url
-}
+
 
 output "static_url" {
-  value = "${module.before.web_https_url}/static/index.html"
+  value = "${"https://${var.user_name}.${trimsuffix(data.google_dns_managed_zone.public.dns_name, ".")}"}/static/index.html"
 }

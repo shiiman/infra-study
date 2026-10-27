@@ -94,7 +94,7 @@ resource "google_cloud_run_v2_service" "canary" {
   deletion_protection = false
 
   template {
-    service_account = module.before.cloud_run_sa_email
+    service_account = google_service_account.run.email
 
     containers {
       // 最初は講師の共通イメージ。以降は Cloud Deploy が差し替える

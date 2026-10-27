@@ -3,7 +3,7 @@ variable "subnet_private_cidr" {}
 
 /**
  * 第2回で作ったネットワーク一式
- * 第3回以降はこれをモジュールとして読み込んで使う
+ * 第3回の各ステップでも同じ定義と管理名を使う
  */
 
 resource "google_compute_network" "vpc" {

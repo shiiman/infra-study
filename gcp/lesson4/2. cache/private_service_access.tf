@@ -51,7 +51,7 @@ resource "google_compute_global_address" "private_service" {
   address_type  = "INTERNAL"
   address       = split("/", var.private_service_cidr)[0]
   prefix_length = tonumber(split("/", var.private_service_cidr)[1])
-  network       = module.before.vpc_id
+  network       = google_compute_network.vpc.id
 }
 
 /**
@@ -63,7 +63,7 @@ resource "google_compute_global_address" "private_service" {
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_networking_connection
  */
 resource "google_service_networking_connection" "private_service" {
-  network                 = module.before.vpc_id
+  network                 = google_compute_network.vpc.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_service.name]
 }

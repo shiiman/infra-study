@@ -96,7 +96,7 @@ resource "google_spanner_database_iam_member" "web" {
   instance = google_spanner_instance.main.name
   database = google_spanner_database.app.name
   role     = "roles/spanner.databaseUser"
-  member   = "serviceAccount:${module.before.web_service_account_email}"
+  member   = "serviceAccount:${google_service_account.web.email}"
 }
 
 output "spanner_database" {

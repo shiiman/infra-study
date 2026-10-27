@@ -37,8 +37,8 @@
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service_iam
  */
 resource "google_cloud_run_v2_service_iam_member" "build_developer" {
-  name     = module.before.cloud_run_name
-  location = module.before.cloud_run_location
+  name     = google_cloud_run_v2_service.app.name
+  location = google_cloud_run_v2_service.app.location
   role     = "roles/run.developer"
   member   = "serviceAccount:${data.google_service_account.build.email}"
 }
@@ -55,7 +55,7 @@ resource "google_cloud_run_v2_service_iam_member" "build_developer" {
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/google_service_account_iam
  */
 resource "google_service_account_iam_member" "build_act_as_run" {
-  service_account_id = module.before.cloud_run_sa_id
+  service_account_id = google_service_account.run.id
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${data.google_service_account.build.email}"
 }

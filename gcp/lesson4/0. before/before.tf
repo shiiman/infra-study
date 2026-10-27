@@ -445,11 +445,11 @@ resource "google_compute_global_forwarding_rule" "web_https" {
 
 
 /**
- * 第4回以降から参照するための output
+ * 作成したリソースを確認するための output
  */
 
 /**
- * 第4回以降から参照するための output
+ * 作成したリソースを確認するための output
  */
 output "vpc_id" {
   value = google_compute_network.vpc.id

@@ -24,8 +24,8 @@ resource "google_service_account" "run" {
  * 権限の付け方は変わらない。
  */
 resource "google_spanner_database_iam_member" "run" {
-  instance = module.before.spanner_instance_name
-  database = module.before.spanner_database_name
+  instance = google_spanner_instance.main.name
+  database = google_spanner_database.app.name
   role     = "roles/spanner.databaseUser"
   member   = "serviceAccount:${google_service_account.run.email}"
 }
@@ -83,7 +83,7 @@ resource "google_cloud_run_v2_service" "app" {
      */
     vpc_access {
       network_interfaces {
-        subnetwork = module.before.private_subnet_id
+        subnetwork = google_compute_subnetwork.private.id
       }
       // PRIVATE_RANGES_ONLY : プライベートIP宛だけVPCへ流す
       // ALL_TRAFFIC         : 全ての外向き通信をVPCへ流す(Cloud NAT経由になる)
@@ -125,11 +125,11 @@ resource "google_cloud_run_v2_service" "app" {
       }
       env {
         name  = "SPANNER_DATABASE"
-        value = module.before.spanner_database
+        value = google_spanner_database.app.id
       }
       env {
         name  = "CACHE_HOST"
-        value = module.before.cache_host
+        value = google_redis_instance.cache.host
       }
     }
   }

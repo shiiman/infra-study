@@ -79,7 +79,7 @@ resource "google_monitoring_slo" "availability" {
       good_service_filter = join(" AND ", [
         "metric.type=\"run.googleapis.com/request_count\"",
         "resource.type=\"cloud_run_revision\"",
-        "resource.labels.service_name=\"${module.before.cloud_run_name}\"",
+        "resource.labels.service_name=\"${google_cloud_run_v2_service.app.name}\"",
         "metric.labels.response_code_class!=\"5xx\"",
       ])
 
@@ -87,7 +87,7 @@ resource "google_monitoring_slo" "availability" {
       total_service_filter = join(" AND ", [
         "metric.type=\"run.googleapis.com/request_count\"",
         "resource.type=\"cloud_run_revision\"",
-        "resource.labels.service_name=\"${module.before.cloud_run_name}\"",
+        "resource.labels.service_name=\"${google_cloud_run_v2_service.app.name}\"",
       ])
     }
   }

@@ -40,7 +40,7 @@ resource "google_logging_project_exclusion" "healthcheck" {
    */
   filter = <<-EOT
     resource.type="cloud_run_revision"
-    resource.labels.service_name="${module.before.cloud_run_name}"
+    resource.labels.service_name="${google_cloud_run_v2_service.app.name}"
     httpRequest.status=200
     (
       httpRequest.userAgent:"GoogleHC"

@@ -160,6 +160,6 @@ output "github_actions_derived" {
     repo_ref = "${var.github_repository}@refs/heads/${var.user_name}"
     sa       = data.google_service_account.build.email
     repo     = google_artifact_registry_repository.app.repository_id
-    service  = module.before.cloud_run_name
+    service  = google_cloud_run_v2_service.app.name
   }
 }

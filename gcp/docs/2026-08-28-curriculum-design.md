@@ -361,9 +361,9 @@ gcp/
 │   ├── syukudai1/                        # web/db/cache サブネット追加
 │   └── syukudai2/                        # 大阪リージョン + Cloud NAT
 ├── lesson3/
-│   ├── 0. before/                        # 前回までの完成状態(モジュール化)
+│   ├── 0. before/                        # 開始時点の完成コード
 │   ├── 1. <ステップ名>/
-│   │   ├── before.tf                     # 0. before をモジュール参照
+│   │   ├── before.tf                     # 0. before と同じリソース定義
 │   │   ├── common.tf
 │   │   └── ...
 │   └── ...
@@ -377,7 +377,7 @@ gcp/
   `syukudai2` は `syukudai1` の内容を含む
 - `0. before/` は前回の完成状態を引き継ぐ回にのみ置く。
   第1回・第2回は自己完結なので不要(AWS版も第3回には無かった)
-- モジュール参照は `github.com/shiiman/infra-study//gcp/lesson3/0. before`
+- 第3〜8回は `0. before` から開始し、`prepare-step.sh` で同じ作業場所へ展開する。詳細は [ハンズオン手順](handson-step-workflow.md) を参照。
 - `common.tf` の中身(第1回で確定)
 
 ```hcl
@@ -573,7 +573,7 @@ AWS版と同じく、各ステップディレクトリは **その時点の作�
 
 **`0. before` に入れられないもの(第6回で判明)**
 
-`0. before` は「前回までの完成状態を1回の apply で再現するモジュール」。
+`0. before` は「開始時点の構成を1回の apply で再現するコード」。
 そのため **apply の途中に手作業が挟まる工程は入れられない**。
 
 第6回の `0. before` には第5回の Cloud Run が入るが、

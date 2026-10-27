@@ -10,7 +10,7 @@
 | セクション | 時間 | スライド |
 |---|---|---|
 | 導入 | 8分 | S01〜S05 |
-| 準備(before モジュール) | 7分 | S06〜S08 |
+| 準備(前回の構成を再作成) | 7分 | S06〜S08 |
 | Compute Engine(概念 + Step1) | 25分 | S09〜S20 |
 | 休憩 | 5分 | S21 |
 | ロードバランサ(概念 + Step2) | 30分 | S22〜S34 |
@@ -116,7 +116,7 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 ```
 
 **[話す]** 今日はこのネットワークの上に、実際に動くWebアプリを載せる。
-前回のネットワークはモジュールとして読み込むので、作り直しはしない。
+前回のリソースは削除済みなので、0. before のコードでネットワークを再作成する。
 
 ---
 
@@ -209,44 +209,32 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 
 ---
 
-### S07 | 前回の完成状態をモジュールで読み込む
+### S07 | 前回までの構成を作成する
 
-**[図版]** AWS版 第4回「準備」のモジュール呼び出しコードスライドを流用。
+**[図版]** AWS版と同じく、前回までの完成コードから開始する。
 コードをGCP版に差し替え。
 
 **[本文]**
 
 ```
-cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/start/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 3 "0. before"
+cd ~/works/lesson3
 
-variable "subnet_public_cidr" {}
-variable "subnet_private_cidr" {}
+0. before は、前回のネットワークの完成コードです。
+VPC / public・private subnet / Cloud Router / Cloud NAT
 
-module "before" {
-  source = "github.com/shiiman/infra-study//gcp/lesson3/0. before"
+最初に自分の設定を入力
+common.tf：backend の bucket を自分の tfstate バケットに変更
+terraform.tfvars：project_id・user_name・サブネットの値を設定
 
-  subnet_public_cidr  = var.subnet_public_cidr
-  subnet_private_cidr = var.subnet_private_cidr
-  user_name           = var.user_name
-}
+この作業ディレクトリで、次のページの init → plan → apply を実行します。
 
-◼module ブロック(第1回 S74 でやったもの)
-複数のリソースをまとめて再利用する仕組み
-GitHubのディレクトリを直接 source に指定できる
-
-◼中身は前回作ったもの
-VPC / サブネット(public・private) / Cloud Router / Cloud NAT
-
-◼参照の仕方
-  module.before.vpc_id
-  module.before.vpc_name
-  module.before.private_subnet_id
+以降も同じ作業ディレクトリへ、番号順にコードを追加します。
+個人設定と state は保持され、前回分のリソースは引き継がれます。
+追加の変数は terraform.tfvars.example と比較して設定してください。
 ```
 
-**[話す]** モジュール側で `output` を書いておかないと外から参照できない。
-`0. before/before.tf` の末尾を見せる。
-
-第4回以降も同じやり方で「前回の完成状態」を引き継いでいく。
+**[話す]** `0. before` は開始時点の完成コードです。後続ステップも同じ作業ディレクトリで進め、個人設定とstateを保持します。追加変数は `terraform.tfvars.example` を参照します。
 
 ---
 
@@ -267,8 +255,7 @@ VPC / サブネット(public・private) / Cloud Router / Cloud NAT
 ★ 前回と同じものができていればOK
 ```
 
-**[話す]** `terraform init` でGitHubからモジュールを取ってくるログが流れる。
-モジュールを書き換えたときは `terraform init -upgrade` が必要、という話も添える。
+**[話す]** `terraform init` は provider とbackendを初期化する。planで前回分の構成を確認してからapplyする。
 
 ---
 
@@ -394,7 +381,7 @@ PDはゾーン単位なのは同じだが、
 **[本文]** (1枚目)
 
 ```
-cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/1.\ web_instance/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 3 "1. web_instance"
 
 resource "google_service_account" "web" {
   account_id   = "${var.user_name}-web"
@@ -430,7 +417,7 @@ resource "google_compute_instance" "web" {
   # (前のページの続き)
 
   network_interface {
-    subnetwork = module.before.private_subnet_id
+    subnetwork = google_compute_subnetwork.private.id
     // 外部IPなし
   }
 
@@ -863,7 +850,7 @@ GCPは独立したリソース → 複数のバックエンドサービスで使
 **[本文]** (1枚目)
 
 ```
-cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/2.\ loadbalancer/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 3 "2. loadbalancer"
 
 resource "google_compute_instance_group" "web" {
   name      = "${var.user_name}-web-ig"
@@ -1054,7 +1041,7 @@ Googleのロードバランサは、次の2つの固定レンジから来る
 
 resource "google_compute_firewall" "allow_lb_to_web" {
   name    = "${var.user_name}-allow-lb-to-web"
-  network = module.before.vpc_name
+  network = google_compute_network.vpc.name
 
   direction = "INGRESS"
   priority  = 1000
@@ -1196,7 +1183,7 @@ data "google_dns_managed_zone" "public" {
 **[本文]**
 
 ```
-cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/3.\ dns/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 3 "3. dns"
 
 variable "dns_zone_name" {}
 
@@ -1355,7 +1342,7 @@ apply してから ACTIVE になるまで待つので、その間に別の話を
 **[本文]**
 
 ```
-cd ~/works/lesson3/ && cp -rf ~/infra-study/gcp/lesson3/4.\ ssl/ ./
+bash ~/infra-study/gcp/tools/prepare-step.sh 3 "4. ssl"
 
 resource "google_compute_managed_ssl_certificate" "web" {
   name = "${var.user_name}-web-cert"
@@ -1452,7 +1439,7 @@ resource "google_compute_global_forwarding_rule" "web_https" {
 ```
 ◼できたこと
 
-前回のネットワークをモジュールとして読み込んだ
+前回のネットワークを再作成し、同じ作業場所で引き継いだ
 private サブネットにVMを作り、コンテナでアプリを動かした
 ロードバランサを6つの部品で組み立てた
 ヘルスチェック用のFirewall Ruleを開けた
@@ -1711,7 +1698,7 @@ Cloud SQL / Memorystore
 
 | Step | ディレクトリ | 作るもの | 確認すること |
 |---|---|---|---|
-| 0 | `0. before/` | 第2回のネットワーク一式(モジュール) | 前回と同じものができる |
+| 0 | `0. before/` | 第2回のネットワーク一式(直接定義) | 前回と同じものができる |
 | 1 | `1. web_instance/` | web VM + IAP用Firewall/IAM | IAPで入って `curl localhost` が通る。外からは見えない |
 | 2 | `2. loadbalancer/` | LB 6リソース + ヘルスチェック用Firewall | **503 → Firewall追加 → LBのIPでアクセスできる** |
 | 3 | `3. dns/` | Aレコード | ドメインでアクセスできる |
@@ -1738,7 +1725,7 @@ Step0〜4 と宿題2・3を通しで apply → destroy 済み。
 
 | 項目 | 結果 |
 |---|---|
-| モジュール参照 | **OK**。`github.com/shiiman/infra-study//gcp/lesson3/0. before` を素のURLで解決できた(ディレクトリ名のスペースも問題なし) |
+| 旧構成のモジュール参照(変更前の検証記録) | **OK**。`github.com/shiiman/infra-study//gcp/lesson3/0. before` を素のURLで解決できた(ディレクトリ名のスペースも問題なし) |
 | Step0+1 apply | OK。11リソース |
 | アプリ起動(S16) | OK。**約7分**(apt-get + docker build) |
 | Step2 Firewallなし | **503**(原稿の502は誤りだったので修正済み)。バックエンドUNHEALTHY |

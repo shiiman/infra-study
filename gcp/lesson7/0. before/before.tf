@@ -420,11 +420,11 @@ resource "google_compute_managed_ssl_certificate" "web" {
 
 
 /**
- * 第4回以降から参照するための output
+ * 作成したリソースを確認するための output
  */
 
 /**
- * 第4回以降から参照するための output
+ * 作成したリソースを確認するための output
  */
 
 /**
@@ -650,7 +650,7 @@ resource "google_spanner_database_iam_member" "web" {
 }
 
 /**
- * 第5回から参照するための output
+ * 作成したリソースを確認するための output
  */
 
 /**
@@ -669,7 +669,7 @@ resource "google_spanner_database_iam_member" "web" {
  * 代わりに、講師が用意した共通リポジトリのイメージを使う。
  * 自分でビルドするところは、第7回のCI/CDでまたやります。
  */
-variable "app_image_repo" {
+variable "before_app_image_repo" {
   description = "講師が用意した共通イメージのリポジトリ名"
   default     = "infra-study-common"
 }
@@ -773,7 +773,7 @@ resource "google_cloud_run_v2_service" "app" {
 
     containers {
       // 講師が用意した共通リポジトリのイメージ(第5回で push したものと同じ中身)
-      image = "asia-northeast1-docker.pkg.dev/${var.project_id}/${var.app_image_repo}/app"
+      image = "asia-northeast1-docker.pkg.dev/${var.project_id}/${var.before_app_image_repo}/app"
 
       ports {
         container_port = 8080
