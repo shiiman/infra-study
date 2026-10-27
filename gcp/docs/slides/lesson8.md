@@ -562,7 +562,8 @@ SLO                     SLO モニタリング          SLO
 **[本文]**
 
 ```
-cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"0. before"/* ./
+cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"0. before" ./
+cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 
 第6回までの構成を再作成します。
@@ -577,7 +578,7 @@ terraform apply
 
 第7回のCI/CDは含めていません。
 監視を学ぶために必要なアプリと配信基盤から始めます。
-以降も同じ作業ディレクトリで作業し、コピー後に個人設定を再反映します。stateはそのまま使います。
+各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
 ```
 
 ---
@@ -612,7 +613,8 @@ terraform apply
 **[本文]**
 
 ```
-cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"1. logging"/* ./
+cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"1. logging" ./
+cd "1. logging"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_logging_metric" "app_error" {
@@ -733,6 +735,7 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -791,7 +794,8 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 **[本文]**
 
 ```
-cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"2. monitoring"/* ./
+cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"2. monitoring" ./
+cd "2. monitoring"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_monitoring_uptime_check_config" "web" {
@@ -921,6 +925,7 @@ resource "google_monitoring_dashboard" "app" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -1018,7 +1023,8 @@ resource "google_monitoring_dashboard" "app" {
 **[本文]**
 
 ```
-cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"3. alert"/* ./
+cd ~/works/lesson8 && cp -rf ~/infra-study/gcp/lesson8/"3. alert" ./
+cd "3. alert"
 python3 ~/infra-study/gcp/tools/configure.py
 
 data "google_monitoring_notification_channel" "slack" {
@@ -1151,6 +1157,7 @@ resource "google_monitoring_alert_policy" "uptime" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 

@@ -318,7 +318,8 @@ PostgreSQL互換の高性能DB。AWSのAuroraに近い
 **[本文]**
 
 ```
-cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"0. before"/* ./
+cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"0. before" ./
+cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 
 第2・3回の構成を再作成します。
@@ -332,7 +333,7 @@ terraform plan
 terraform apply
 
 証明書の発行を待つ間に、次の解説へ進みます。
-以降も同じ作業ディレクトリで作業し、コピー後に個人設定を再反映します。stateはそのまま使います。
+各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
 1. web はアプリのコード例です。Web VMはここで作成済みです。
 ```
 
@@ -612,7 +613,8 @@ Cloud Storage や Secret Manager と同じ仕組み
 **[本文]**
 
 ```
-cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"2. cache"/* ./
+cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"2. cache" ./
+cd "2. cache"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_global_address" "private_service" {
@@ -837,6 +839,7 @@ resource "google_redis_instance" "cache" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -1065,7 +1068,8 @@ TrueTimeの詳細まで踏み込まなくてよいが、
 **[本文]**
 
 ```
-cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"3. spanner"/* ./
+cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"3. spanner" ./
+cd "3. spanner"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_spanner_instance" "main" {
@@ -1181,6 +1185,7 @@ resource "google_spanner_database_iam_member" "web" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 

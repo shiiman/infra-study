@@ -8,7 +8,8 @@
 
 ```bash
 mkdir -p ~/works/lesson3
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before" ./
+cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 ```
 
@@ -24,11 +25,12 @@ python3 ~/infra-study/gcp/tools/configure.py
 
 ## 次回以降・次のステップ
 
-各回の作業ディレクトリで、教材を番号順にコピーします。第3回以降は `0. before` から開始します。
+各回の作業ディレクトリ配下へ、ステップのディレクトリごと番号順にコピーします。第3回以降は `0. before` から開始します。
 
 ```bash
 mkdir -p ~/works/lesson3
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before" ./
+cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 ```
 
@@ -43,13 +45,29 @@ terraform apply
 次のステップも同じ流れです。
 
 ```bash
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance"/* ./
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance" ./
+cd "1. web_instance"
 python3 ~/infra-study/gcp/tools/configure.py
 ```
 
-**移動とコピーは `cd … && cp …` の1コマンドです。設定反映の `python3 …/configure.py` は別コマンドで実行します。** コピーが成功してから設定を反映してください。 `cp` は既存の教材ファイルを上書きします。DNS・サブネット・GitHub連携など3項目以外の値も教材の初期値に戻るので、各回の説明に従って確認・再設定してからplanします。独自に編集したコードも、必要ならコピー前に別途退避してください。
+**移動とコピーは `cd … && cp …` の1コマンドです。コピー後は `cd "0. before"` などでステップの中へ移動し、設定反映の `python3 …/configure.py` を別コマンドで実行します。** コピーが成功してから設定を反映してください。 `cp` は既存の教材ファイルを上書きします。DNS・サブネット・GitHub連携など3項目以外の値も教材の初期値に戻るので、各回の説明に従って確認・再設定してからplanします。独自に編集したコードも、必要ならコピー前に別途退避してください。
 
-コピー元はGitから取得した未実行の教材を使い、Terraformは `~/works/lessonN` で実行します。`/*` によりディレクトリ自体でなく中身をコピーし、`.terraform` などの隠しファイルをコピーしません。コピー先の既存ファイルは削除しないため、前のステップや別の宿題へ切り替える場合は余分な `.tf` が残っていないか確認してください。
+コピー元はGitから取得した未実行の教材を使います。中身を直接展開する `/*` は付けません。コピー後は次の階層になります。
+
+```text
+~/works/lesson3/
+├── 0. before/
+│   ├── common.tf
+│   └── terraform.tfvars
+├── 1. web_instance/
+└── 2. loadbalancer/
+```
+
+Terraformは、選択したステップの中で `init → plan → apply` の順に実行します。同じ回の全ステップでGCS backendのbucket・prefixを揃えるため、ディレクトリが変わっても同じstateを引き継ぎます。各ディレクトリの初回は `terraform init` が必要です。ローカルのstateや `.terraform` を手動コピーする必要はありません。
+
+前のステップや別の宿題の内容は、別ディレクトリに残ります。古いステップでapplyやdestroyを実行せず、現在の構成に対応するステップを使用してください。
+
+以前の手順で `~/works/lesson3` 直下に `.tf` をコピー済みでも、削除する必要はありません。新しいステップの中で実行してください。既存環境では以前と同じGCS bucket・prefixを使用し、planで意図しない変更がないことを確認します。
 
 ## リソースとstateの引き継ぎ
 

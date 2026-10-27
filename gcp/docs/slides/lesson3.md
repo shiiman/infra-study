@@ -217,6 +217,7 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 第3回からは、コピー後の個人設定だけを補助します。
 
 移動とコピーは cd … && cp … の1コマンドです。
+コピーしたステップのディレクトリへ移動します。
 個人設定の反映は別コマンドで実行します。
 python3 ~/infra-study/gcp/tools/configure.py
 
@@ -241,7 +242,8 @@ DNSやサブネットなど、コピーで戻った値は別途確認してく�
 **[本文]**
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before" ./
+cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 
 0. before は、前回のネットワークの完成コードです。
@@ -252,12 +254,12 @@ VPC / public・private subnet / Cloud Router / Cloud NAT
 
 この作業ディレクトリで、次のページの init → plan → apply を実行します。
 
-以降も同じ作業ディレクトリへ、番号順にコードを追加します。
+以降もステップのディレクトリをコピーし、その中で実行します。
 コピー後に個人設定を再反映し、前回分のリソースとstateを引き継ぎます。
 コピーで各回固有の設定も戻るため、DNSやサブネットなどを確認してください。
 ```
 
-**[話す]** `0. before` は開始時点の完成コードです。後続ステップも同じ作業ディレクトリで進め、コピー後に `configure.py` で3項目を再反映します。各回固有の値はコピー後に確認・設定します。stateはそのまま使います。
+**[話す]** `0. before` は開始時点の完成コードです。後続ステップはそれぞれのディレクトリに移動し、コピー後に `configure.py` で3項目を再反映します。各回固有の値はコピー後に確認・設定します。stateはそのまま使います。
 
 ---
 
@@ -404,7 +406,8 @@ PDはゾーン単位なのは同じだが、
 **[本文]** (1枚目)
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance"/* ./
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance" ./
+cd "1. web_instance"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_service_account" "web" {
@@ -466,6 +469,7 @@ resource "google_compute_instance" "web" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -874,7 +878,8 @@ GCPは独立したリソース → 複数のバックエンドサービスで使
 **[本文]** (1枚目)
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"2. loadbalancer"/* ./
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"2. loadbalancer" ./
+cd "2. loadbalancer"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_instance_group" "web" {
@@ -971,6 +976,7 @@ resource "google_compute_global_forwarding_rule" "web_http" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -1208,7 +1214,8 @@ data "google_dns_managed_zone" "public" {
 **[本文]**
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"3. dns"/* ./
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"3. dns" ./
+cd "3. dns"
 python3 ~/infra-study/gcp/tools/configure.py
 
 variable "dns_zone_name" {}
@@ -1242,6 +1249,7 @@ resource "google_dns_record_set" "web" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -1368,7 +1376,8 @@ apply してから ACTIVE になるまで待つので、その間に別の話を
 **[本文]**
 
 ```
-cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"4. ssl"/* ./
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"4. ssl" ./
+cd "4. ssl"
 python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_managed_ssl_certificate" "web" {
@@ -1410,6 +1419,7 @@ resource "google_compute_global_forwarding_rule" "web_https" {
 **[本文]**
 
 ```
+  terraform init
   terraform plan
   terraform apply
 
@@ -1466,7 +1476,7 @@ resource "google_compute_global_forwarding_rule" "web_https" {
 ```
 ◼できたこと
 
-前回のネットワークを再作成し、同じ作業場所で引き継いだ
+前回のネットワークを再作成し、stateを引き継いだ
 private サブネットにVMを作り、コンテナでアプリを動かした
 ロードバランサを6つの部品で組み立てた
 ヘルスチェック用のFirewall Ruleを開けた
