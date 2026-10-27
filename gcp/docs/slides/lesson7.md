@@ -671,9 +671,8 @@ options:
 **[本文]**
 
 ```
-cd ~/works/lesson7
-cp -rf ~/infra-study/gcp/lesson7/"0. before"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"0. before"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 第6回の完成形を再作成します。
 ネットワーク / Memorystore / Spanner / Cloud Run /
@@ -698,9 +697,8 @@ Cloud Run に追加した lifecycle は Step3 で説明します。
 **[本文]**
 
 ```
-cd ~/works/lesson7
-cp -rf ~/infra-study/gcp/lesson7/"1. artifact_registry"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"1. artifact_registry"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_artifact_registry_repository" "app" {
   location      = "asia-northeast1"
@@ -862,9 +860,8 @@ resource "google_artifact_registry_repository_iam_member" "build_writer" {
 **[本文]**
 
 ```
-cd ~/works/lesson7
-cp -rf ~/infra-study/gcp/lesson7/"2. cloud_build"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"2. cloud_build"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_cloudbuild_trigger" "app" {
   name     = "${var.user_name}-deploy"
@@ -1133,9 +1130,8 @@ GCPでもAWSでも、CI/CDを組むたびに出てくる。
 **[本文]**
 
 ```
-cd ~/works/lesson7
-cp -rf ~/infra-study/gcp/lesson7/"3. deploy"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"3. deploy"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 // 1. デプロイ先を更新する権限
 resource "google_cloud_run_v2_service_iam_member" "build_developer" {
@@ -1443,9 +1439,8 @@ GitHub の箱は共通で、そこから2本に分かれる。
 **[本文]**
 
 ```
-cd ~/works/lesson7
-cp -rf ~/infra-study/gcp/lesson7/"4. github_actions"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson7 && cp -rf ~/infra-study/gcp/lesson7/"4. github_actions"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_service_account_iam_member" "gha_wif" {
   service_account_id = data.google_service_account.build.name

@@ -318,9 +318,8 @@ PostgreSQL互換の高性能DB。AWSのAuroraに近い
 **[本文]**
 
 ```
-cd ~/works/lesson4
-cp -rf ~/infra-study/gcp/lesson4/"0. before"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"0. before"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 第2・3回の構成を再作成します。
 ネットワーク / Web VM / ロードバランサ / DNS / SSL証明書
@@ -613,9 +612,8 @@ Cloud Storage や Secret Manager と同じ仕組み
 **[本文]**
 
 ```
-cd ~/works/lesson4
-cp -rf ~/infra-study/gcp/lesson4/"2. cache"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"2. cache"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_compute_global_address" "private_service" {
   name          = "${var.user_name}-private-service-range"
@@ -1067,9 +1065,8 @@ TrueTimeの詳細まで踏み込まなくてよいが、
 **[本文]**
 
 ```
-cd ~/works/lesson4
-cp -rf ~/infra-study/gcp/lesson4/"3. spanner"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"3. spanner"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_spanner_instance" "main" {
   name         = "${var.user_name}-spanner"

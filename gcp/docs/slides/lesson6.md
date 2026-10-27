@@ -559,9 +559,8 @@ GCPにはこれが無い。
 **[本文]**
 
 ```
-cd ~/works/lesson6
-cp -rf ~/infra-study/gcp/lesson6/"0. before"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"0. before"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 第2〜5回の構成を再作成します。
 ネットワーク / Memorystore / Spanner / Cloud Run /
@@ -620,9 +619,8 @@ Cloud Run は講師の共通リポジトリのイメージを使います。
 **[本文]**
 
 ```
-cd ~/works/lesson6
-cp -rf ~/infra-study/gcp/lesson6/"1. storage"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"1. storage"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_storage_bucket" "static" {
   name     = "${var.project_id}-static-${var.user_name}"
@@ -722,9 +720,8 @@ resource "google_storage_bucket_object" "index" {
 ```
 ◼コードは書けているので、先に apply を流してください
 
-cd ~/works/lesson6
-cp -rf ~/infra-study/gcp/lesson6/"2. cdn"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"2. cdn"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
   terraform init
   terraform apply
@@ -982,9 +979,8 @@ S3バケットポリシーを追加して解決する。
 **[本文]**
 
 ```
-cd ~/works/lesson6
-cp -rf ~/infra-study/gcp/lesson6/"3. public"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"3. public"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 
 resource "google_storage_bucket_iam_member" "public" {
   bucket = google_storage_bucket.static.name

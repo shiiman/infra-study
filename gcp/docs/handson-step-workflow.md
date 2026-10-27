@@ -8,9 +8,8 @@
 
 ```bash
 mkdir -p ~/works/lesson3
-cd ~/works/lesson3
-cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 ```
 
 初回は次の3項目を入力します。
@@ -29,9 +28,8 @@ python3 ~/infra-study/gcp/tools/configure.py
 
 ```bash
 mkdir -p ~/works/lesson3
-cd ~/works/lesson3
-cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 ```
 
 次回以降は入力不要で、保存済みの3項目が反映されます。表示された値を確認してください。
@@ -45,12 +43,11 @@ terraform apply
 次のステップも同じ流れです。
 
 ```bash
-cd ~/works/lesson3
-cp -rf ~/infra-study/gcp/lesson3/"1. web_instance"/* ./
-python3 ~/infra-study/gcp/tools/configure.py
+cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance"/* ./ && \
+  python3 ~/infra-study/gcp/tools/configure.py
 ```
 
-**コピー後は毎回設定スクリプトを実行してください。** `cp` は既存の教材ファイルを上書きします。DNS・サブネット・GitHub連携など3項目以外の値も教材の初期値に戻るので、各回の説明に従って確認・再設定してからplanします。独自に編集したコードも、必要ならコピー前に別途退避してください。
+**掲載コマンドは移動・コピー・設定反映を `&&` でつないだ1コマンドです。** 行末の `\` は表示上の改行で、2行をまとめて実行します。途中で失敗した場合、後続の処理は実行しません。 `cp` は既存の教材ファイルを上書きします。DNS・サブネット・GitHub連携など3項目以外の値も教材の初期値に戻るので、各回の説明に従って確認・再設定してからplanします。独自に編集したコードも、必要ならコピー前に別途退避してください。
 
 コピー元はGitから取得した未実行の教材を使い、Terraformは `~/works/lessonN` で実行します。`/*` によりディレクトリ自体でなく中身をコピーし、`.terraform` などの隠しファイルをコピーしません。コピー先の既存ファイルは削除しないため、前のステップや別の宿題へ切り替える場合は余分な `.tf` が残っていないか確認してください。
 
