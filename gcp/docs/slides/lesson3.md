@@ -946,7 +946,7 @@ resource "google_compute_global_forwarding_rule" "web_http" {
 
 **[参考]** [Google Cloud: 静的外部IPアドレスの予約](https://docs.cloud.google.com/vpc/docs/reserve-static-external-ip-address)
 
-**[図版]** **503エラーのブラウザ画面を撮る**(★この回で撮る3枚のうちの1枚)。
+**[図版]** **`no healthy upstream` と表示されたブラウザ画面を撮る**(★この回で撮る3枚のうちの1枚)。
 `get-health` の UNHEALTHY 出力は**撮らない**(2026-09-18 判断)。
 文言は本文に載せてあり、当日は受講者の画面に実物が出る。
 
@@ -964,11 +964,11 @@ resource "google_compute_global_forwarding_rule" "web_http" {
 ◼ブラウザでアクセスしてみる
   http://[LBの外部IP]
 
-  → 503 Service Unavailable
+  → 画面に no healthy upstream と表示される
 
-★ apply直後はそもそも応答がありません(接続タイムアウト)
-   ロードバランサの設定が行き渡るまで 1〜2分 かかります
-   応答が返るようになってから 503 になります
+★ no healthy upstream は「正常な転送先がない」という意味
+   HTTPステータスは503（画面に503 Service Unavailableと表示される意味ではない）
+   apply直後は接続タイムアウトになる場合があります。設定の反映まで1〜2分待ちます。
 
 ◼バックエンドの状態を見てみる
   gcloud compute backend-services get-health [自分の名前]-web-bs --global
@@ -979,7 +979,7 @@ resource "google_compute_global_forwarding_rule" "web_http" {
    なのにUNHEALTHY
 ```
 
-**[話す]** ここで「なぜだと思う?」と受講者に聞く。
+**[話す]** ブラウザ本文の `no healthy upstream` とHTTPステータスの `503 Service Unavailable` を区別する。必要なら `curl -i http://[LBの外部IP]/` でステータスと本文を確認する。ここで「なぜだと思う?」と受講者に聞く。
 第2回をやっていれば答えが出るはず。
 
 **502 と 503 の違い**も触れておくとよい。
@@ -1810,7 +1810,7 @@ URLマップ / HTTPプロキシ / HTTPSプロキシ / グローバルIP / 転送
 
 | | 何を | なぜ残すか |
 |---|---|---|
-| S31 | **503エラーのブラウザ画面** | 「こうなるはず」を先に見せる価値がある。`get-health` の UNHEALTHY 出力は端末なので不要 |
+| S31 | **`no healthy upstream` のブラウザ画面** | 「こうなるはず」を先に見せる価値がある。`get-health` の UNHEALTHY 出力は端末なので不要 |
 | S34 | **LBのIPでのブラウザ表示** | 同上 |
 | S45 | **HTTPS表示(鍵マークが見えるように)** | 同上。鍵マークは口頭では伝わらない |
 
