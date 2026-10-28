@@ -11,22 +11,18 @@ def check():
     for n in range(3, 9):
         lesson = ROOT / f'gcp/lesson{n}'
         base = (lesson / '0. before/before.tf').read_text()
-        addresses = set(re.findall(r'^resource "([^"]+)" "([^"]+)"', base, re.M))
         assert not (lesson / 'start').exists(), f'第{n}回にstartが残っています'
-        dirs = [d for d in sorted(lesson.iterdir()) if d.is_dir() and (d / 'before.tf').exists()]
+        dirs = [d for d in sorted(lesson.iterdir()) if d.is_dir() and (d / 'common.tf').exists()]
         for d in dirs:
+            assert (d / 'before.tf').exists(), f'開始構成がありません: {d}'
             assert (d / 'before.tf').read_text() == base, f'開始構成が不一致: {d}'
-            all_text = '\n'.join(f.read_text() for f in d.glob('*.tf') if f.name != 'before_moved.tf')
+            all_text = '\n'.join(f.read_text() for f in d.glob('*.tf'))
             assert 'module.before.' not in all_text, f'旧参照が残っています: {d}'
             definitions = re.findall(r'^resource "([^"]+)" "([^"]+)"', all_text, re.M)
             assert len(definitions) == len(set(definitions)), f'リソースの重複: {d}'
-            moved = (d / 'before_moved.tf').read_text()
-            for kind, name in addresses:
-                assert f'from = module.before.{kind}.{name}' in moved
-                assert f'to   = {kind}.{name}' in moved
             count += 1
 
-    print(f'成功: {count}構成の管理名・移行宣言を確認しました。')
+    print(f'成功: {count}構成の開始リソースの保持・管理名の重複がないことを確認しました。')
 
 
 if __name__ == '__main__':
