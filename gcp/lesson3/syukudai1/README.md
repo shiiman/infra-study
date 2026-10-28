@@ -53,7 +53,7 @@ VMを再起動して、何もしなくてもアクセスできることを確認
 gcloud compute instances reset [自分の名前]-web --zone=asia-northeast1-a
 ```
 
-1〜2分待ってから、ブラウザで `https://[自分の名前].[勉強会のドメイン]` にアクセス。
+1〜2分待ってから、ブラウザで `https://[自分の名前].infra-study-gcp.sumsp.jp` にアクセス。
 
 ロードバランサのバックエンドがHEALTHYに戻っていることも確認する。
 

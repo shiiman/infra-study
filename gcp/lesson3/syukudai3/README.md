@@ -7,11 +7,11 @@ Cloud Armor でセキュリティポリシーを作り、社内IPからのみア
 ## 回答
 
 `armor.tf` と `lb.tf` を参照。
-`terraform.tfvars` の `company_ip` に会社のIPレンジを入れる。
-
-```hcl
-company_ip = ["xxx.xxx.xxx.xxx/32"]
-```
+社内IPは公開リポジトリに含めないため、`company_ip` は空欄にしている。
+限定公開の第3回スライド53ページを参照し、コピー先の作業ディレクトリにある
+`terraform.tfvars` の `company_ip` に設定してからplan/applyする。
+社内IPを設定したファイルはコミット・pushしない。
+社内ネットワークからの許可と、テザリングなど社外ネットワークからの403を確認する。
 
 ## この課題のポイント
 
@@ -54,7 +54,7 @@ terraform apply
 ### 社内から
 
 ```
-curl -I https://[自分の名前].[勉強会のドメイン]
+curl -I https://[自分の名前].infra-study-gcp.sumsp.jp
 ```
 
 ```

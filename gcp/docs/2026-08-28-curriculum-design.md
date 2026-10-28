@@ -631,10 +631,10 @@ Cloud Run はイメージが存在しないと作成できず、
 ### 保留中
 
 - [x] 第10回の尺 — **2時間のまま、総まとめを15分に圧縮**(2026-08-31 決定)
-- [x] 使用するカスタムドメイン — **`[勉強会のドメイン]`** を Cloud DNS に委譲する方式に決定(12章)
+- [x] 使用するカスタムドメイン — **`infra-study-gcp.sumsp.jp`** を Cloud DNS に委譲する方式に決定(12章)
 - [x] 親ゾーンへの NS レコード登録 — **完了(2026-08-28)**。
   Cloud DNS にゾーンを作成し、親ゾーン(Route53)に NS を登録済み。
-  `dig NS <勉強会のドメイン>` で委譲を確認済み
+  `dig NS infra-study-gcp.sumsp.jp` で委譲を確認済み
 - [x] 社内IP(`company_ip` 相当)の実値確認 — **2026-09-16 に確定**。
   オフィスの有線・無線と、DC 経由の全社VPN経路をあわせて**計9エントリ**。
   **リポジトリは public なので、値も拠点名も書かない。**
@@ -1643,11 +1643,11 @@ AWS版 第4回のスライドで確認した実際の構成。
 ### GCP版の決定
 
 ゾーンが Route53 にあるため、そのままでは Cloud DNS から操作できない。
-**`[勉強会のドメイン]` を Cloud DNS に委譲する**方式に決定した。
+**`infra-study-gcp.sumsp.jp` を Cloud DNS に委譲する**方式に決定した。
 
 ```
-ホストゾーン    [勉強会のドメイン]   (Cloud DNS)
-受講者のURL     https://[user_name].[勉強会のドメイン]
+ホストゾーン    infra-study-gcp.sumsp.jp   (Cloud DNS)
+受講者のURL     https://[user_name].infra-study-gcp.sumsp.jp
 ```
 
 AWS版の `[AWS版のドメイン]` の**サブドメインではなく、親ドメイン直下の兄弟ゾーン**。
@@ -1662,14 +1662,14 @@ AWS版のゾーンから完全に独立するので、AWS版の設定に一切�
 
 ### 段取り(2026-08-28 完了済み)
 
-1. Cloud DNS に `[勉強会のドメイン]` のマネージドゾーンを作成する
+1. Cloud DNS に `infra-study-gcp.sumsp.jp` のマネージドゾーンを作成する
 2. 払い出された NS レコード4本を **親ゾーン**に登録する
-3. `dig NS [勉強会のドメイン]` で委譲を確認する
+3. `dig NS infra-study-gcp.sumsp.jp` で委譲を確認する
 
 ```
 gcloud dns managed-zones create <ゾーン名> \
   --project=<プロジェクトID> \
-  --dns-name="<勉強会のドメイン>." \
+  --dns-name="infra-study-gcp.sumsp.jp." \
   --description="インフラ勉強会(GCP)用。受講者が data で参照する。削除しないこと" \
   --visibility=public
 

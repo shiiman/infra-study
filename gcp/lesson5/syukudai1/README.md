@@ -30,7 +30,7 @@ max_instance_request_concurrency = 10   # 既定は80
 
 ```
 # しばらく放置してから
-curl -s -o /dev/null -w "%{time_total}\n" https://[自分の名前].[勉強会のドメイン]/
+curl -s -o /dev/null -w "%{time_total}\n" https://[自分の名前].infra-study-gcp.sumsp.jp/
 ```
 
 ```
@@ -93,7 +93,7 @@ Cloud Shell から。
 
 ```
 # 100並列で30秒間
-seq 1 3000 | xargs -P 100 -I{} curl -s -o /dev/null https://[自分の名前].[勉強会のドメイン]/
+seq 1 3000 | xargs -P 100 -I{} curl -s -o /dev/null https://[自分の名前].infra-study-gcp.sumsp.jp/
 ```
 
 インスタンス数の推移を見る。
