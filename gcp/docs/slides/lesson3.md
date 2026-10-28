@@ -38,9 +38,9 @@
 この回は前提条件が多い。**開催の1週間前までに確認すること。**
 
 1. **DNS の委譲が完了していること**(設計書12章。2026-08-28 に完了済み)
-   - Cloud DNS に `[勉強会のドメイン]` のマネージドゾーンがある
+   - Cloud DNS に `infra-study-gcp.sumsp.jp` のマネージドゾーンがある
    - 親ゾーンに NS レコードが登録済み
-   - `dig NS [勉強会のドメイン]` で引ける
+   - `dig NS infra-study-gcp.sumsp.jp` で引ける
 2. `terraform.tfvars` の `dns_zone_name` が実際のゾーン名と一致していること
 3. **コードが GitHub に push 済みであること**
    - `0. before` を `github.com/shiiman/infra-study//gcp/lesson3/0. before` から
@@ -148,7 +148,7 @@ Private Google Access と Cloud NAT で外に出る経路を2種類作った
 - 左に Cloud DNS の箱、上にブラウザ
 
 ```
- [ブラウザ] ── https://yamada-taro.[勉強会のドメイン]
+ [ブラウザ] ── https://yamada-taro.infra-study-gcp.sumsp.jp
      │
  [Cloud DNS] Aレコード
      │
@@ -1118,21 +1118,28 @@ LBのIPアドレスではなく
 **[本文]**
 
 ```
-◼Cloud DNS
-フルマネージドのDNSサービス。AWSのRoute 53に相当
+◼Cloud DNS：ドメイン名とIPアドレスの対応を管理するサービス
+  DNSサーバーの運用はGoogleが担当。AWSのRoute 53に相当
 
-パブリックゾーン / プライベートゾーン
-100%のSLA
-Googleのエニーキャストネットワークで応答が速い
-DNSSEC対応
+◼ゾーン：あるドメインのDNSレコードをまとめて管理する単位
+  パブリック：インターネットから名前を調べられる（今回はこれ）
+  プライベート：指定したVPC内向けに名前を公開する
 
-◼この勉強会で使うゾーン
+◼その他の特徴
+  SLA：DNS応答の月間稼働率100%が目標。未達時は条件付きで料金補填
+  エニーキャスト：世界各地のDNSサーバーへ経路に応じて振り分ける
+                 問い合わせの遅延を抑え、障害にも備える
+  DNSSEC：電子署名でDNS応答の改ざん・偽装を検出する
 
-  [勉強会のドメイン]
-
-  受講者ごとに
-  <自分の名前>.[勉強会のドメイン]
+◼今回使うパブリックゾーン
+  ドメイン：infra-study-gcp.sumsp.jp
+  ゾーン名：infra-study-gcp（Terraformの dns_zone_name に指定）
+  各自の名前：[自分の名前].infra-study-gcp.sumsp.jp
 ```
+
+**[補足]** SLAはDNS応答の稼働率の取り決めで、Webアプリの無停止を保証しない。DNSSECは署名を検証して偽装を検出する仕組み。勉強会のドメインと共有ゾーン名は教材に記載する。
+
+**[参考]** [Cloud DNS概要](https://docs.cloud.google.com/dns/docs/overview)、[Cloud DNS SLA](https://cloud.google.com/dns/sla)、[エニーキャスト](https://cloud.google.com/dns)
 
 **[話す]** 勉強会専用の別ゾーンを切って、Cloud DNS に委譲してある。
 他のドメインの設定には影響しない。
@@ -1173,6 +1180,8 @@ data "google_dns_managed_zone" "public" {
 
 ### S38 | Terraform コード(DNS)
 
+**[事前設定]** `terraform.tfvars` の `dns_zone_name = "infra-study-gcp"` は設定済み。`configure.py` はこの値を変更しない。修正前にコピー済みの場合は空文字をこの値に変更する。planではレコード名が `[自分の名前].infra-study-gcp.sumsp.jp.` になることを確認する。
+
 **[図版]** AWS版 第4回「Route53」のコードスライドを流用。コードを差し替え。
 
 **[本文]**
@@ -1198,9 +1207,9 @@ resource "google_dns_record_set" "web" {
 }
 
 ★ dns_name は末尾にドットが付いた形で返ります
-   "[勉強会のドメイン]."
+   "infra-study-gcp.sumsp.jp."
    なので "${var.user_name}." と繋ぐと
-   "yamada-taro.[勉強会のドメイン]." になります
+   "yamada-taro.infra-study-gcp.sumsp.jp." になります
 
 ★ AWSではALBへの alias レコードを使います
    GCPはLBが固定IPを持つので、普通のAレコードでよい
@@ -1218,12 +1227,12 @@ resource "google_dns_record_set" "web" {
   terraform apply
 
 ◼DNSが引けるか確認
-  dig +short [自分の名前].[勉強会のドメイン]
+  dig +short [自分の名前].infra-study-gcp.sumsp.jp
 
   [LBの外部IPと一致することを確認]
 
 ◼ブラウザでアクセス
-  http://[自分の名前].[勉強会のドメイン]
+  http://[自分の名前].infra-study-gcp.sumsp.jp
 
   Hello, Infra Study
   hostname: [CONTAINER ID]
@@ -1412,7 +1421,7 @@ resource "google_compute_global_forwarding_rule" "web_https" {
 ```
 ◼ブラウザでHTTPSアクセス
 
-  https://[自分の名前].[勉強会のドメイン]
+  https://[自分の名前].infra-study-gcp.sumsp.jp
 
   Hello, Infra Study
   hostname: [CONTAINER ID]
@@ -1422,7 +1431,7 @@ resource "google_compute_global_forwarding_rule" "web_https" {
 ◼証明書の中身を見てみる
   ブラウザの鍵マークをクリック → 証明書
   発行元: Google Trust Services
-  対象:   [自分の名前].[勉強会のドメイン]
+  対象:   [自分の名前].infra-study-gcp.sumsp.jp
   有効期間: 約3ヶ月(自動更新される)
 ```
 

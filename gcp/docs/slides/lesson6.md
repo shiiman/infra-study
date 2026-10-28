@@ -162,7 +162,7 @@ Cloud Run は VPC の外にいる
 **[図版]** **新規作成**。1つのドメインで2つの配信先に振り分ける図。
 
 ```
-   https://<自分の名前>.<勉強会のドメイン>
+   https://<自分の名前>.infra-study-gcp.sumsp.jp
                 │
         [ロードバランサ]   ← 第3回で作ったもの
                 │
@@ -905,7 +905,7 @@ CDN                 なし            なし             enable_cdn
    → PROVISIONING が ACTIVE になるまで待つ
 
 ◼アクセスしてみる
-  https://[自分の名前].[勉強会のドメイン]/static/index.html
+  https://[自分の名前].infra-study-gcp.sumsp.jp/static/index.html
 
   → 403 Forbidden
 
@@ -924,7 +924,7 @@ CDN                 なし            なし             enable_cdn
 
 ```
 ◼アプリの方は動いている
-  https://[自分の名前].[勉強会のドメイン]/
+  https://[自分の名前].infra-study-gcp.sumsp.jp/
 
   Hello, Infra Study
   hostname: localhost
@@ -1014,7 +1014,7 @@ resource "google_storage_bucket_iam_member" "public" {
   terraform apply
 
 ◼もう一度アクセス
-  https://[自分の名前].[勉強会のドメイン]/static/index.html
+  https://[自分の名前].infra-study-gcp.sumsp.jp/static/index.html
 
   Hello, Infra Study
   このページは Cloud Storage から Cloud CDN 経由で配信されています。
@@ -1082,7 +1082,7 @@ URLマップのパスルールで /static/* を振り分けた
 ```
 ◼レスポンスヘッダを見る
 
-  curl -I https://[自分の名前].[勉強会のドメイン]/static/index.html
+  curl -I https://[自分の名前].infra-study-gcp.sumsp.jp/static/index.html
 
   HTTP/2 200
   cache-control: public, max-age=60, s-maxage=300
@@ -1147,7 +1147,7 @@ URLマップのパスルールで /static/* を振り分けた
   terraform apply
 
 ◼アクセスしてみる
-  curl https://[自分の名前].[勉強会のドメイン]/static/index.html
+  curl https://[自分の名前].infra-study-gcp.sumsp.jp/static/index.html
 
   version: 1     ← 古いまま！
 
