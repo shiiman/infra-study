@@ -7,7 +7,7 @@
 |---|---|---:|---|
 | 第1回 | GCP基礎 / IAM / Terraform | 94 | https://docs.google.com/presentation/d/1LGC9jpgPpKj1ObDw7JFDw1x_OG3sMO_ZdxkUQ4mqU6k/edit |
 | 第2回 | ネットワーク | 66 | https://docs.google.com/presentation/d/1p0NGtqsvkGYxFewE8AjoPYqh8kgkvTjyVEjLA6Fmkvs/edit |
-| 第3回 | コンピューティング | 58 | https://docs.google.com/presentation/d/1cxkYA6EAxoyUp-iMQILfCvJ_CjR8SuccNb7cRbhMc0s/edit |
+| 第3回 | コンピューティング | 57 | https://docs.google.com/presentation/d/1cxkYA6EAxoyUp-iMQILfCvJ_CjR8SuccNb7cRbhMc0s/edit |
 | 第4回 | データベース | 56 | https://docs.google.com/presentation/d/1Cn3LTns2BdgXLAwhyPbr-LbEZU1Je_4m3NZLSRkLufM/edit |
 | 第5回 | コンテナ | 54 | https://docs.google.com/presentation/d/1ow1DPEjkCakiMKhQ-TknYS3u_9yezEQYnRvaovz_sqs/edit |
 | 第6回 | ストレージ + CDN | 49 | https://docs.google.com/presentation/d/1kuYTeNuWkzd8-_Mj1u2RNBKO4-xh8ycWsvlxO0hbXYo/edit |

@@ -346,7 +346,7 @@ data "google_dns_managed_zone" "public" {
 /**
  * Aレコード作成
  *
- * <自分の名前>.<勉強会のドメイン> を
+ * <自分の名前>.infra-study-gcp.sumsp.jp を
  * ロードバランサのグローバルIPに向ける。
  *
  * AWSではALBへの alias レコードだったが、

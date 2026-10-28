@@ -66,7 +66,7 @@ apply 直後は 200 のままなので、少し待ってから確認すること
 ### 社内から
 
 ```
-curl -I https://[自分の名前].[勉強会のドメイン]/static/index.html
+curl -I https://[自分の名前].infra-study-gcp.sumsp.jp/static/index.html
 ```
 
 ```

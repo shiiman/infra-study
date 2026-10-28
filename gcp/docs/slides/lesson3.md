@@ -3,35 +3,23 @@
 - **開催日**: 2026-11-16(月) 14-16時
 - **AWS版対応**: 第4回(AWS コンピューティング編)
 - **Terraformコード**: `gcp/lesson3/`
-- **ゴール**: カスタムドメインに HTTPS でアクセスでき、`Hello, Infra Study` が返る
+- **正本**: [レビュー済みGoogleスライド](https://docs.google.com/presentation/d/1cxkYA6EAxoyUp-iMQILfCvJ_CjR8SuccNb7cRbhMc0s/edit)
+- **同期日**: 2026-10-28（全57ページ）
+- **ゴール**: カスタムドメインにHTTPSでアクセスし、`Hello, Infra Study` を確認する
 
-## 時間配分
+## ページ構成
 
-| セクション | 時間 | スライド |
-|---|---|---|
-| 導入 | 8分 | S01〜S05 |
-| 準備(前回の構成を再作成) | 7分 | S06〜S08 |
-| Compute Engine(概念 + Step1) | 25分 | S09〜S20 |
-| 休憩 | 5分 | S21 |
-| ロードバランサ(概念 + Step2) | 30分 | S22〜S34 |
-| Cloud DNS(Step3) | 12分 | S35〜S39 |
-| マネージドSSL証明書(Step4) | 18分 | S40〜S46 |
-| まとめ・宿題 | 10分 | S47〜S56 |
+| セクション | ページ |
+|---|---|
+| 導入 | S01〜S05 |
+| 準備・Step0 | S06〜S08 |
+| Compute Engine・Step1 | S09〜S19 |
+| ロードバランサ・Step2 | S20〜S34 |
+| Cloud DNS・Step3 | S35〜S39 |
+| SSL証明書・Step4 | S40〜S46 |
+| まとめ・宿題・注意事項 | S47〜S57 |
 
-> 押した場合の削り所: S12(Persistent Disk)と S19(MIG概説)は口頭のみで飛ばせる。
->
-> **証明書の発行待ちが読めないのが最大のリスク。** S43 で apply したあと
-> `ACTIVE` になるまで最大60分かかる。待っている間に S19(MIG)や
-> 宿題の説明を前倒しできるよう、順番を入れ替えられる構成にしてある。
->
-> **削ってはいけないのは S25〜S27**(GCPのLBが6リソースに分かれている話)と
-> **S31〜S32**(ヘルスチェックのFirewall)。この回のハマりどころ。
->
-> **待ち時間が3箇所ある。** 合計10分前後は動かせないので、
-> 解説を挟めるように順番を組んである。
-> - S16 アプリのビルド: 約2分(e2-medium)
-> - S31 ロードバランサの伝播: 1〜2分
-> - S44 証明書の発行: 約10分(実測8分20秒)
+証明書の状態確認はS45のapply後に行う。発行待ちの間にS51〜S54の宿題を説明する。
 
 ## 事前準備(講師)
 
@@ -43,8 +31,7 @@
    - `dig NS infra-study-gcp.sumsp.jp` で引ける
 2. `terraform.tfvars` の `dns_zone_name` が実際のゾーン名と一致していること
 3. **コードが GitHub に push 済みであること**
-   - `0. before` を `github.com/shiiman/infra-study//gcp/lesson3/0. before` から
-     読み込むため、push されていないと `terraform init` が失敗する
+   - Cloud Shellで `git pull` し、コピー元の教材を最新にする
 4. 受講者が第2回のリソースを destroy 済みであること
    - `0. before` が同名のVPCを作るため、残っていると名前が衝突する
 5. **vCPU クォータに余裕があること**
@@ -66,23 +53,20 @@
 
 ## 原稿の読み方
 
-- **[本文]** — スライドに載せるテキスト
-- **[図版]** — 図の作り方。AWS版デッキからの流用指示を含む
-- **[話す]** — ナレーション。スライドには載せない
+- S番号は現在のスライドのページ番号と一致する。
+- **[本文]** はスライドの表示テキスト。図は各ラベルを記載し、配置は正本リンクで確認する。
+- コードは講義用の抜粋を含む。実行用ファイルは `gcp/lesson3/` を使用する。
+- `terraform plan, terraform apply` は順番に実行する2コマンドの表記。
+- 社内IP・社内GCPプロジェクトIDなど社内限定の情報は、公開原稿・配布コードには転記しない。限定公開のスライドを参照し、コピー先の作業ディレクトリで設定する。
+- 各ページのリンク先も記録する。過去の検証記録は付録Bに残すが、現在の実行手順は本文を正とする。
 
----
+### S01 | 第3回 インフラ勉強会(GCP)
 
-# 導入
-
----
-
-### S01 | タイトル
-
-**[図版]** AWS版 第4回 表紙を複製。タイトルのみ差し替え。
+<!-- slide-id: g000slide -->
 
 **[本文]**
 
-```
+```text
 第3回 インフラ勉強会(GCP)
 
 〜 コンピューティング編 〜
@@ -94,17 +78,39 @@
 
 ### S02 | インフラ勉強会 スケジュール
 
-**[図版]** 第2回 S02 と同じスライドを複製。今日の行のマーカーは付けない。
+<!-- slide-id: g001slide -->
+
+**[本文]**
+
+```text
+◼ロードマップ(内容は随時変更される可能性あり)
+
+2026年
+10月05日(月) 14-16時  GCP基礎 / IAM / Terraform
+10月26日(月) 14-16時  ネットワーク
+11月16日(月) 14-16時  コンピューティング
+12月10日(木) 15-17時  データベース
+12月24日(木) 17-19時  コンテナ
+
+2027年
+01月18日(月) 11-13時  ストレージ + CDN
+02月08日(月) 11-13時  CI/CD
+03月01日(月) 14-16時  監視・運用 + その他リソース
+03月18日(木) 15-17時  試験対策(ACE / CDL)
+04月05日(月) 11-13時  実践テスト + 総まとめ
+
+原則3週に1回・月曜or木曜・2時間
+```
 
 ---
 
 ### S03 | 前回の振り返り
 
-**[図版]** AWS版 第4回「前回」2枚を流用。中身を差し替え。
+<!-- slide-id: g002slide -->
 
 **[本文]**
 
-```
+```text
 ◼前回やったこと
 
 VPCはグローバル、サブネットはリージョン単位
@@ -115,133 +121,144 @@ IAP TCP forwarding で踏み台なしでVMに入った
 Private Google Access と Cloud NAT で外に出る経路を2種類作った
 ```
 
-**[話す]** 今日はこのネットワークの上に、実際に動くWebアプリを載せる。
-前回のリソースは削除済みなので、0. before のコードでネットワークを再作成する。
-
 ---
 
-### S04 | 今回
+### S04 | 今日のアジェンダ
 
-**[図版]** AWS版 第4回「ゴール」の「一番簡単なwebアプリケーションを作るぞ〜」の
-レイアウトを流用。
+<!-- slide-id: g003slide -->
 
 **[本文]**
 
-```
-一番簡単なWebアプリケーションを作るぞ〜
+```text
+Compute Engine / イメージ / Persistent Disk
 
-そして今日は AWSと部品の数が一番違う 回です
+VMでWebアプリケーションを動かす
+
+Cloud Load Balancing / ヘルスチェック
+
+Cloud DNS
+
+Googleマネージド SSL証明書
+
+ハンズオン：VM → HTTP → ドメイン → HTTPS
 ```
 
 ---
 
 ### S05 | ゴール
 
-**[図版]** **新規作成**。AWS版 第4回「ゴール」の構成図をベースにするが、
-**ロードバランサの内部構造を描き足す**のがポイント。
-
-- VPCの枠を最外周に(第2回 S05 と同じ描き方)
-- LBの箱を「グローバル外部IP → 転送ルール → ターゲットプロキシ → URLマップ →
-  バックエンドサービス → インスタンスグループ」の6段に分解して描く
-- LBはVPCの**外側**に描く(Googleのフロントエンドなので)
-- private サブネットの中に web VM
-- 左に Cloud DNS の箱、上にブラウザ
-
-```
- [ブラウザ] ── https://yamada-taro.infra-study-gcp.sumsp.jp
-     │
- [Cloud DNS] Aレコード
-     │
- ┌───────────── Google のフロントエンド ─────────────┐
- │ グローバル外部IP → 転送ルール(443) → HTTPSプロキシ  │
- │                                       │ 証明書      │
- │                                   URLマップ          │
- │                                       │              │
- │                              バックエンドサービス     │
- │                                 ├ ヘルスチェック     │
- └─────────────────────────────┼──────────────┘
- ┌─ VPC ────────────────────────┼──────────────┐
- │  ┌─ asia-northeast1 ──────────┼───────────┐  │
- │  │  private subnet                                  │  │
- │  │    インスタンスグループ ── [web VM] :80          │  │
- │  │  [Cloud Router + Cloud NAT]                      │  │
- │  └────────────────────────────────────┘  │
- └────────────────────────────────────────┘
-```
+<!-- slide-id: g004slide -->
 
 **[本文]**
 
-```
-これを理解して作れる！
-```
+```text
+独自ドメインの HTTPS で、外部IPを持たない Web VM にアクセスする
 
-**[話す]** 部品が多く見えるが、上から下へ一直線につながっているだけ。
-今日はこれを上から順に作っていく。
+Cloud DNS
+
+① 名前解決
+Aレコード → LBの外部IP
+
+ブラウザ
+
+https://[自分の名前].
+infra-study-gcp.sumsp.jp
+
+Google フロントエンド（VPCの外）
+
+Cloud Load Balancing
+グローバル外部 ALB
+
+外部IP ＋ 転送ルール :443
+
+HTTPS プロキシ ＋ SSL証明書
+
+URLマップ
+
+バックエンドサービス
+
+ヘルスチェックで VM の状態を確認
+
+② HTTPS
+443
+
+VPC ネットワーク
+
+private subnet
+asia-northeast1
+
+インスタンスグループ
+
+Compute Engine
+web VM :80
+外部IPなし
+
+③ HTTP
+80
+
+Cloud NAT
+Cloud Router で構成
+
+外向き通信
+インターネットへ
+
+ゴール：ブラウザに Web ページが表示される
+```
 
 ---
 
-# 準備
+### S06 | ハンズオンの準備
 
----
-
-### S06 | 準備
-
-**[図版]** AWS版 第4回「準備」を流用。コマンドを差し替え。
+<!-- slide-id: g005slide -->
 
 **[本文]**
 
-```
+```text
 ◼Cloud Shell を立ち上げる
-  プロジェクトが [プロジェクトID] になっているか確認
+  プロジェクトが [プロジェクトID] になっていることを確認
   gcloud config get-value project
+  (違うなら) gcloud config set project [プロジェクトID]
 
 ◼作業ディレクトリを作る
   mkdir -p ~/works/lesson3
-  cd ~/works/lesson3
 
 ◼サンプルコードを更新
   cd ~/infra-study && git pull
-  cd ~/works/lesson3
 
-★ 第2回のリソースは destroy しておいてください
+※ 第2回のリソースは destroy しておいてください
    同じ名前のVPCを作るので、残っていると衝突します
 ```
 
 ---
 
-### 個人設定の補助（第3回から）
+### S07 | コピー後に個人設定を反映する
+
+<!-- slide-id: personal_settings_slide -->
 
 **[本文]**
 
-```
+```text
 第3回からは、コピー後の個人設定だけを補助します。
+(common.tfとterraform.tfvarsの修正)
 
-移動とコピーは cd … && cp … の1コマンドです。
-コピーしたステップのディレクトリへ移動します。
-個人設定の反映は別コマンドで実行します。
 python3 ~/infra-study/gcp/tools/configure.py
 
 初回：project ID・user name・作成済みtfstateバケット名を入力
 次回：保存した3項目を反映（変更する場合は --edit）
 保存先：~/.config/infra-study/profile.json（Git管理外）
 
-common.tf のbackend bucketと、terraform.tfvars の
-project_id・user_name だけを反映します。prefix・stateは変更しません。
-DNSやサブネットなど、コピーで戻った値は別途確認してください。
-
-スクリプトはコピー・バケット作成・Terraform実行を行いません。
+common.tf のbackend bucketと、terraform.tfvars のproject_id・user_name だけを反映します。
 ```
 
 ---
 
-### S07 | 前回までの構成を作成する
+### S08 | Step0 実行
 
-**[図版]** AWS版と同じく、前回までの完成コードから開始する。
-コードをGCP版に差し替え。
+<!-- slide-id: g006slide -->
 
 **[本文]**
 
-```
+```text
 cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"0. before" ./
 cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
@@ -249,54 +266,39 @@ python3 ~/infra-study/gcp/tools/configure.py
 0. before は、前回のネットワークの完成コードです。
 VPC / public・private subnet / Cloud Router / Cloud NAT
 
-初回だけ project ID・user name・tfstateバケット名を入力します。
-次回以降は保存した値を反映します。サブネットなどの値は別途確認します。
+terraform init
+terraform plan, terraform apply
 
-この作業ディレクトリで、次のページの init → plan → apply を実行します。
-
-以降もステップのディレクトリをコピーし、その中で実行します。
-コピー後に個人設定を再反映し、前回分のリソースとstateを引き継ぎます。
-コピーで各回固有の設定も戻るため、DNSやサブネットなどを確認してください。
-```
-
-**[話す]** `0. before` は開始時点の完成コードです。後続ステップはそれぞれのディレクトリに移動し、コピー後に `configure.py` で3項目を再反映します。各回固有の値はコピー後に確認・設定します。stateはそのまま使います。
-
----
-
-### S08 | Step0 実行
-
-**[本文]**
-
-```
-  terraform init
-  terraform plan
-  terraform apply
 
 ◼確認
-  gcloud compute networks list --filter="name:[自分の名前]-vpc"
-  gcloud compute networks subnets list --filter="network:[自分の名前]-vpc"
-  gcloud compute routers list --filter="name:[自分の名前]"
-
-★ 前回と同じものができていればOK
+gcloud compute networks list --filter="name:[自分の名前]-vpc"
+gcloud compute networks subnets list --filter="network:[自分の名前]-vpc"
+gcloud compute routers list --filter="name:[自分の名前]"
 ```
 
-**[話す]** `terraform init` は provider とbackendを初期化する。planで前回分の構成を確認してからapplyする。
-
 ---
 
-# Compute Engine
+### S09 | Compute Engine
 
----
-
-### S09 | Compute Engine とは
-
-**[図版]** AWS版 第4回「EC2」のテキストスライドを流用。用語を差し替え。
+<!-- slide-id: audit_section_3_0 -->
 
 **[本文]**
 
+```text
+
 ```
+
+---
+
+### S10 | Compute Engine とは
+
+<!-- slide-id: g008slide -->
+
+**[本文]**
+
+```text
 ◼Compute Engine (GCE)
-GCPが提供する仮想マシンサービス
+  GCPが提供する仮想マシンサービス
 
 秒単位の従量課金(最低1分)
 数十秒で起動する
@@ -304,28 +306,23 @@ GCPが提供する仮想マシンサービス
 イメージからOSを選ぶ。カスタムイメージも作れる
 ストレージとして Persistent Disk を使う
 OS Login でSSHする(鍵の配布が不要)
-
-★ AWSのEC2とほぼ同じ。呼び名が違うだけ
-   AMI     → イメージ
-   EBS     → Persistent Disk
-   Key Pair → OS Login(鍵そのものが不要になる)
 ```
 
 ---
 
-### S10 | マシンタイプ
+### S11 | マシンタイプ
 
-**[図版]** 新規。マシンファミリーの表。
+<!-- slide-id: g009slide -->
 
 **[本文]**
 
-```
+```text
 ◼マシンタイプ
 「シリーズ + 用途 + vCPU数」の組み合わせで決まる
 
-  e2-micro      汎用・共有CPU     2vCPU(共有) / 1GB
-  e2-medium     汎用              2vCPU / 4GB          ← 今日使うもの
-  n2-standard-4 汎用・性能重視     4vCPU / 16GB
+  e2-micro      汎用・共有CPU           2vCPU(共有) / 1GB
+  e2-medium     汎用                   2vCPU / 4GB
+  n2-standard-4 汎用・性能重視           4vCPU / 16GB
   c3-highcpu-8  コンピューティング最適化
   m3-ultramem   メモリ最適化
 
@@ -334,47 +331,42 @@ AWSは t3.micro のように決められた型から選ぶ
 GCPは カスタムマシンタイプ でvCPUとメモリを自由に指定できる
   → 「4vCPU / 10GB」のような中途半端な構成が作れる
 
-★ ネットワーク帯域は vCPU数に比例する
+※ ネットワーク帯域は vCPU数に比例する
    これはAWSと同じ考え方
 ```
 
 ---
 
-### S11 | イメージ
+### S12 | イメージ
+
+<!-- slide-id: g010slide -->
 
 **[本文]**
 
-```
+```text
 ◼イメージ
-OSとその初期状態をまとめたもの。AWSのAMIに相当
+  OSとその初期状態をまとめたもの。AWSのAMIに相当
 
-  debian-cloud/debian-12       Debian 12
+  debian-cloud/debian-12
   ubuntu-os-cloud/ubuntu-2404-lts
-  cos-cloud/cos-stable         Container-Optimized OS
+  cos-cloud/cos-stable
 
 ◼イメージファミリー
-「debian-12」のようにファミリー名を指定すると、
-その時点の最新版が使われる
+「debian-12」のようにファミリー名を指定すると、その時点の最新版が使われる
 
   image = "debian-cloud/debian-12"
           └ プロジェクト ┘└ ファミリー ┘
-
-★ AWSのAMI IDは ami-02c3627b04781eada のような不透明なID
-   しかもリージョンごとに違った
-   GCPはファミリー名で書けるし、グローバルに同じ名前が使える
 ```
-
-**[話す]** AWSでは `ami-02c3627b04781eada` のようなIDを直書きすることが多い。
-これはリージョンを跨げず、時間が経つと古くなるのが地味に不便。
-GCPはここが楽。
 
 ---
 
-### S12 | Persistent Disk
+### S13 | Persistent Disk
+
+<!-- slide-id: g011slide -->
 
 **[本文]**
 
-```
+```text
 ◼Persistent Disk (PD)
 VMにネットワーク経由で接続するブロックストレージ。AWSのEBSに相当
 
@@ -385,27 +377,17 @@ VMにネットワーク経由で接続するブロックストレージ。AWSの
 
 稼働中のままサイズを拡張できる(縮小は不可)
 スナップショットが取れる
-
-◼AWSとの違い
-EBSは同じAZのEC2にしか付けられなかった
-PDはゾーン単位なのは同じだが、
-リージョンPD にすると2ゾーンに同期複製できる
 ```
-
-**[話す]** 押していたら飛ばしてよい。第4回(データベース)で
-「ディスクの性能がDBの性能」という話をするときに戻ってくる。
 
 ---
 
-### S13 | webインスタンスを作る
+### S14 | webインスタンスを作る（1/2）
 
-**[図版]** AWS版 第4回「EC2」のコードスライドを流用。コードを差し替え。
-**`ami` と `key_name` が消えることを強調する**。
-**1枚には収まらないので2枚に分ける。** `google_compute_instance` を `boot_disk` の終わりで区切る。
+<!-- slide-id: g012slide -->
 
-**[本文]** (1枚目)
+**[本文]**
 
-```
+```text
 cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"1. web_instance" ./
 cd "1. web_instance"
 python3 ~/infra-study/gcp/tools/configure.py
@@ -417,7 +399,7 @@ resource "google_service_account" "web" {
 
 resource "google_compute_instance" "web" {
   name         = "${var.user_name}-web"
-  machine_type = "e2-micro"
+  machine_type = "e2-medium"
   zone         = "asia-northeast1-a"
 
   tags = ["${var.user_name}-web"]
@@ -430,18 +412,7 @@ resource "google_compute_instance" "web" {
     }
   }
 
-  # (次のページに続く)
-```
-
----
-
-### S13b | webインスタンスを作る(続き)
-
-**[本文]** (2枚目)
-
-```
-resource "google_compute_instance" "web" {
-  # (前のページの続き)
+~~~~~
 
   network_interface {
     subnetwork = google_compute_subnetwork.private.id
@@ -457,21 +428,19 @@ resource "google_compute_instance" "web" {
     scopes = ["cloud-platform"]
   }
 }
-
-★ private サブネットに置き、外部IPを持たせない
-   外部からのアクセスはロードバランサ経由にする
 ```
 
 ---
 
-### S14 | Step1 実行
+### S15 | Step1 実行
+
+<!-- slide-id: g013slide -->
 
 **[本文]**
 
-```
-  terraform init
-  terraform plan
-  terraform apply
+```text
+terraform init
+  terraform plan, terraform apply
 
 ◼確認(主な項目のみ抜粋)
   gcloud compute instances list --filter="name:[自分の名前]-web"
@@ -480,57 +449,41 @@ resource "google_compute_instance" "web" {
   INTERNAL_IP: 172.16.10.2
   EXTERNAL_IP:
   STATUS: RUNNING
-
-★ EXTERNAL_IP が空
 ```
-
-**[話す]** 出力は「項目名: 値」の縦並びで出る。スライドは主な項目だけを抜粋している。
-実際には `MACHINE_TYPE`(e2-medium)や `PREEMPTIBLE`(空)も出る。
 
 ---
 
-### S15 | OS Login でVMに入る
+### S16 | OS Login でVMに入る
 
-**[図版]** AWS版 第4回「SSM セッションマネージャによるアクセス確認」を流用。
-中身を IAP + OS Login に差し替え。**比較として1枚残す価値がある**
-(AWSはSSM、GCPはIAP+OS Loginという対応関係)。
+<!-- slide-id: g014slide -->
 
 **[本文]**
 
-```
+```text
 ◼第2回でやった方法でVMに入る
 
-  gcloud compute ssh [自分の名前]-web \
-    --zone=asia-northeast1-a --tunnel-through-iap
+  gcloud compute ssh [自分の名前]-web --zone=asia-northeast1-a --tunnel-through-iap
+
 
 ◼おさらい: 3つのゲート
-  Firewall Rule                    35.235.240.0/20 からの tcp:22
-  roles/iap.tunnelResourceAccessor トンネルを張る権限
-  roles/compute.osAdminLogin       OSにログインする権限
-  + roles/iam.serviceAccountUser   VMのSAを使う権限
+  Firewall Rule                      35.235.240.0/20 からの tcp:22
+  roles/iap.tunnelResourceAccessor   トンネルを張る権限
+  roles/compute.osAdminLogin         OSにログインする権限
+    + roles/iam.serviceAccountUser   VMのSAを使う権限
 
   → firewall.tf と iap.tf で設定済み
-
-◼AWSでいうと
-SSM セッションマネージャーに相当する
-  SSHキー不要 / 22番をインターネットに開けない / IAMで制御 / ログが残る
 ```
-
-**[話す]** AWSでは踏み台+SSH鍵ではなく、SSMセッションマネージャーが推奨される。
-GCPは第2回の時点で既にIAPを使っているので、同じ方法のまま続けられる。
 
 ---
 
-### S16 | アプリを起動する
+### S17 | アプリを起動する
 
-**[図版]** AWS版 第4回「EC2」のWebアプリ起動コマンドスライドを流用。
-コマンドを Debian 用に差し替え(`yum` → `apt-get`)。
+<!-- slide-id: g015slide -->
 
 **[本文]**
 
-```
+```text
 ◼VMの中で
-
   sudo su -
   apt-get update
   apt-get install -y docker.io git
@@ -549,40 +502,17 @@ GCPは第2回の時点で既にIAPを使っているので、同じ方法のま�
 
   Hello, Infra Study
   hostname: [CONTAINER ID]
-
-★ ホストの80番を、コンテナの8080番にマッピングしている
-   ロードバランサは80番に繋ぎに来ます
 ```
-
-**[話す]** `git clone` が通るのは、第2回で作った Cloud NAT があるから。
-NATを消してしまった人はここで詰まる。前回の内容がそのまま効いてくる。
-
-このアプリはシンプルなGoのアプリ。
-hostnameを返すので、あとで冗長化したときに振り分けが見える。
-
-**★ ここは時間がかかる。実測で約2分。**
-内訳は `apt-get update` + `docker.io` のインストール + `docker build`
-(golangイメージのpullとビルド)。全員が同時にやるともう少しかかる可能性がある。
-
-待っている間に S18(自動化するなら)の話をすると尺が埋まる。
-
-> **検証済み(2026-08-28)**:
-> e2-micro  → 6分46秒
-> e2-medium → **2分14秒**
->
-> 当初 e2-micro で作っていたが、第4回でSpannerのクライアントライブラリを
-> ビルドするとe2-microでは終わらないことが判明したため、
-> 第3回から **e2-medium** に変更した。副次的に第3回のビルドも短くなっている。
 
 ---
 
-### S17 | ローカルでは動いた
+### S18 | ローカルでは動いた
 
-**[図版]** AWS版 第4回「ELB」の「LocalでWebサーバが構築できました！」を流用。
+<!-- slide-id: g016slide -->
 
 **[本文]**
 
-```
+```text
 LocalでWebサーバが構築できました！
 
 でも、外からは見えません
@@ -590,96 +520,61 @@ LocalでWebサーバが構築できました！
   外部IPを持っていない
   ロードバランサもまだない
 
+
+
+
+
 インターネットからアクセスできるようにしよう！！
 ```
 
 ---
 
-### S18 | (参考)自動化するなら
+### S19 | （参考）自動化するなら
+
+<!-- slide-id: g017slide -->
 
 **[本文]**
 
-```
+```text
 ◼今は手で入れて docker run している
-
 実務ではこうする
-
   起動スクリプト(metadata の startup-script)
-    VMの初回起動時にrootで実行される
-    → 宿題2で使います
+    VMの初回起動時にrootで実行される → 宿題2で使います
 
   Container-Optimized OS
     コンテナを動かすことに特化したOS
 
-  そもそもVMを使わない → Cloud Run
-    → 第5回でやります
+  MIG (Managed Instance Group)
+    インスタンステンプレートから、VMを自動で作って維持する仕組み
 
-★ 第5回まで来ると「この悩み自体が消える」ことが分かります
+
+
+  そもそもVMを使わない → Cloud Run → 第5回でやります
 ```
-
-**[話す]** ここで伏線を張っておくと第5回が効く。
 
 ---
 
-### S19 | (概説)MIG — マネージドインスタンスグループ
+### S20 | Cloud Load Balancing
+
+<!-- slide-id: audit_section_3_1 -->
 
 **[本文]**
 
+```text
+
 ```
-◼MIG (Managed Instance Group)
-インスタンステンプレートから、VMを自動で作って維持する仕組み
-
-  台数を指定すれば維持してくれる(壊れたら作り直す)
-  オートスケール
-  ローリングアップデート
-  リージョンMIGなら複数ゾーンへの分散も自動
-
-◼AWSでいうと
-Auto Scaling Group + 起動テンプレート
-
-★ 今日は使いません
-   1台をロードバランサに繋ぐところに集中します
-   宿題2で「手動で2台にする」のをやると、
-   MIGが何を自動化してくれるのかが分かります
-```
-
-**[話す]** 押していたらここは飛ばして、証明書の待ち時間に回す。
 
 ---
 
-### S20 | Step1 完了
+### S21 | Cloud Load Balancing とは
 
-**[図版]** AWS版 第4回「EC2」の「Webサーバ インスタンス作成完了！」の構図を流用。
-**スクリーンショットは不要**(2026-09-18 判断)。講師が自分の画面を共有して実演する。
-
----
-
-### S21 | 休憩
+<!-- slide-id: g021slide -->
 
 **[本文]**
 
-```
-5分休憩
-
-後半はロードバランサです
-今日の山場です
-```
-
----
-
-# ロードバランサ
-
----
-
-### S22 | Cloud Load Balancing とは
-
-**[図版]** AWS版 第4回「ELB」のテキストスライドを流用。
-
-**[本文]**
-
-```
+```text
 ◼Cloud Load Balancing
-GCPのロードバランシングサービス
+  GCPのロードバランシングサービス
 
 スケーラブルな負荷分散
 高い可用性
@@ -693,101 +588,163 @@ AWS  ALBはVPCの中の、指定したサブネットに置かれる
 GCP  グローバル外部LBはVPCの外側、Googleのフロントエンドにいる
      世界中のGoogleのエッジで受けて、最も近いバックエンドへ流す
      IPは1つ(エニーキャスト)
-
-★ だから「LBをどのサブネットに置くか」という設定がない
 ```
-
-**[話す]** ここがAWS経験者に一番刺さるところ。
-ALBは「VPCの中の箱」だったが、GCPのLBは「Googleのネットワークそのもの」。
 
 ---
 
-### S23 | ロードバランサの種類
+### S22 | ゴールの再確認
+
+<!-- slide-id: h54e78a0d7390a0a0_16_3 -->
 
 **[本文]**
 
-```
-◼GCPのロードバランサは用途で分かれている
+```text
+独自ドメインの HTTPS で、外部IPを持たない Web VM にアクセスする
 
-グローバル外部アプリケーションLB   HTTP(S)。世界中で1つのIP  ← 今日使う
-リージョン外部アプリケーションLB   HTTP(S)。リージョン内
-外部パススルーNLB                  TCP/UDP。L4
-内部アプリケーションLB             VPC内部向けHTTP(S)
-内部パススルーNLB                  VPC内部向けL4
+Cloud DNS
 
-◼AWSでいうと
-  ALB → アプリケーションLB
-  NLB → パススルーNLB
-  CLB → (廃止方向。GCPに相当なし)
+① 名前解決
+Aレコード → LBの外部IP
 
-★ 今日作るのは「グローバル外部アプリケーションLB」
+ブラウザ
+
+https://[自分の名前].
+infra-study-gcp.sumsp.jp
+
+Google フロントエンド（VPCの外）
+
+Cloud Load Balancing
+グローバル外部 ALB
+
+外部IP ＋ 転送ルール :443
+
+HTTPS プロキシ ＋ SSL証明書
+
+URLマップ
+
+バックエンドサービス
+
+ヘルスチェックで VM の状態を確認
+
+② HTTPS
+443
+
+VPC ネットワーク
+
+private subnet
+asia-northeast1
+
+インスタンスグループ
+
+Compute Engine
+web VM :80
+外部IPなし
+
+③ HTTP
+80
+
+Cloud NAT
+Cloud Router で構成
+
+外向き通信
+インターネットへ
+
+ゴール：ブラウザに Web ページが表示される
 ```
 
 ---
 
-### S24 | ゴールの再確認
+### S23 | ゴールのLBをTerraformリソースに分解する
 
-**[図版]** S05のゴール図を再掲。LBの部分だけハイライト。
-
-**[話す]** これから作る6つの部品が、この図のどこに当たるかを指しながら説明する。
-
----
-
-### S25 | ゴールのLBをTerraformリソースに分解する
-
-**[図版]** S24のHTTPSゴール図に合わせた、AWS ALBとの左右比較。Google Slidesでは23ページ。編集可能な図形・テキストで構成する。
-
-- AWS側：`aws_lb` → `aws_lb_listener`（HTTPS :443・証明書）→ `aws_lb_target_group`（ヘルスチェック設定）→ `aws_lb_target_group_attachment` → EC2（アプリ :80）。
-- GCP側：外部IP（`google_compute_global_address`）→ 転送ルール :443（`google_compute_global_forwarding_rule`）→ HTTPSプロキシ（`google_compute_target_https_proxy`）→ URLマップ（`google_compute_url_map`）→ バックエンドサービス（`google_compute_backend_service`）→ インスタンスグループ（`google_compute_instance_group`）→ Compute Engine / web VM :80（外部IPなし）。
-- SSL証明書（`google_compute_managed_ssl_certificate`）をHTTPSプロキシの横に配置し、点線で関連付ける。
-- ヘルスチェック（`google_compute_health_check`）をバックエンドサービスの横に配置し、点線で関連付ける。利用者の通信経路上には置かない。
-- Googleフロントエンド側は黄色、VPC / private subnet内のインスタンスグループとWeb VMは青色にする。
+<!-- slide-id: g024slide -->
 
 **[本文]**
 
-```
-Step2 は HTTP、Step4 で HTTPS 化。URLマップとバックエンドサービスは共通で使う。
-```
+```text
+AWS ALB
 
-**[話す]** 前ページのゴールを、Terraformのリソース名に対応付ける。HTTPSはGoogleフロントエンド側で受け、VMへはHTTPの80番で転送する。SSL証明書はHTTPSプロキシに関連付ける。ヘルスチェックはバックエンドサービスから参照する設定で、利用者の通信が通過する部品ではない。Step2ではHTTPで作り、Step4でHTTPSを追加する。
+GCP：22ページのHTTPS構成
+
+aws_lb
+
+aws_lb_listener
+HTTPS :443 ＋ 証明書
+
+aws_lb_target_group
+ヘルスチェックを設定
+
+aws_lb_target_group_attachment
+
+EC2（アプリ :80）
+
+外部IP
+google_compute_global_address
+
+Google フロントエンド（VPCの外）
+
+転送ルール :443
+google_compute_global_forwarding_rule
+
+HTTPS プロキシ
+google_compute_target_https_proxy
+
+URLマップ
+google_compute_url_map
+
+バックエンドサービス
+google_compute_backend_service
+
+インスタンスグループ
+google_compute_instance_group
+
+VPC / private subnet
+HTTP :80 で VM へ
+
+Compute Engine / web VM :80
+外部IPなし
+
+SSL証明書
+google_compute_managed_ssl_certificate
+
+ヘルスチェック
+google_compute_health_check
+```
 
 ---
 
-### S26 | インスタンスグループ
+### S24 | インスタンスグループ
 
-**[図版]** 新規。バックエンドサービスとVMの間にインスタンスグループが挟まる図。
+<!-- slide-id: g025slide -->
 
 **[本文]**
 
-```
+```text
 ◼インスタンスグループ
-VMをまとめる箱。バックエンドサービスはこれを見る
+  VMをまとめる箱。バックエンドサービスはこれを見る
 
 ◼AWSとの違い
-AWSのターゲットグループは EC2 を直接アタッチできた
-  aws_lb_target_group_attachment で target_id = インスタンスID
-
-GCPのバックエンドサービスは VMを直接持てない
-  必ずインスタンスグループ(またはNEG)を挟む
+  AWSのターゲットグループは EC2 を直接アタッチできた
+  GCPのバックエンドサービスは VMを直接持てない → 必ずインスタンスグループ(またはNEG)を挟む
 
 ◼2種類ある
-  非マネージド(unmanaged)  自分でVMを入れる  ← 今日はこちら
-  マネージド(MIG)          自動で作って維持   ← S19で概説したもの
+  非マネージド(unmanaged)  自分でVMを入れる
+  マネージド(MIG)          自動で作って維持
 
-★ ゾーン単位のリソース
-   別ゾーンのVMは同じインスタンスグループに入れられない
-   → 宿題2でここに当たります
+※ ゾーン単位のリソース
+   別ゾーンのVMは同じインスタンスグループに入れられない → 宿題2でここに当たります
 ```
 
 ---
 
-### S27 | named_port
+### S25 | named_port
+
+<!-- slide-id: g026slide -->
 
 **[本文]**
 
-```
+```text
 ◼named_port
-「このグループの http という名前のポートは 80番」と名前を付ける
+ 「このグループの http という名前のポートは 80番」と名前を付ける
 
   resource "google_compute_instance_group" "web" {
     named_port {
@@ -801,20 +758,18 @@ GCPのバックエンドサービスは VMを直接持てない
   }
 
 ◼なぜ名前で指定するのか
-バックエンドサービスに複数のインスタンスグループがぶら下がったとき、
-グループごとにポートが違っても「http」という名前で揃えられる
-
-★ ここを書き忘れるとヘルスチェックが通らない
-   port_name と named_port の name が一致しているか必ず確認
+バックエンドサービスに複数のインスタンスグループがぶら下がったとき、グループごとにポートが違っても「http」という名前で揃えられる
 ```
 
 ---
 
-### S28 | ヘルスチェック
+### S26 | ヘルスチェック
+
+<!-- slide-id: g027slide -->
 
 **[本文]**
 
-```
+```text
 ◼ヘルスチェック
 バックエンドが生きているかを定期的に確認する
 
@@ -835,25 +790,21 @@ GCPのバックエンドサービスは VMを直接持てない
 ◼AWSとの違い
 AWSではターゲットグループの設定項目だった
 GCPは独立したリソース → 複数のバックエンドサービスで使い回せる
-
-★ しきい値はトレードオフ
-   短くすると障害検知が速いが、一時的なもたつきで落とされる
-   宿題2でVMを止めてみると体感できます
 ```
 
 ---
 
-### S29 | Terraform コード(LB)
+### S27 | Terraform コード（LB）（1/3）
 
-**[図版]** AWS版 第4回「ALB」のコードスライドを流用。
-**AWS版は1枚に3リソース収まっていたが、GCP版は3枚に分ける**(インスタンスグループ+ヘルスチェック / バックエンドサービス / 残りの4リソース)。
+<!-- slide-id: g028slide -->
 
-**[本文]** (1枚目)
+**[本文]**
 
-```
+```text
 cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"2. loadbalancer" ./
 cd "2. loadbalancer"
 python3 ~/infra-study/gcp/tools/configure.py
+
 
 resource "google_compute_instance_group" "web" {
   name      = "${var.user_name}-web-ig"
@@ -882,11 +833,13 @@ resource "google_compute_health_check" "web" {
 
 ---
 
-### S29b | Terraform コード(LB)(続き)
+### S28 | Terraform コード（LB）（2/3）
 
-**[本文]** (2枚目)
+<!-- slide-id: g028bslide -->
 
-```
+**[本文]**
+
+```text
 resource "google_compute_backend_service" "web" {
   name          = "${var.user_name}-web-bs"
   protocol      = "HTTP"
@@ -902,11 +855,13 @@ resource "google_compute_backend_service" "web" {
 
 ---
 
-### S30 | Terraform コード(LB)(続き2)
+### S29 | Terraform コード（LB）（3/3）
 
-**[本文]** (3枚目)
+<!-- slide-id: g029slide -->
 
-```
+**[本文]**
+
+```text
 resource "google_compute_url_map" "web" {
   name            = "${var.user_name}-web-urlmap"
   default_service = google_compute_backend_service.web.id
@@ -927,109 +882,88 @@ resource "google_compute_global_forwarding_rule" "web_http" {
   ip_address = google_compute_global_address.web.id
   port_range = "80"
 }
-
-★ provider 8.0 から load_balancing_scheme の既定値が
-   EXTERNAL_MANAGED になりました
-   ネット上の古いサンプルには EXTERNAL と明示してあるものが多いですが、
-   今は書かなくてよいです
 ```
-
-**[話す]** バージョンによって既定値が変わる、というのはよくある話。
-ドキュメントを見るときは、自分が使っているバージョンのものを見ること。
-レジストリのドキュメントは既定で最新版が表示される。
 
 ---
 
-### S31 | Step2 実行 → 繋がらない
+### S30 | Step2 実行 → 繋がらない
 
-**[補足]** `[LBの外部IP]` は `terraform output -raw lb_ip` の実際の出力に置き換える。IPはGoogle Cloudが払い出すため、34で始まるとは限らない。固定IPとは予約したIPリソースを保持する間の値が固定という意味で、全員に同じ値が割り当てられる意味ではない。Google側からVMへ届く通信の送信元IPレンジとは別。
-
-**[参考]** [Google Cloud: 静的外部IPアドレスの予約](https://docs.cloud.google.com/vpc/docs/reserve-static-external-ip-address)
-
-**[図版]** **`no healthy upstream` と表示されたブラウザ画面を撮る**(★この回で撮る3枚のうちの1枚)。
-`get-health` の UNHEALTHY 出力は**撮らない**(2026-09-18 判断)。
-文言は本文に載せてあり、当日は受講者の画面に実物が出る。
+<!-- slide-id: g030slide -->
 
 **[本文]**
 
-```
-  terraform init
-  terraform plan
-  terraform apply
+```text
+terraform init
+  terraform plan, terraform apply
 
 ◼LBの外部IPを確認（環境ごとに異なる）
-  terraform output -raw lb_ip
-  → [LBの外部IP]
+  terraform output -raw lb_ip   → [LBの外部IP]
 
 ◼ブラウザでアクセスしてみる
-  http://[LBの外部IP]
+  http://[LBの外部IP]   → no healthy upstream
 
-  → 画面に no healthy upstream と表示される
-
-★ no healthy upstream は「正常な転送先がない」という意味
-   HTTPステータスは503（画面に503 Service Unavailableと表示される意味ではない）
+※ 画面の表示は no healthy upstream（正常な転送先がない）、HTTPステータスは503
    apply直後は接続タイムアウトになる場合があります。設定の反映まで1〜2分待ちます。
 
 ◼バックエンドの状態を見てみる
   gcloud compute backend-services get-health [自分の名前]-web-bs --global
 
   healthState: UNHEALTHY
-
-★ VMではアプリが動いている(curl localhost で確認済み)
-   なのにUNHEALTHY
 ```
-
-**[話す]** ブラウザ本文の `no healthy upstream` とHTTPステータスの `503 Service Unavailable` を区別する。必要なら `curl -i http://[LBの外部IP]/` でステータスと本文を確認する。ここで「なぜだと思う?」と受講者に聞く。
-第2回をやっていれば答えが出るはず。
-
-**502 と 503 の違い**も触れておくとよい。
-
-  503 Service Unavailable  健全なバックエンドが1つもない  ← 今回はこれ
-  502 Bad Gateway          バックエンドはいるが、応答が不正
-
-「503が出たらバックエンドが全滅、502ならアプリ側を疑う」と覚えておくと
-障害対応のときに切り分けが速い。
-
-> **検証済み(2026-08-28)**: apply直後は接続タイムアウト(curlで000)、
-> 約1.5分後から 503 が返るようになることを実測。
 
 ---
 
-### S32 | なぜ繋がらないのか ★
+### S31 | なぜ繋がらないのか
 
-**[図版]** Google Slidesの31ページ。ブラウザ → Google側 → VPC内のFirewall → web VMの横並びで、遮断される場所を示す。図形・テキストは編集可能にする。
-
-- ブラウザからLBへのHTTP :80は青い矢印。LBからブラウザへ503が返ることを添える。
-- Google側は黄色。LB（GFE）・ヘルスチェックと、VMから見た送信元IP `130.211.0.0/22`・`35.191.0.0/16` を示す。
-- VPC / private subnetは青い枠。その中に赤いFirewall枠とweb VM :80（外部IPなし）を置く。
-- Google側からFirewallへの矢印は赤色。Firewallに「受信許可なし」「TCP :80 を拒否」と×印を表示する。VMまでの区間は灰色の点線で「未到達」と示す。
+<!-- slide-id: g031slide -->
 
 **[本文]**
 
-```
-LBには届いているが、LBからVMへの通信がFirewallで止まっている
+```text
+Google側（VPCの外）
+LB・ヘルスチェック
+
+VMから見た送信元IP
+130.211.0.0/22
+35.191.0.0/16
+
+Firewall
+許可なし
+TCP :80
+拒否
+
+×
+
+VPC / private subnet
+
+web VM :80
+外部IPなし
 
 受信拒否 → ヘルスチェック失敗（UNHEALTHY）→ LB が 503 を返す
 
 次ページで追加：Google側から web VM への TCP :80 を許可
-送信元：上の2つのIPレンジ ／ 対象タグ：[自分の名前]-web
+送信元：上の2つのIPレンジ　／　対象タグ：[自分の名前]-web
+
+LBには届いているが、LBからVMへの通信がFirewallで止まっている
+
+ブラウザ
+
+HTTP :80
+
+未到達
+
+← 503
 ```
-
-**[話す]** この図はStep2のグローバル外部アプリケーションLBとVMインスタンスグループの構成。ブラウザからLBへの接続と、Google側からVMへの接続は別。今回は後者の受信許可がなく、ヘルスチェックが失敗してUNHEALTHYになる。次ページで、2つの送信元IPレンジからweb VMのTCP :80へ通信を許可する。503の原因は他にもあるため「9割これ」とは断定しない。
-
-**[参考]** [Google Cloud: Firewall rules](https://docs.cloud.google.com/load-balancing/docs/firewall-rules)
 
 ---
 
-### S33 | Firewall Rule を足す
+### S32 | Firewall Rule を足す（1/2）
 
-**[手順]** コピー先の `~/works/lesson3/"2. loadbalancer"` で、次の名前変更を実行してからapplyする。`.tf.example` はTerraformの読み込み対象外なので、最初のStep2実行では許可ルールが作られない。DNS・SSLなど後続の完成形では `firewall_lb.tf` として有効になっている。
-
-**[書式]** Google Slidesの32〜33ページ。前後のコード・実行ページに揃え、本文の左位置・上位置を統一する。コードはRoboto Mono 16pt、名前変更コマンドをコード枠の上に置き、コード部分だけを薄灰色・細線の枠で囲む。実行ページは本文18ptとし、`terraform apply` と `gcloud ... get-health` をそれぞれ同じ薄灰色のコマンド枠で囲む。
+<!-- slide-id: g032slide -->
 
 **[本文]**
 
-```
+```text
 mv firewall_lb.tf.example firewall_lb.tf
 
 resource "google_compute_firewall" "allow_lb_to_web" {
@@ -1050,34 +984,37 @@ resource "google_compute_firewall" "allow_lb_to_web" {
     ports    = ["80"]
   }
 }
+```
 
-  terraform apply
+---
+
+### S33 | Firewall Rule を足す（2/2）
+
+<!-- slide-id: p2_3_g032bdy_1 -->
+
+**[本文]**
+
+```text
+terraform plan, terraform apply
 
 ◼バックエンドの状態をもう一度
   gcloud compute backend-services get-health [自分の名前]-web-bs --global
 
   healthState: HEALTHY
 
-★ ヘルスチェックが通るまで30〜40秒かかります
+※ ヘルスチェックが通るまで30〜40秒かかります
    (check_interval_sec 10 × healthy_threshold 2 + Firewallの反映)
 ```
-
-> **検証済み(2026-08-28)**: apply完了から37秒でHEALTHY + HTTP 200 を確認。
-> 20秒時点ではまだUNHEALTHY。
 
 ---
 
 ### S34 | アクセス確認
 
-**[書式]** Google Slidesの34ページ。本文は前の実行ページと同じRoboto Mono 18pt・左位置・上位置に揃える。アクセスするURLは太字と薄灰色の枠で示し、レスポンスと補足説明は通常の本文で表示する。
-
-**[図版]** AWS版 第4回「アクセス確認」のブラウザ画面を流用。
-**新規スクリーンショット**(★この回で撮る3枚のうちの1枚)。
-ブラウザの表示結果は「成功したらこう見える」を先に見せる意味があるので残す。
+<!-- slide-id: g033slide -->
 
 **[本文]**
 
-```
+```text
 ◼ブラウザで、30ページで確認したLBの外部IPにアクセス
 
   http://[LBの外部IP]
@@ -1085,51 +1022,49 @@ resource "google_compute_firewall" "allow_lb_to_web" {
   Hello, Infra Study
   hostname: [CONTAINER ID]
 
-★ インターネットから、外部IPを持たないVMに繋がった
 
 ◼AWSのALBとの違い
-AWSのALBはDNS名(xxx.ap-northeast-1.elb.amazonaws.com)でアクセスする
-GCPはIPアドレスが固定で払い出されるので、IPで直接アクセスできる
+  AWSのALBはDNS名(xxx.ap-northeast-1.elb.amazonaws.com)でアクセスする
+  GCPはIPアドレスが固定で払い出されるので、IPで直接アクセスできる
+
+
+
+ LBのIPアドレスではなくカスタムドメインを使ってアクセスできるようにしよう！！
 ```
 
 ---
 
-# Cloud DNS
+### S35 | Cloud DNS
 
----
-
-### S35 | IPではなくドメインでアクセスしたい
-
-**[図版]** AWS版 第4回「Route53」の導入スライドを流用。
+<!-- slide-id: audit_section_3_2 -->
 
 **[本文]**
 
-```
-LBのIPアドレスではなく
-カスタムドメインを使ってアクセスできるようにしよう！！
+```text
+
 ```
 
 ---
 
 ### S36 | Cloud DNS とは
 
-**[図版]** AWS版 第4回「Route53」のテキストスライドを流用。用語を差し替え。
+<!-- slide-id: g035slide -->
 
 **[本文]**
 
-```
+```text
 ◼Cloud DNS：ドメイン名とIPアドレスの対応を管理するサービス
   DNSサーバーの運用はGoogleが担当。AWSのRoute 53に相当
 
 ◼ゾーン：あるドメインのDNSレコードをまとめて管理する単位
-  パブリック：インターネットから名前を調べられる（今回はこれ）
-  プライベート：指定したVPC内向けに名前を公開する
+パブリック：インターネットから名前を調べられる
+プライベート：指定したVPC内向けに名前を公開する
 
 ◼その他の特徴
-  SLA：DNS応答の月間稼働率100%が目標。未達時は条件付きで料金補填
-  エニーキャスト：世界各地のDNSサーバーへ経路に応じて振り分ける
+SLA：DNS応答の月間稼働率100%が目標。未達時は条件付きで料金補填
+エニーキャスト：世界各地のDNSサーバーへ経路に応じて振り分ける
                  問い合わせの遅延を抑え、障害にも備える
-  DNSSEC：電子署名でDNS応答の改ざん・偽装を検出する
+DNSSEC：電子署名でDNS応答の改ざん・偽装を検出する
 
 ◼今回使うパブリックゾーン
   ドメイン：infra-study-gcp.sumsp.jp
@@ -1137,23 +1072,16 @@ LBのIPアドレスではなく
   各自の名前：[自分の名前].infra-study-gcp.sumsp.jp
 ```
 
-**[補足]** SLAはDNS応答の稼働率の取り決めで、Webアプリの無停止を保証しない。DNSSECは署名を検証して偽装を検出する仕組み。勉強会のドメインと共有ゾーン名は教材に記載する。
-
-**[参考]** [Cloud DNS概要](https://docs.cloud.google.com/dns/docs/overview)、[Cloud DNS SLA](https://cloud.google.com/dns/sla)、[エニーキャスト](https://cloud.google.com/dns)
-
-**[話す]** 勉強会専用の別ゾーンを切って、Cloud DNS に委譲してある。
-他のドメインの設定には影響しない。
-
 ---
 
-### S37 | ゾーンは Terraform で作らない ★
+### S37 | ゾーンは Terraform で作らない
 
-**[図版]** 新規。警告色。1つのゾーンを全員で共有している図。
+<!-- slide-id: g036slide -->
 
 **[本文]**
 
-```
-★ ゾーンは data で参照するだけ。resource で書かない ★
+```text
+※ ゾーンは既にこちらで作成してるので、 data で参照する
 
 data "google_dns_managed_zone" "public" {
   name = var.dns_zone_name
@@ -1162,34 +1090,22 @@ data "google_dns_managed_zone" "public" {
 ◼なぜか
 全員で1つのプロジェクト・1つのゾーンを共有しています
 
-  resource で書くと → 誰か1人の terraform destroy で
-                      全員のドメインが消えます
-
-◼AWSでも同じです
-  data "aws_route53_zone" "public" { ... }
-
-★ 「共有しているものは data で参照する」
-   これは実務でも同じ。本番のVPCやゾーンをうっかり
-   自分のstateに取り込まないこと
+  resource で書くと → 誰か1人の terraform destroy で全員のドメインが消えます
 ```
-
-**[話す]** 第1回で話した「共有プロジェクトで権威的リソースを使わない」と同じ発想。
-自分が作ったものだけを自分のstateで管理する。
 
 ---
 
-### S38 | Terraform コード(DNS)
+### S38 | Terraform コード（DNS）
 
-**[事前設定]** `terraform.tfvars` の `dns_zone_name = "infra-study-gcp"` は設定済み。`configure.py` はこの値を変更しない。修正前にコピー済みの場合は空文字をこの値に変更する。planではレコード名が `[自分の名前].infra-study-gcp.sumsp.jp.` になることを確認する。
-
-**[図版]** AWS版 第4回「Route53」のコードスライドを流用。コードを差し替え。
+<!-- slide-id: g037slide -->
 
 **[本文]**
 
-```
+```text
 cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"3. dns" ./
 cd "3. dns"
 python3 ~/infra-study/gcp/tools/configure.py
+
 
 variable "dns_zone_name" {}
 
@@ -1206,12 +1122,7 @@ resource "google_dns_record_set" "web" {
   rrdatas = [google_compute_global_address.web.address]
 }
 
-★ dns_name は末尾にドットが付いた形で返ります
-   "infra-study-gcp.sumsp.jp."
-   なので "${var.user_name}." と繋ぐと
-   "yamada-taro.infra-study-gcp.sumsp.jp." になります
-
-★ AWSではALBへの alias レコードを使います
+※ AWSではALBへの alias レコードを使います
    GCPはLBが固定IPを持つので、普通のAレコードでよい
 ```
 
@@ -1219,12 +1130,13 @@ resource "google_dns_record_set" "web" {
 
 ### S39 | Step3 実行 → ドメインでアクセス
 
+<!-- slide-id: g038slide -->
+
 **[本文]**
 
-```
-  terraform init
-  terraform plan
-  terraform apply
+```text
+terraform init
+  terraform plan, terraform apply
 
 ◼DNSが引けるか確認
   dig +short [自分の名前].infra-study-gcp.sumsp.jp
@@ -1237,118 +1149,78 @@ resource "google_dns_record_set" "web" {
   Hello, Infra Study
   hostname: [CONTAINER ID]
 
-★ 反映に少し時間がかかることがあります(TTL 300秒)
+※ 反映に少し時間がかかることがあります(TTL 300秒)
+
+通信を暗号化したい = HTTPS化
 ```
 
 ---
 
-# マネージドSSL証明書
+### S40 | SSL証明書
 
----
-
-### S40 | HTTPS にしたい
-
-**[図版]** AWS版 第4回「ACM」の導入スライドを流用。
+<!-- slide-id: audit_section_3_3 -->
 
 **[本文]**
 
-```
-クライアント - サーバ間の通信を暗号化しよう！！
+```text
 
-  第1回 S20 でやったSSL/TLS証明書の話が、
-  ここで実物になります
 ```
 
 ---
 
 ### S41 | Googleマネージド SSL証明書
 
-**[図版]** AWS版 第4回「ACM」のテキストスライドを流用。
+<!-- slide-id: g040slide -->
 
 **[本文]**
 
-```
+```text
 ◼Googleマネージド SSL証明書
-無料。期限が来ると自動更新される。AWSのACMに相当
+  無料。期限が来ると自動更新される。AWSのACMに相当
 
 ◼AWSのACMとの違い
 
-ACM   DNS検証用のCNAMEレコードを自分で作る必要があった
+AWS   DNS検証用のCNAMEレコードを自分で作る必要があった
       (Terraformでは for_each で検証レコードを生成する)
 
 GCP   対象ドメインがこのロードバランサを向いていることを
-      Google側が確認して自動で発行する
-      → 検証レコードを作る作業がない
-
-◼AWSにあった罠がない
-CloudFront用のACMは us-east-1 で作らないといけない、という
-リージョン制約がありました。GCPには相当するものがありません
-
-★ そのぶんコードが短くなります
+      Google側が確認して自動で発行する → 検証レコードを作る作業がない
 ```
-
-**[話す]** AWSのACMでは `domain_validation_options` を
-`for_each` で回して検証レコードを作る、という少し複雑なコードが要る。
-GCPはそれが丸ごと要らない。
 
 ---
 
-### S42 | 発行には時間がかかる ★
+### S42 | 発行には時間がかかる
 
-**[図版]** 新規。状態遷移図。
-
-```
-  PROVISIONING ──(DNSが正しく引ける)──> ACTIVE
-       │
-       └──(引けない / 向き先が違う)──> FAILED_NOT_VISIBLE
-```
+<!-- slide-id: g041slide -->
 
 **[本文]**
 
-```
-  PROVISIONING ──(DNSが正しく引ける)──> ACTIVE
+```text
+PROVISIONING ──(DNSが正しく引ける)──> ACTIVE
        │
        └──(引けない / 向き先が違う)──> FAILED_NOT_VISIBLE
 
-★ 証明書の発行は 10分程度 かかります ★
+※ 証明書の発行は 10分程度 かかります
 
   PROVISIONING          発行処理中
   ACTIVE                発行完了
   FAILED_NOT_VISIBLE    ドメインが引けない・向き先が違う
 
-★ ACTIVE になってもすぐには繋がりません
-   さらに1分ほど待つとHTTPSが通るようになります
+※ ACTIVE になってもすぐには繋がりません.さらに1分ほど待つとHTTPSが通るようになります
 
 ◼前提条件
-Aレコードがこのロードバランサを向いていること
-  → だからStep3(DNS)を先にやりました
-
-◼確認コマンド
-  gcloud compute ssl-certificates describe [自分の名前]-web-cert --global \
-    --format="value(managed.status)"
-
-★ 待っている間に、宿題の説明とMIGの話をします
+  Aレコードがこのロードバランサを向いていること → だからStep3(DNS)を先にやりました
 ```
-
-**[話す]** ここが今日の時間管理のポイント。
-apply してから ACTIVE になるまで待つので、その間に別の話をする。
-
-> **検証済み(2026-08-28)**: apply から
-> **7分20秒で ACTIVE**、**8分20秒で HTTPS 200**。
-> ACTIVE になってからHTTPSが通るまでさらに約1分のラグがあった。
-> 「10分見ておけばよい」と案内してよい。
-> ただしGoogle側の処理なので、混み具合で伸びる可能性は残る。
 
 ---
 
-### S43 | Terraform コード(SSL)
+### S43 | Terraform コード（SSL）（1/2）
 
-**[図版]** AWS版 第4回「ACM」のコードスライドを流用。
-**AWS版の検証レコード生成コードが消えることを強調する**。
+<!-- slide-id: g042slide -->
 
 **[本文]**
 
-```
+```text
 cd ~/works/lesson3 && cp -rf ~/infra-study/gcp/lesson3/"4. ssl" ./
 cd "4. ssl"
 python3 ~/infra-study/gcp/tools/configure.py
@@ -1364,7 +1236,17 @@ resource "google_compute_managed_ssl_certificate" "web" {
     create_before_destroy = true
   }
 }
+```
 
+---
+
+### S44 | Terraform コード（SSL）（2/2）
+
+<!-- slide-id: p2_3_g042bdy_1 -->
+
+**[本文]**
+
+```text
 resource "google_compute_target_https_proxy" "web" {
   name             = "${var.user_name}-web-https-proxy"
   url_map          = google_compute_url_map.web.id   ← Step2のものを使い回す
@@ -1377,26 +1259,22 @@ resource "google_compute_global_forwarding_rule" "web_https" {
   ip_address = google_compute_global_address.web.id  ← 同じIPを使う
   port_range = "443"
 }
-
-★ URLマップとバックエンドサービスはそのまま使い回せる
-   S25で「役割ごとに分かれているから使い回せる」と言ったのがこれ
-
-★ 80番の転送ルールも残したままにします
-   同じIPに、ポートごとに転送ルールがぶら下がる形
 ```
 
 ---
 
-### S44 | Step4 実行
+### S45 | Step4 実行
+
+<!-- slide-id: g043slide -->
 
 **[本文]**
 
-```
-  terraform init
-  terraform plan
-  terraform apply
+```text
+terraform init
+  terraform plan, terraform apply
 
-◼証明書の状態を確認(何度か実行する)
+
+◼証明書の状態を確認(反映までに時間がかかるので、何度か実行する)
   gcloud compute ssl-certificates describe [自分の名前]-web-cert --global \
     --format="value(managed.status)"
 
@@ -1404,29 +1282,25 @@ resource "google_compute_global_forwarding_rule" "web_https" {
   ...
   ACTIVE
 
-★ ここで10分ほど待ちが入ります
-   その間に宿題の説明をします(S50〜S53へ)
+※ ここで10分ほど待ちが入ります
+   その間に宿題の説明をします(「宿題1 アンケート」以降へ)
 ```
 
 ---
 
-### S45 | アクセス確認
+### S46 | アクセス確認
 
-**[図版]** AWS版 第4回「アクセス確認」のブラウザ画面を流用。
-**新規スクリーンショット**(★この回で撮る3枚のうちの1枚)。
-**鍵マークが見えるように撮る。**鍵マークは口頭では伝わらない。
+<!-- slide-id: g044slide -->
 
 **[本文]**
 
-```
+```text
 ◼ブラウザでHTTPSアクセス
 
   https://[自分の名前].infra-study-gcp.sumsp.jp
 
   Hello, Infra Study
   hostname: [CONTAINER ID]
-
-★ アドレスバーに鍵マークが出ていればOK
 
 ◼証明書の中身を見てみる
   ブラウザの鍵マークをクリック → 証明書
@@ -1435,18 +1309,15 @@ resource "google_compute_global_forwarding_rule" "web_https" {
   有効期間: 約3ヶ月(自動更新される)
 ```
 
-> **検証済み(2026-08-28)**: HTTPSで `Hello, Infra Study` の応答を確認。
-> issuer は `C=US, O=Google Trust Services, CN=WR3`、有効期間は約90日。
-
 ---
 
-### S46 | 今日のゴール達成
+### S47 | 今日のゴール達成
 
-**[図版]** S05のゴール図を再掲し、全要素にチェックマークを付ける。
+<!-- slide-id: g045slide -->
 
 **[本文]**
 
-```
+```text
 ◼できたこと
 
 前回のネットワークを再作成し、stateを引き継いだ
@@ -1456,45 +1327,42 @@ private サブネットにVMを作り、コンテナでアプリを動かした
 Cloud DNS でドメインを割り当てた
 マネージドSSL証明書でHTTPS化した
 
-★ 外部IPを1つも持たないVMが、
-   HTTPSでインターネットに公開されている状態
+※ 外部IPを1つも持たないVMが、HTTPSでインターネットに公開されている状態
 ```
 
 ---
 
-# まとめ
+### S48 | 本日のまとめ ①
 
----
-
-### S47 | 本日のまとめ ①
-
-**[図版]** AWS版 第4回「本日のまとめ」のレイアウトを流用。
+<!-- slide-id: g046slide -->
 
 **[本文]**
 
-```
+```text
 ◼Compute Engine
 マシンタイプでCPU・メモリを選ぶ。カスタムも作れる
 イメージはファミリー名で指定できる(AMI IDのような不透明なIDではない)
 ストレージは Persistent Disk
-MIGを使えば自動で台数を維持できる(今回は非マネージドを使用)
+MIGを使えば自動で台数を維持できる
 
 ◼ロードバランサ
 グローバル外部LBはVPCの外側、Googleのフロントエンドにいる
 6つのリソースを上から下へ繋いで作る
-  グローバルIP → 転送ルール → プロキシ → URLマップ
-  → バックエンドサービス → インスタンスグループ
+   グローバルIP → 転送ルール → プロキシ → URLマップ
+                    → バックエンドサービス → インスタンスグループ
 バックエンドサービスはVMを直接持てない。インスタンスグループを挟む
 ヘルスチェックは独立リソース
 ```
 
 ---
 
-### S48 | 本日のまとめ ②
+### S49 | 本日のまとめ ②
+
+<!-- slide-id: g047slide -->
 
 **[本文]**
 
-```
+```text
 ◼今日一番のハマりどころ
 
   130.211.0.0/22
@@ -1504,30 +1372,36 @@ MIGを使えば自動で台数を維持できる(今回は非マネージドを�
   ヘルスチェックが通らず、503が返り続ける
 
 ◼Cloud DNS
-共有しているゾーンは data で参照する。resource で書かない
+  共有しているゾーンは data で参照する。resource で書かない
 
 ◼マネージドSSL証明書
 無料・自動更新
-DNS検証レコードを自分で作る必要がない(ACMとの違い)
+DNS検証レコードを自分で作る必要がない
 発行に数分〜60分かかる
 Aレコードが先にできている必要がある
 ```
 
 ---
 
-### S49 | 本日はここまで
+### S50 | 本日はここまで
 
-**[図版]** AWS版の同スライドを流用。
-
----
-
-### S50 | 宿題1 アンケート
-
-**[図版]** AWS版 第4回「宿題1」を流用。URLを差し替え。
+<!-- slide-id: g048slide -->
 
 **[本文]**
 
+```text
+
 ```
+
+---
+
+### S51 | 宿題1 アンケート
+
+<!-- slide-id: g049slide -->
+
+**[本文]**
+
+```text
 ◼アンケートのお願い
 
 1分で終わりますのでぜひフィードバックお願い致します！！
@@ -1536,18 +1410,19 @@ Aレコードが先にできている必要がある
 https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8fUjjIoF37A/viewform
 ```
 
-> **★ 全10回で同じフォームです。** 冒頭で「第何回か」を選ぶ形式なので、
-> 回答は1つのシートに溜まり、回ごとの推移が見えます。
+**[リンク]**
+
+- [https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8fUjjIoF37A/viewform](https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8fUjjIoF37A/viewform)
 
 ---
 
-### S51 | 宿題2 実装課題 ①②
+### S52 | 宿題2 実装課題 ①②
 
-**[図版]** AWS版 第4回「宿題2」のレイアウトを流用。中身を差し替え。
+<!-- slide-id: g050slide -->
 
 **[本文]**
 
-```
+```text
 ◼1. VMを再起動してもアプリが自動で立ち上がるようにしよう
 
   今のままだとVMを再起動するとアプリが止まります
@@ -1569,16 +1444,15 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
   回答例: gcp/lesson3/syukudai2/
 ```
 
-**[話す]** 2つ目は「AWSではAZごとにサブネットが必要だった」という
-第2回の話が効いてくる課題。GCPではサブネットを増やさなくていい。
-
 ---
 
-### S52 | 宿題2 実装課題 ③
+### S53 | 宿題2 実装課題 ③
+
+<!-- slide-id: g051slide -->
 
 **[本文]**
 
-```
+```text
 ◼3. Cloud Armor で社内IP制限をかけよう
 
   Cloud Armor は AWS の WAF に相当します
@@ -1593,30 +1467,25 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
   回答例: gcp/lesson3/syukudai3/
 
-★ ヘルスチェックはCloud Armorの影響を受けません
-   社内IP以外を全部拒否してもバックエンドはHEALTHYのままです
+// 社内IPは限定公開のスライドを参照して、コピー先のterraform.tfvarsに設定する
+company_ip = []
 ```
-
-**[話す]** 第2回でやった Firewall Rules との違いを意識してほしい。
-Firewall RulesはVPCの中、Cloud ArmorはVPCの外。守る層が違う。
 
 ---
 
-### S53 | 宿題3 ドキュメント
+### S54 | 宿題3 ドキュメント
 
-**[図版]** AWS版 第4回「宿題3」を流用。リンクを差し替え。
+<!-- slide-id: g052slide -->
 
 **[本文]**
 
-```
+```text
 ◼Compute Engine のドキュメントを眺めてみよう
   https://cloud.google.com/compute/docs
-  マシンタイプ / イメージ / Persistent Disk
 
 ◼Cloud Load Balancing のドキュメントを眺めてみよう
-  https://cloud.google.com/load-balancing/docs
-  外部アプリケーション ロードバランサの概要
-  ヘルスチェックの概要
+  https://cloud.google.com/load-balancing/docs/https
+  https://cloud.google.com/load-balancing/docs/health-check-concepts
 
 ◼Terraform google provider の各ドキュメントを眺めてみよう
   google_compute_instance
@@ -1624,20 +1493,42 @@ Firewall RulesはVPCの中、Cloud ArmorはVPCの外。守る層が違う。
   google_compute_health_check
   google_compute_backend_service
   google_compute_url_map
-  google_compute_target_http_proxy / target_https_proxy
-  google_compute_global_address / global_forwarding_rule
+  google_compute_target_http_proxy
+  google_compute_target_https_proxy
+  google_compute_global_address
+  google_compute_global_forwarding_rule
   google_compute_managed_ssl_certificate
   google_dns_record_set
   google_compute_security_policy
 ```
 
+**[リンク]**
+
+- [https://cloud.google.com/compute/docs](https://cloud.google.com/compute/docs)
+- [https://cloud.google.com/load-balancing/docs/https](https://cloud.google.com/load-balancing/docs/https)
+- [https://cloud.google.com/load-balancing/docs/health-check-concepts](https://cloud.google.com/load-balancing/docs/health-check-concepts)
+- [google_compute_instance](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance)
+- [google_compute_instance_group](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance_group)
+- [google_compute_health_check](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_health_check)
+- [google_compute_backend_service](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_backend_service)
+- [google_compute_url_map](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_url_map)
+- [google_compute_target_http_proxy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_target_http_proxy)
+- [google_compute_target_https_proxy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_target_https_proxy)
+- [google_compute_global_address](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_global_address)
+- [google_compute_global_forwarding_rule](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_global_forwarding_rule)
+- [google_compute_managed_ssl_certificate](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_managed_ssl_certificate)
+- [google_dns_record_set](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/dns_record_set)
+- [google_compute_security_policy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_security_policy)
+
 ---
 
-### S54 | 参考
+### S55 | 参考
+
+<!-- slide-id: g053slide -->
 
 **[本文]**
 
-```
+```text
 Compute Engine ドキュメント
   https://cloud.google.com/compute/docs
 
@@ -1657,49 +1548,55 @@ Google Cloud Armor
   https://cloud.google.com/armor/docs/cloud-armor-overview
 ```
 
----
+**[リンク]**
 
-### S55 | 注意事項
-
-**[図版]** AWS版「注意事項」スライドを流用。
-
-**[本文]**
-
-```
-宿題などで作成したリソースは
-必ず削除してください！
-
-  terraform destroy
-
-★ この回は課金されるものが多いです
-   Compute Engine   起動している間ずっと
-   ロードバランサ    転送ルールがある間ずっと
-   グローバル外部IP  使っていなくても課金される
-   Cloud NAT        起動している間ずっと
-
-★ 全員で1つのプロジェクトを共有しています
-   消し忘れはQuotaを圧迫して、他の人のapplyが止まります
-
-★ tfstate用のバケットは残しておいてください
-
-★ DNSレコードも消えます(ゾーン自体は残ります)
-```
+- [https://cloud.google.com/compute/docs](https://cloud.google.com/compute/docs)
+- [https://cloud.google.com/load-balancing/docs/https](https://cloud.google.com/load-balancing/docs/https)
+- [https://cloud.google.com/load-balancing/docs/health-check-concepts](https://cloud.google.com/load-balancing/docs/health-check-concepts)
+- [https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs)
+- [https://cloud.google.com/dns/docs](https://cloud.google.com/dns/docs)
+- [https://cloud.google.com/armor/docs/cloud-armor-overview](https://cloud.google.com/armor/docs/cloud-armor-overview)
 
 ---
 
-### S56 | おしまい
+### S56 | 注意事項
 
-**[図版]** AWS版「おしまい」スライドを流用。
+<!-- slide-id: g054slide -->
 
 **[本文]**
 
+```text
+宿題などで作成したリソースは必ず削除してください！
+
+◼リソースの削除(最後に apply したディレクトリで実行)
+  cd ~/works/lesson3/syukudai3       ← 実装課題③まで
+  cd ~/works/lesson3/syukudai2       ← 実装課題②まで
+  cd ~/works/lesson3/syukudai1       ← 実装課題①まで
+  cd ~/works/lesson3/"4. ssl"        ← 講義 Step4 まで
+
+  terraform destroy   → 確認で yes と入力
+
+※ この回は課金されるものが多いです
+   Compute Engine / ロードバランサ / 外部IP / Cloud NAT
+   使い終わったらリソースを削除してください
+
+※ 全員で1つのプロジェクトを共有しています
+   消し忘れはQuotaを圧迫して、他の人のapplyを止めます
+
+※ tfstate用のバケットは残しておいてください
+※ 自分のDNSレコードも消えます(共有ゾーン自体は残ります)
 ```
-次回は データベース編 です
 
-Cloud SQL / Memorystore
-今日作ったアプリからDBに繋ぎます
+---
 
-お楽しみに！！
+### S57 | おしまい
+
+<!-- slide-id: g055slide -->
+
+**[本文]**
+
+```text
+次回 データベース編 もお楽しみに！
 ```
 
 ---
@@ -1726,7 +1623,9 @@ AWS版 第4回との対応:
 
 ---
 
-# 付録B: 制作メモ / 要確認事項
+# 付録B: 過去の制作・検証記録（旧ページ番号）
+
+この付録は2026年8〜9月時点の履歴。S番号・構成・所要時間は当時のものであり、現在の57ページとの対応や現構成での動作を保証しない。現在の作図・手順は本文と正本を参照する。
 
 ## 実環境での動作確認: **完了(2026-08-28)**
 
