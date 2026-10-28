@@ -1197,7 +1197,7 @@ resource "google_service_account_iam_member" "build_act_as_run" {
 
 ◼デプロイされたか確認
 
-  curl https://[自分の名前].[勉強会のドメイン]/
+  curl https://[自分の名前].infra-study-gcp.sumsp.jp/
 
   Hello, Infra Study!!          ← 変更が反映されている
   version: a1b2c3d              ← コミットのSHA

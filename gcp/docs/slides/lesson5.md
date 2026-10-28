@@ -483,7 +483,7 @@ terraform apply
 **[図版]** **新規作成**。S04の移行図をベースに、詳細版を描く。
 
 ```
- [ブラウザ] ── https://<自分の名前>.<勉強会のドメイン>
+ [ブラウザ] ── https://<自分の名前>.infra-study-gcp.sumsp.jp
      │
  [Cloud DNS] ── 第3回で作ったAレコード(そのまま)
      │
@@ -1135,7 +1135,7 @@ GCPにはこれが無い、というのは移行時に必ず話題になる。
 
 ◼第3回で作ったドメインで見えるようにする
 
-  https://[自分の名前].[勉強会のドメイン]
+  https://[自分の名前].infra-study-gcp.sumsp.jp
 
 ★ ドメインも証明書もそのまま
    ロードバランサの向き先だけ Cloud Run にします
@@ -1284,7 +1284,7 @@ resource "google_compute_global_forwarding_rule" "https" {
 
 ◼カスタムドメインでアクセス
 
-  https://[自分の名前].[勉強会のドメイン]
+  https://[自分の名前].infra-study-gcp.sumsp.jp
 
   Hello, Infra Study
   hostname: localhost
