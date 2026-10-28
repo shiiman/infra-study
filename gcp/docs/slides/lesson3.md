@@ -942,6 +942,10 @@ resource "google_compute_global_forwarding_rule" "web_http" {
 
 ### S31 | Step2 実行 → 繋がらない
 
+**[補足]** `[LBの外部IP]` は `terraform output -raw lb_ip` の実際の出力に置き換える。IPはGoogle Cloudが払い出すため、34で始まるとは限らない。固定IPとは予約したIPリソースを保持する間の値が固定という意味で、全員に同じ値が割り当てられる意味ではない。Google側からVMへ届く通信の送信元IPレンジとは別。
+
+**[参考]** [Google Cloud: 静的外部IPアドレスの予約](https://docs.cloud.google.com/vpc/docs/reserve-static-external-ip-address)
+
 **[図版]** **503エラーのブラウザ画面を撮る**(★この回で撮る3枚のうちの1枚)。
 `get-health` の UNHEALTHY 出力は**撮らない**(2026-09-18 判断)。
 文言は本文に載せてあり、当日は受講者の画面に実物が出る。
@@ -953,12 +957,12 @@ resource "google_compute_global_forwarding_rule" "web_http" {
   terraform plan
   terraform apply
 
-◼LBのIPアドレスを確認
-  terraform output lb_ip
-  → 34.xx.xx.xx
+◼LBの外部IPを確認（環境ごとに異なる）
+  terraform output -raw lb_ip
+  → [LBの外部IP]
 
 ◼ブラウザでアクセスしてみる
-  http://34.xx.xx.xx
+  http://[LBの外部IP]
 
   → 503 Service Unavailable
 
@@ -1074,9 +1078,9 @@ resource "google_compute_firewall" "allow_lb_to_web" {
 **[本文]**
 
 ```
-◼ブラウザでLBのIPアドレスにアクセス
+◼ブラウザで、30ページで確認したLBの外部IPにアクセス
 
-  http://34.xx.xx.xx
+  http://[LBの外部IP]
 
   Hello, Infra Study
   hostname: [CONTAINER ID]
@@ -1216,7 +1220,7 @@ resource "google_dns_record_set" "web" {
 ◼DNSが引けるか確認
   dig +short [自分の名前].[勉強会のドメイン]
 
-  34.xx.xx.xx
+  [LBの外部IPと一致することを確認]
 
 ◼ブラウザでアクセス
   http://[自分の名前].[勉強会のドメイン]
