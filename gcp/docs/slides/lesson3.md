@@ -733,50 +733,23 @@ ALBは「VPCの中の箱」だったが、GCPのLBは「Googleのネットワー
 
 ---
 
-### S25 | LBは6つのリソースでできている ★
+### S25 | ゴールのLBをTerraformリソースに分解する
 
-**[図版]** **新規作成**。この回の最重要図。AWS版との左右比較。
+**[図版]** S24のHTTPSゴール図に合わせた、AWS ALBとの左右比較。Google Slidesでは23ページ。編集可能な図形・テキストで構成する。
 
-```
-   AWS ALB                        GCP グローバル外部アプリケーションLB
-
-   aws_lb                         google_compute_global_address    (IP)
-     │                                     │
-   aws_lb_listener                google_compute_global_forwarding_rule (入口)
-     │                                     │
-   aws_lb_target_group            google_compute_target_http_proxy  (プロキシ)
-     │                                     │
-   aws_lb_target_group_attachment google_compute_url_map            (振り分け)
-     │                                     │
-   [EC2]                          google_compute_backend_service    (バックエンド定義)
-                                    ├ google_compute_health_check
-                                    └ google_compute_instance_group
-                                            │
-                                          [VM]
-
-   3〜4リソース                    6〜7リソース
-```
+- AWS側：`aws_lb` → `aws_lb_listener`（HTTPS :443・証明書）→ `aws_lb_target_group`（ヘルスチェック設定）→ `aws_lb_target_group_attachment` → EC2（アプリ :80）。
+- GCP側：外部IP（`google_compute_global_address`）→ 転送ルール :443（`google_compute_global_forwarding_rule`）→ HTTPSプロキシ（`google_compute_target_https_proxy`）→ URLマップ（`google_compute_url_map`）→ バックエンドサービス（`google_compute_backend_service`）→ インスタンスグループ（`google_compute_instance_group`）→ Compute Engine / web VM :80（外部IPなし）。
+- SSL証明書（`google_compute_managed_ssl_certificate`）をHTTPSプロキシの横に配置し、点線で関連付ける。
+- ヘルスチェック（`google_compute_health_check`）をバックエンドサービスの横に配置し、点線で関連付ける。利用者の通信経路上には置かない。
+- Googleフロントエンド側は黄色、VPC / private subnet内のインスタンスグループとWeb VMは青色にする。
 
 **[本文]**
 
 ```
-◼なぜこんなに分かれているのか
-
-役割ごとにリソースが独立しているので、使い回せる
-
-  URLマップ         → HTTPとHTTPSで同じものを共有できる(Step4で効いてくる)
-  ヘルスチェック     → 複数のバックエンドサービスで共有できる
-  グローバルIP       → 80番と443番で同じIPを使う
-
-◼作る順番
-上から下へ一直線。参照の向きは 下から上 になる
-  転送ルール → プロキシ → URLマップ → バックエンドサービス → インスタンスグループ
+Step2 は HTTP、Step4 で HTTPS 化。URLマップとバックエンドサービスは共通で使う。
 ```
 
-**[話す]** 最初は多く見えるが、1つ1つの役割は単純。
-「AWSでは3つにまとまっていたものが、GCPでは6つに分かれている」だけ。
-そして分かれているおかげで、Step4でHTTPS化するときに
-URLマップとバックエンドサービスをそのまま使い回せる。
+**[話す]** 前ページのゴールを、Terraformのリソース名に対応付ける。HTTPSはGoogleフロントエンド側で受け、VMへはHTTPの80番で転送する。SSL証明書はHTTPSプロキシに関連付ける。ヘルスチェックはバックエンドサービスから参照する設定で、利用者の通信が通過する部品ではない。Step2ではHTTPで作り、Step4でHTTPSを追加する。
 
 ---
 
@@ -1020,55 +993,40 @@ resource "google_compute_global_forwarding_rule" "web_http" {
 
 ### S32 | なぜ繋がらないのか ★
 
-**[図版]** **新規作成**。この回の最重要図その2。
-LBがVPCの外にいて、Firewall Rulesの壁に阻まれている図。
+**[図版]** Google Slidesの31ページ。ブラウザ → Google側 → VPC内のFirewall → web VMの横並びで、遮断される場所を示す。図形・テキストは編集可能にする。
 
-```
-  [Googleのフロントエンド]
-    130.211.0.0/22
-    35.191.0.0/16
-         │
-         ✕  ← Firewall Rules (暗黙のingress拒否)
-         │
-  ┌─ VPC ─────────┐
-  │   [web VM] :80  │
-  └──────────────┘
-```
+- ブラウザからLBへのHTTP :80は青い矢印。LBからブラウザへ503が返ることを添える。
+- Google側は黄色。LB（GFE）・ヘルスチェックと、VMから見た送信元IP `130.211.0.0/22`・`35.191.0.0/16` を示す。
+- VPC / private subnetは青い枠。その中に赤いFirewall枠とweb VM :80（外部IPなし）を置く。
+- Google側からFirewallへの矢印は赤色。Firewallに「受信許可なし」「TCP :80 を拒否」と×印を表示する。VMまでの区間は灰色の点線で「未到達」と示す。
 
 **[本文]**
 
 ```
-◼Firewall Rules で許可していない
+LBには届いているが、LBからVMへの通信がFirewallで止まっている
 
-Googleのロードバランサは、次の2つの固定レンジから来る
+受信拒否 → ヘルスチェック失敗（UNHEALTHY）→ LB が 503 を返す
 
-  130.211.0.0/22
-  35.191.0.0/16
-
-ヘルスチェックも、実際のトラフィックの転送も、両方このレンジから届く
-
-◼第2回でやったこと
-カスタムVPCの初期状態は「暗黙のingress拒否」
-書いていない通信は全部拒否される
-
-★ AWSでは「LBのSGからwebのSGへ」と書けば済んだ
-   GCPのLBはVPCの外側にいるのでSG的な発想が使えない
-   → 決められたIPレンジを開ける、という書き方になる
-
-★ GCPのロードバランサで一番よくあるハマりどころ
+次ページで追加：Google側から web VM への TCP :80 を許可
+送信元：上の2つのIPレンジ ／ 対象タグ：[自分の名前]-web
 ```
 
-**[話す]** 「LBを作ったのに503が返る」は、9割これ。
-覚えて帰ってほしい2つのレンジ。
+**[話す]** この図はStep2のグローバル外部アプリケーションLBとVMインスタンスグループの構成。ブラウザからLBへの接続と、Google側からVMへの接続は別。今回は後者の受信許可がなく、ヘルスチェックが失敗してUNHEALTHYになる。次ページで、2つの送信元IPレンジからweb VMのTCP :80へ通信を許可する。503の原因は他にもあるため「9割これ」とは断定しない。
+
+**[参考]** [Google Cloud: Firewall rules](https://docs.cloud.google.com/load-balancing/docs/firewall-rules)
 
 ---
 
 ### S33 | Firewall Rule を足す
 
+**[手順]** コピー先の `~/works/lesson3/"2. loadbalancer"` で、次の名前変更を実行してからapplyする。`.tf.example` はTerraformの読み込み対象外なので、最初のStep2実行では許可ルールが作られない。DNS・SSLなど後続の完成形では `firewall_lb.tf` として有効になっている。
+
+**[書式]** Google Slidesの32〜33ページ。前後のコード・実行ページに揃え、本文の左位置・上位置を統一する。コードはRoboto Mono 16pt、名前変更コマンドをコード枠の上に置き、コード部分だけを薄灰色・細線の枠で囲む。実行ページは本文18ptとし、`terraform apply` と `gcloud ... get-health` をそれぞれ同じ薄灰色のコマンド枠で囲む。
+
 **[本文]**
 
 ```
-参照: 2. loadbalancer/firewall_lb.tf
+mv firewall_lb.tf.example firewall_lb.tf
 
 resource "google_compute_firewall" "allow_lb_to_web" {
   name    = "${var.user_name}-allow-lb-to-web"
@@ -1106,6 +1064,8 @@ resource "google_compute_firewall" "allow_lb_to_web" {
 ---
 
 ### S34 | アクセス確認
+
+**[書式]** Google Slidesの34ページ。本文は前の実行ページと同じRoboto Mono 18pt・左位置・上位置に揃える。アクセスするURLは太字と薄灰色の枠で示し、レスポンスと補足説明は通常の本文で表示する。
 
 **[図版]** AWS版 第4回「アクセス確認」のブラウザ画面を流用。
 **新規スクリーンショット**(★この回で撮る3枚のうちの1枚)。
