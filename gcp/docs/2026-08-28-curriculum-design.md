@@ -385,11 +385,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 8.0"
+      version = "~> 8.10"
     }
   }
 
-  required_version = ">= 1.9.0"
+  required_version = ">= 1.17.1"
 
   backend "gcs" {
     bucket = "[プロジェクトID]-tfstate-yamada-taro"   # ★受講者が自分の名前に書き換える
@@ -623,7 +623,7 @@ Cloud Run はイメージが存在しないと作成できず、
   - 社内の標準化ルールに合わせる必要があるかは別途確認(下記「保留中」参照)
 
 - [x] **terraform / google provider のバージョン** —
-  `required_version = ">= 1.9.0"` / `google = "~> 8.0"`。
+  `required_version = ">= 1.17.1"` / `google = "~> 8.10"`。
   8.0.0 は 2026-08-26 リリース。開催が 2026-10 〜 2027-04 と長期なので、
   受講者がレジストリで見るドキュメント(既定で最新 = 8.x)と揃う方を選んだ。
   - パイロットの全 15 ディレクトリで `terraform validate` 成功済み(provider 8.0.0)

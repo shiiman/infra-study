@@ -1219,7 +1219,7 @@ resource "google_service_account_iam_member" "build_act_as_run" {
 ◼ビルド時にイメージへ焼き込んでいます
 
   cloudbuild.yaml
-    docker build --build-arg APP_VERSION=$SHORT_SHA ...
+    docker build --pull --no-cache --build-arg APP_VERSION=$SHORT_SHA ...
 
   dockerfile
     ARG APP_VERSION=dev
@@ -1559,7 +1559,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # ブランチ名から自分のリソース名を組み立てる
       - id: vars
@@ -1589,12 +1589,12 @@ jobs:
   deploy:
     steps:
       ...
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ steps.vars.outputs.sa }}
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@v3
       - run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
       - run: docker build / push / gcloud run deploy   (中身は cloudbuild.yaml と同じ)
 

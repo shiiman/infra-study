@@ -24,6 +24,8 @@ steps:
     name: gcr.io/cloud-builders/docker
     args:
       - build
+      - --pull
+      - --no-cache
       - --build-arg
       - APP_VERSION=$SHORT_SHA
       - -t

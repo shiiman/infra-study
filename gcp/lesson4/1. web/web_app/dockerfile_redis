@@ -1,4 +1,6 @@
-FROM redis:7-alpine
+FROM redis:8.8-alpine3.23
+
+RUN apk --no-cache upgrade
 
 ENV TZ='Asia/Tokyo'
 

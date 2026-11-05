@@ -1486,8 +1486,8 @@ Terraform
 
   mkdir -p ~/bin
   cd /tmp
-  curl -sLO https://releases.hashicorp.com/terraform/1.16.3/terraform_1.16.3_linux_amd64.zip
-  unzip -o terraform_1.16.3_linux_amd64.zip -d ~/bin
+  curl -sLO https://releases.hashicorp.com/terraform/1.17.1/terraform_1.17.1_linux_amd64.zip
+  unzip -o terraform_1.17.1_linux_amd64.zip -d ~/bin
 
 ◼~/.bashrc に2行書きます(次回以降も有効)
 
@@ -1501,7 +1501,7 @@ Terraform
 
 ◼確認
   terraform version
-  → Terraform v1.16.3
+  → Terraform v1.17.1
 
   echo $GOOGLE_CLOUD_QUOTA_PROJECT
   → (何も出なければOK)
@@ -1546,6 +1546,8 @@ Terraform
 > 影響するのは `data "google_client_openid_userinfo"` を使う箇所:
 > 第1回 Step3(`lesson1/3. iam/iam.tf`)と第2回 Step4(`lesson2/4. firewall/iap.tf`)。
 
+> **2026-11-05 更新**: 教材の指定と最低バージョンを `1.17.1` に統一。講師・受講者とも入れ直す。過去の実機確認記録は当時のバージョンについての記録。
+
 > **★ バージョンを上げるときは、講師の Cloud Shell も入れ直すこと ★**
 >
 > **2026-09-18 に `1.16.0` → `1.16.3` に固定した。**
@@ -1563,9 +1565,9 @@ Terraform
 > ```
 > # 講師が入れ直すとき(受講者と同じ版に揃える)
 > rm -f ~/bin/terraform
-> cd /tmp && curl -sLO https://releases.hashicorp.com/terraform/1.16.3/terraform_1.16.3_linux_amd64.zip
-> unzip -o terraform_1.16.3_linux_amd64.zip -d ~/bin
-> terraform version   # → v1.16.3
+> cd /tmp && curl -sLO https://releases.hashicorp.com/terraform/1.17.1/terraform_1.17.1_linux_amd64.zip
+> unzip -o terraform_1.17.1_linux_amd64.zip -d ~/bin
+> terraform version   # → v1.17.1
 > ```
 >
 > 最新版の確認:
@@ -1735,11 +1737,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 8.0"
+      version = "~> 8.10"
     }
   }
 
-  required_version = ">= 1.9.0"
+  required_version = ">= 1.17.1"
 }
 
 provider "google" {

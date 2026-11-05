@@ -32,7 +32,7 @@ resource "google_compute_instance" "web" {
   boot_disk {
     initialize_params {
       // イメージファミリーを指定すると、その時点の最新版が使われる
-      image = "debian-cloud/debian-12"
+      image = "debian-cloud/debian-13"
     }
   }
 
@@ -66,7 +66,7 @@ resource "google_compute_instance" "db" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-12"
+      image = "debian-cloud/debian-13"
     }
   }
 

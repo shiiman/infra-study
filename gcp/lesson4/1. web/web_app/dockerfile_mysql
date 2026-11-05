@@ -1,4 +1,13 @@
-FROM mysql:8.0
+FROM mysql:8.4
+
+# OS の修正を取り込み、教材で使わない MySQL Shell と権限切替バイナリを除く。
+RUN microdnf update -y && \
+    microdnf remove -y mysql-shell && \
+    microdnf clean all && \
+    rm /usr/local/bin/gosu
+
+# 公式 entrypoint の root からの権限切替を使わず、最初から mysql で起動する。
+USER mysql
 
 ENV MYSQL_ROOT_PASSWORD=infra-study
 ENV MYSQL_DATABASE=test_db
