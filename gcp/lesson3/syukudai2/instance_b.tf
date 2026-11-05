@@ -29,7 +29,7 @@ resource "google_compute_instance" "web_b" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-12"
+      image = "debian-cloud/debian-13"
       size  = 10
       type  = "pd-balanced"
     }
@@ -45,8 +45,9 @@ resource "google_compute_instance" "web_b" {
     startup-script = <<-SCRIPT
       #!/bin/bash
       set -e
+      apt-get update
+      DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
       if ! command -v docker >/dev/null 2>&1; then
-        apt-get update
         apt-get install -y docker.io git
         systemctl enable --now docker
       fi
@@ -54,7 +55,7 @@ resource "google_compute_instance" "web_b" {
         git clone https://github.com/shiiman/infra-study.git /opt/infra-study
       fi
       cd "/opt/infra-study/gcp/lesson3/1. web_instance/web_app"
-      docker build -t app:0.1 .
+      docker build --pull --no-cache -t app:0.1 .
       docker rm -f app 2>/dev/null || true
       docker run -d --name app -p 80:8080 --restart always app:0.1
     SCRIPT

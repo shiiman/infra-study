@@ -347,14 +347,14 @@ GCPは カスタムマシンタイプ でvCPUとメモリを自由に指定で�
 ◼イメージ
   OSとその初期状態をまとめたもの。AWSのAMIに相当
 
-  debian-cloud/debian-12
+  debian-cloud/debian-13
   ubuntu-os-cloud/ubuntu-2404-lts
   cos-cloud/cos-stable
 
 ◼イメージファミリー
-「debian-12」のようにファミリー名を指定すると、その時点の最新版が使われる
+「debian-13」のようにファミリー名を指定すると、その時点の最新版が使われる
 
-  image = "debian-cloud/debian-12"
+  image = "debian-cloud/debian-13"
           └ プロジェクト ┘└ ファミリー ┘
 ```
 
@@ -406,7 +406,7 @@ resource "google_compute_instance" "web" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-12"
+      image = "debian-cloud/debian-13"
       size  = 10
       type  = "pd-balanced"
     }
@@ -486,13 +486,14 @@ terraform init
 ◼VMの中で
   sudo su -
   apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
   apt-get install -y docker.io git
   systemctl start docker
 
   git clone https://github.com/shiiman/infra-study.git
   cd "infra-study/gcp/lesson3/1. web_instance/web_app"
 
-  docker build -t app:0.1 .
+  docker build --pull --no-cache -t app:0.1 .
   docker images
   docker run -d -p 80:8080 app:0.1
   docker ps

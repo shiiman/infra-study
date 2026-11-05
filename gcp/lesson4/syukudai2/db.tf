@@ -19,10 +19,13 @@
  */
 resource "google_sql_database_instance" "db" {
   name             = "${var.user_name}-db"
-  database_version = "MYSQL_8_0"
+  database_version = "MYSQL_8_4"
   region           = "asia-northeast1"
 
   settings {
+    // MySQL 8.4 の既定は Enterprise Plus。勉強会では共有 CPU を使う。
+    edition = "ENTERPRISE"
+
     // db-f1-micro は共有CPU。本番では db-custom-2-7680 のように指定する
     tier = "db-g1-small"
 

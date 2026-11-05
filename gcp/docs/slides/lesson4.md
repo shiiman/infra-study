@@ -405,6 +405,7 @@ terraform apply
 ◼VMの中で
   sudo su -
   apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
   apt-get install -y docker.io git default-mysql-client redis-tools
   systemctl start docker
 
@@ -414,13 +415,13 @@ terraform apply
 
   docker network create app-nw
 
-  docker build -t db:0.1 -f ./dockerfile_mysql .
+  docker build --pull --no-cache -t db:0.1 -f ./dockerfile_mysql .
   docker run -d --network app-nw --name db db:0.1
 
-  docker build -t cache:0.1 -f ./dockerfile_redis .
+  docker build --pull --no-cache -t cache:0.1 -f ./dockerfile_redis .
   docker run -d --network app-nw --name cache cache:0.1
 
-  docker build -t app:0.1 .
+  docker build --pull --no-cache -t app:0.1 .
   docker run -d -p 80:8080 --network app-nw --name app \
     -e DB_HOST=db -e DB_PASS=infra-study -e CACHE_HOST=cache \
     app:0.1

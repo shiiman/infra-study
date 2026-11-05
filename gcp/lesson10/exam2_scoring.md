@@ -41,7 +41,7 @@
 | VM が2台ある | 6 | `count = 2` でも2ブロック書いても可 |
 | private サブネットにある | 5 | `subnetwork` が private を指しているか |
 | 外部IPを持っていない | 5 | **`access_config` を書いていないこと** |
-| イメージ・マシンタイプが指定どおり | 3 | `debian-cloud/debian-12` / `e2-medium` |
+| イメージ・マシンタイプが指定どおり | 3 | `debian-cloud/debian-13` / `e2-medium` |
 | ネットワークタグ | 3 | `[名前]-web` |
 | 起動スクリプト | 3 | 指定どおり入っているか |
 

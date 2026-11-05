@@ -1,5 +1,5 @@
 # Stage 1のコンテナ
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26.10-alpine3.24 AS builder
 
 ENV GOPATH=
 
@@ -11,9 +11,9 @@ COPY ./ ./
 RUN go build -o /main ./main.go
 
 # Stage 2のコンテナ
-FROM alpine:3.22
+FROM alpine:3.24
 
-RUN apk --no-cache add tzdata && \
+RUN apk --no-cache upgrade && apk --no-cache add tzdata && \
     cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
 
 ENV TZ='Asia/Tokyo'

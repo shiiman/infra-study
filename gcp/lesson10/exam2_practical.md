@@ -75,14 +75,16 @@ git push origin exam/[自分の名前]
 | 台数 | 2台。名前は `[自分の名前]-web1` と `[自分の名前]-web2` |
 | 配置 | **private サブネット** |
 | 外部IP | **持たせないこと** |
-| イメージ | `debian-cloud/debian-12` |
+| イメージ | `debian-cloud/debian-13` |
 | マシンタイプ | `e2-medium` |
 | ネットワークタグ | `[自分の名前]-web` |
 | 起動スクリプト | 下記をそのまま使うこと |
 
 ```bash
 #!/bin/bash
+set -e
 apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 apt-get install -y nginx
 echo "Congratulation!!" > /var/www/html/index.html
 systemctl restart nginx

@@ -588,7 +588,7 @@ resource "google_artifact_registry_repository" "app" {
     -chdir="$HOME/works/lesson5/1. artifact_registry" \
     output -raw repository_url)
 
-  docker build -t $REPO/app .
+  docker build --pull --no-cache -t $REPO/app .
   docker push $REPO/app
 
 ◼確認

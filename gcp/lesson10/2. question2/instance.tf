@@ -36,7 +36,7 @@ resource "google_compute_instance" "web" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-12"
+      image = "debian-cloud/debian-13"
     }
   }
 
@@ -58,7 +58,9 @@ resource "google_compute_instance" "web" {
    */
   metadata_startup_script = <<-EOT
     #!/bin/bash
+    set -e
     apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
     apt-get install -y nginx
     echo "Congratulation!!" > /var/www/html/index.html
     systemctl restart nginx

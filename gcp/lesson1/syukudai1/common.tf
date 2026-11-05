@@ -2,7 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 8.0"
+      version = "~> 8.10"
     }
     // 待ち時間を作るために使う(custom_role.tf の time_sleep)
     time = {
@@ -11,7 +11,7 @@ terraform {
     }
   }
 
-  required_version = ">= 1.9.0"
+  required_version = ">= 1.17.1"
 
   /**
    * tfstateの保存先

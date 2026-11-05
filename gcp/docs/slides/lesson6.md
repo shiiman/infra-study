@@ -63,7 +63,7 @@
    cd "gcp/lesson5/1. artifact_registry/web_app"
    gcloud auth configure-docker asia-northeast1-docker.pkg.dev
    IMG=asia-northeast1-docker.pkg.dev/[プロジェクトID]/infra-study-common/app
-   docker build -t $IMG .
+   docker build --pull --no-cache -t $IMG .
    docker push $IMG
    ```
 

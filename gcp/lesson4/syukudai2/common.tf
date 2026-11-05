@@ -2,12 +2,12 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 8.0"
+      version = "~> 8.10"
     }
   }
 
   // ephemeral な変数(1.10〜)と write-only 引数(1.11〜)を使うので 1.11 以上が要る
-  required_version = ">= 1.11.0"
+  required_version = ">= 1.17.1"
 
   /**
    * tfstateの保存先
