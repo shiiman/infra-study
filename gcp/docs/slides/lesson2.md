@@ -491,12 +491,12 @@ cd ~/works/lesson2/ && cp -rf ~/infra-study/gcp/lesson2/1.\ vpc/ ./
 
 resource "google_compute_network" "vpc" {
   name = "${var.user_name}-vpc"
-
   // 各リージョンにサブネットを自動生成しない
   auto_create_subnetworks = false
-
-  // REGIONAL: 同一リージョンのサブネット同士のみルートを共有(デフォルト)
-  // GLOBAL  : 全リージョン間でルートを共有
+  // Cloud Router が学習した動的経路の適用範囲
+  // REGIONAL: 同一リージョンのみ(デフォルト)
+  // GLOBAL  : 全リージョン
+  // VPC内のサブネット間通信は、この設定では制限されない
   routing_mode = "REGIONAL"
 }
 
@@ -571,10 +571,10 @@ VPCの中を分割した小さなネットワーク
 同一VPC内でCIDRは重複できない
 
 ◼IPアドレスの予約
-GCPは各サブネットで4つのIPを予約する
+GCPは各サブネットのプライマリIPv4範囲で4つのIPを予約する
   ネットワークアドレス / デフォルトゲートウェイ / 末尾2つ
 
-  172.16.0.0/24 → 使えるのは 250個(AWSは5つ予約なので 251個 だった)
+  172.16.0.0/24 → 使えるのは 252個(AWSは5つ予約なので 251個 だった)
 ```
 
 **[話す]** (スライドには載せていない補足)リージョンを指定して配置する、の部分は「ゾーンではない」と添える。

@@ -61,13 +61,19 @@ gcloud compute routers list
 同じVPCなので、Firewall Ruleさえ許可すればリージョンをまたいで
 プライベートIPで直接通信できる。試してみると理解が深まる。
 
-なお `routing_mode` が `REGIONAL`(デフォルト)の場合、
-Cloud Router はリージョンをまたいだ経路を学習しない。
-オンプレ接続などで全リージョンに経路を配りたい場合は `GLOBAL` にする。
-今回のようにVPC内部の通信だけであれば `REGIONAL` のままで問題ない。
+`routing_mode` は、Cloud Router が学習した動的経路を適用するリージョンを決める。
+`REGIONAL`(デフォルト)では、その Cloud Router と同じリージョンに適用される。
+`GLOBAL` では、同じVPCの全リージョンに適用される。
+デフォルトの経路広告で、Cloud Router が相手側へ広告するサブネット経路の範囲も、
+`REGIONAL` では同じリージョン、`GLOBAL` では全リージョンになる。
+
+VPC内のサブネット間通信は、自動生成されるサブネットルートを使うため、
+この設定では制限されない。今回の構成は Cloud Router を Cloud NAT のために置き、
+BGP は使わないので、`REGIONAL` のままで問題ない。
 
 ## 参考
 
 - [VPC ネットワークの概要](https://cloud.google.com/vpc/docs/vpc)
 - [Cloud NAT の概要](https://cloud.google.com/nat/docs/overview)
-- [動的ルーティングモード](https://cloud.google.com/vpc/docs/vpc#routing_for_hybrid_networks)
+- [動的ルーティングモード](https://docs.cloud.google.com/network-connectivity/docs/router/concepts/learned-routes)
+- [Cloud Router のデフォルトの経路広告](https://docs.cloud.google.com/network-connectivity/docs/router/concepts/advertised-routes)
