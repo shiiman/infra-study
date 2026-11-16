@@ -32,7 +32,7 @@ resource "google_sql_database_instance" "db" {
   settings {
     ip_configuration {
       ipv4_enabled    = false            # パブリックIPを持たせない
-      private_network = module.before.vpc_id
+      private_network = google_compute_network.vpc.id
     }
   }
   depends_on = [google_service_networking_connection.private_service]
@@ -175,11 +175,15 @@ gcloud sql instances describe [自分の名前]-db --format="value(gceZone)"
 
 ## 後片付け
 
-★ destroy は1回では終わりません(講義の付録A-2参照)。
+★ destroy は1回では終わりません。待っても解決しません(講義の付録A-2参照)。
 
 ```
 terraform destroy          # Cloud SQL などは消えるが、ピアリングの削除で失敗する
-# しばらく待つ
+
+# ピアリングを直接消す
+gcloud compute networks peerings delete servicenetworking-googleapis-com \
+  --network=[自分の名前]-vpc
+
 terraform destroy          # 残りが消える
 ```
 
