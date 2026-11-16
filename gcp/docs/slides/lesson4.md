@@ -299,16 +299,18 @@ PostgreSQL互換の高性能DB。AWSのAuroraに近い
 
 ```
 ◼Cloud Shell を立ち上げる
+  プロジェクトが [プロジェクトID] になっていることを確認
+  gcloud config get-value project
+  (違うなら) gcloud config set project [プロジェクトID]
 
 ◼作業ディレクトリを作る
   mkdir -p ~/works/lesson4
-  cd ~/works/lesson4
 
 ◼サンプルコードを更新
   cd ~/infra-study && git pull
-  cd ~/works/lesson4
 
-★ 第3回のリソースは destroy しておいてください
+※ 第3回のリソースは destroy しておいてください
+   同じ名前のVPCを作るので、残っていると衝突します
 ```
 
 ---
@@ -325,15 +327,11 @@ python3 ~/infra-study/gcp/tools/configure.py
 第2・3回の構成を再作成します。
 ネットワーク / Web VM / ロードバランサ / DNS / SSL証明書
 
-configure.py：project_id・user_name・backendのbucketだけを反映
-terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
-
 terraform init
-terraform plan
-terraform apply
+terraform plan, terraform apply
 
 証明書の発行を待つ間に、次の解説へ進みます。
-各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
+各ステップの中で設定を反映します。同じGCSのstateを引き継ぎます。
 1. web はアプリのコード例です。Web VMはここで作成済みです。
 ```
 
@@ -430,6 +428,8 @@ terraform apply
   curl -X GET "http://localhost"
   → DB接続(MySQL): 成功 / Cache接続: 成功
 ```
+
+**[吹き出し]** まとめて実行するとエラーになるため / 1行ずつ実行してください
 
 **[話す]** ここは約5分かかる。MySQLの初回起動に時間がかかるので、
 `失敗` が出たら30秒ほど待って再実行してもらう。
@@ -1682,10 +1682,14 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 **[本文]**
 
 ```
-宿題などで作成したリソースは
-必ず削除してください！
+宿題などで作成したリソースは必ず削除してください！
 
-  terraform destroy
+◼リソースの削除(最後に apply したディレクトリで実行)
+  cd ~/works/lesson4/syukudai2       ← 実装課題3まで
+  cd ~/works/lesson4/syukudai1       ← 実装課題1・2まで
+  cd ~/works/lesson4/"3. spanner"    ← 講義 Step3 まで
+
+  terraform destroy   → 確認で yes と入力
 
 ★★ この回は課金が大きいです ★★
    Spanner(100 PU)      無料枠なし。今日の中で一番高い
