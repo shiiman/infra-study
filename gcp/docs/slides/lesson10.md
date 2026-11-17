@@ -503,7 +503,7 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
   第1回  IAM / Terraform / tfstate
   第2回  VPC / サブネット / Firewall / NAT / IAP
   第3回  VM / インスタンスグループ / ロードバランサ / DNS / 証明書
-  第4回  Spanner / Memorystore / 限定公開サービスアクセス
+  第4回  Spanner / Memorystore / Private Service Connect
   第5回  Artifact Registry / Cloud Run / サーバレスNEG
   第6回  Cloud Storage / Cloud CDN / URLマップのパスルール
   第7回  Cloud Build / トリガー / デプロイ権限

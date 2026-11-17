@@ -13,8 +13,6 @@ subnet_private_cidr = "172.16.10.0/24"
 dns_zone_name = "infra-study-gcp"
 
 // Googleに貸し出すレンジ
-private_service_cidr = "172.16.192.0/20"
-
 // TODO: 講師が作成した Cloud Build のリポジトリリンクを指定
 //   形式: projects/[プロジェクトID]/locations/asia-northeast1/connections/[接続名]/repositories/[リポジトリ名]
 //   確認: gcloud builds repositories list --connection=[接続名] --region=asia-northeast1

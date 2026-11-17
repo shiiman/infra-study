@@ -700,6 +700,8 @@ Cloud Run はイメージが存在しないと作成できず、
   第4回で追加が必要なのは `roles/spanner.admin` と
   `roles/servicenetworking.networksAdmin` の2つだけ
   (`cloudsql.admin` / `redis.admin` は不要。作成権限は Editor に含まれる)
+  **→ 2026-11-17 に PSC へ切り替えたため、`servicenetworking.networksAdmin` は不要になる見込み
+  (受講者相当SAでの実行は未検証。受講者グループには付与済みのまま残す)**
 - [x] 受講者への権限付与 — **2026-09-16 に完了。**
   グループ `infra-study-gcp@[ドメイン]` を作成(管理コンソール)し、
   **12ロールを付与 + メンバーを追加**した(2026-09-16 に12名、2026-09-18 に3名、2026-10-01 に1名で計16名)。
@@ -1481,7 +1483,8 @@ Cloud Shell 固有のリスクは個別に潰してあり、残るのは
     | 方式 | サービス | 必要な準備 |
     |---|---|---|
     | Google API 経由 | Spanner / BigQuery / Cloud Storage | Private Google Access(第2回で有効化済み) |
-    | VPCピアリング | Cloud SQL / Memorystore | 限定公開サービスアクセス(グローバルアドレス予約 + サービスネットワーキング接続) |
+    | Private Service Connect | Cloud SQL / Memorystore | サービス接続ポリシー(2026-11-17 からハンズオンはこちら) |
+    | VPCピアリング(旧方式) | Cloud SQL / Memorystore(Redis) | 限定公開サービスアクセス(グローバルアドレス予約 + サービスネットワーキング接続) |
     | Auth Proxy | Cloud SQL(別解) | プロキシの起動 |
 
     「Spanner を作ったのに繋がらない」と「Cloud SQL を作ったのに繋がらない」は
@@ -1757,11 +1760,39 @@ PSC は単なる4つ目の選択肢ではなく、**①限定公開サービス�
 「貸出レンジを /24 にすると Cloud SQL が作れない」は、**PSC なら起きない**
 (レンジの貸し出し自体が不要)。
 
-**ハンズオンは①のままにした。**
+**ハンズオンは①のままにした。**(→ **2026-11-17 に PSC へ変更した。下の「判断24の改訂」を参照**)
 
 - ①のほうが「Googleが管理する別VPCにいる」という構造がそのまま見える
 - PSCはその構造を隠すぶん、初見だと「なぜエンドポイントが要るのか」が分からない
 - 実環境で検証済みのコードを作り直すコストが大きい
+
+### 判断24の改訂(2026-11-17): ハンズオンを PSC + Memorystore for Valkey に変えた
+
+講師レビューで「PSC が後継なら、講義でも PSC を扱うべき」「実務(nishiki)は Valkey」と指摘され、
+上の判断を取り消した。
+
+| 項目 | 変更前 | 変更後 |
+|---|---|---|
+| 接続方式(第4回) | 限定公開サービスアクセス(貸出レンジ + サービスネットワーキング接続) | PSC(サービス接続ポリシー + 自動作成エンドポイント) |
+| Memorystore | for Redis(`google_redis_instance`) | for Valkey(`google_memorystore_instance`、VALKEY_8_0、`SHARED_CORE_NANO`) |
+| 宿題2の Cloud SQL | プライベートIP(PSA) | PSC(`psc_config` + `psc_auto_connections`) |
+| 第5〜8回の `before.tf` | PSA + Redis | PSC + Valkey に差し替え |
+| `private_service_cidr` 変数 | あり | 廃止(IPレンジの設計が要らない) |
+| destroy | 1回目が失敗し、ピアリングを手で消して2回目 | **1回で終わる** |
+| 受講者ロール `roles/servicenetworking.networksAdmin` | 第4回で必要 | 不要になる見込み(**受講者相当SAでの実行は未検証**。付与済みのまま残す) |
+| 有効化するAPI | `servicenetworking` / `redis` | `networkconnectivity` / `memorystore` |
+
+**なぜ Valkey か**: Memorystore for Redis(クラスタ無しの標準版)は PSC を選べない
+(限定公開サービスアクセスかダイレクトピアリングのみ)。PSC で繋げるのは Valkey と
+Redis Cluster。Valkey は PSC でしか繋げない。
+
+**実測(2026-11-17、講師アカウント)**: Valkey 作成 5分13秒 / Cloud SQL(REGIONAL・PSC)7分0秒 /
+destroy は Valkey 7分53秒・Cloud SQL 1分52秒・ポリシー約11秒・サブネット22秒・VPC33秒で、
+1回で完走。`replica_count` は 0→1 が約3分25秒、1→0 が約30〜40秒で、どちらも in-place。
+詳細と未検証の点は第4回 原稿の付録A・Bを参照。
+
+**注意**: 以下の第4回〜第8回の「動作確認結果」と「バグ」の節は、限定公開サービスアクセス版での
+当時の記録。数字や手順(貸出レンジ `/24` の失敗、ピアリングの手動削除など)は現行の教材には当てはまらない。
 
 S20b で「①の何を解決したのか」として扱い、S20c で使い分けを示す。
 

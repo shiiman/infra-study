@@ -68,12 +68,12 @@ resource "google_cloud_run_v2_service" "app" {
      *
      * ★ Cloud Run は既定ではVPCの外にいる ★
      *
-     * 第4回でやった「3種類の接続方式」を思い出す。
+     * 第4回でやった「4種類の接続方式」を思い出す。
      *   Spanner      Google API 経由   → 追加設定なしで繋がる
-     *   Memorystore  VPCピアリング     → VPCの中にいないと繋がらない
+     *   Memorystore  PSC               → VPCの中にいないと繋がらない
      *
      * Cloud Run のインスタンスにVPC内のIPを持たせることで、
-     * ピアリング経由の Memorystore に届くようになる。
+     * VPC内にある PSC のエンドポイントに届くようになる。
      *
      * ★ 2つのやり方がある
      *   サーバレスVPCアクセスコネクタ(旧)  専用VMが立つ。課金される
@@ -125,11 +125,11 @@ resource "google_cloud_run_v2_service" "app" {
       }
       env {
         name  = "SPANNER_DATABASE"
-        value = google_spanner_database.app.id
+        value = "projects/${var.project_id}/instances/${google_spanner_instance.main.name}/databases/${google_spanner_database.app.name}"
       }
       env {
         name  = "CACHE_HOST"
-        value = google_redis_instance.cache.host
+        value = local.cache_host
       }
     }
   }

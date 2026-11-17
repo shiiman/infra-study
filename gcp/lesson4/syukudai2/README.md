@@ -20,26 +20,46 @@ unset TF_VAR_db_password
 `db_password` は **ephemeral な変数**(値が plan にも tfstate にも残らない)。
 渡し忘れると `db_password が空です` で apply の前に止まる。
 
-★ 作成に **約10分** かかる。
+★ 作成に **約7〜10分** かかる(PSC での実測は7分)。
 
-## ポイント1: 限定公開サービスアクセスを使い回す
+## ポイント1: PSC で繋ぐ(サービス接続ポリシーを足す)
 
-講義の Step2(Memorystore)で作ったピアリングをそのまま使う。
-Cloud SQL 側で新しく作るものはない。
+講義の Step2(Memorystore)で作ったポリシーは `gcp-memorystore` 用。
+Cloud SQL は別のサービスクラス(`google-cloud-sql`)なので、**ポリシーをもう1つ**作る。
+ポリシーは、ネットワーク・リージョン・サービスクラスごとに1つ。
 
 ```hcl
+resource "google_network_connectivity_service_connection_policy" "sql" {
+  name          = "${var.user_name}-sql"
+  location      = "asia-northeast1"
+  service_class = "google-cloud-sql"
+  network       = google_compute_network.vpc.id
+  psc_config { subnetworks = [google_compute_subnetwork.private.id] }
+}
+
 resource "google_sql_database_instance" "db" {
   settings {
     ip_configuration {
-      ipv4_enabled    = false            # パブリックIPを持たせない
-      private_network = google_compute_network.vpc.id
+      ipv4_enabled = false               # パブリックIPを持たせない
+      psc_config {
+        psc_enabled               = true
+        allowed_consumer_projects = [var.project_id]
+        psc_auto_connections {           # エンドポイントを自分のVPCに自動で作る
+          consumer_network            = google_compute_network.vpc.id
+          consumer_service_project_id = var.project_id
+        }
+      }
     }
   }
-  depends_on = [google_service_networking_connection.private_service]
+  depends_on = [google_network_connectivity_service_connection_policy.sql]
 }
 ```
 
-**Firewall Rules は書かない。** ピアリング経由なので対象外。
+`private_network` は書かない(それは限定公開サービスアクセス用の設定)。
+Firewall Rules は書かない。エンドポイント宛の通信は、既定の egress 許可で通る。
+
+★ アプリに渡すホストは `private_ip_address` ではなく、PSC のエンドポイントのIP。
+  `terraform output db_host` で出る。
 
 ## ポイント2: password_wo が本当に tfstate に残らないか
 
@@ -175,20 +195,14 @@ gcloud sql instances describe [自分の名前]-db --format="value(gceZone)"
 
 ## 後片付け
 
-★ destroy は1回では終わりません。待っても解決しません(講義の付録A-2参照)。
-
 ```
-terraform destroy          # Cloud SQL などは消えるが、ピアリングの削除で失敗する
-
-# ピアリングを直接消す
-gcloud compute networks peerings delete servicenetworking-googleapis-com \
-  --network=[自分の名前]-vpc
-
-terraform destroy          # 残りが消える
+terraform destroy
 ```
+
+★ 作成に約7分かかる。destroy にも時間がかかるので、余裕を持って実行する。
 
 ## 参考
 
 - [Cloud SQL の高可用性](https://cloud.google.com/sql/docs/mysql/high-availability)
-- [プライベートIPの構成](https://cloud.google.com/sql/docs/mysql/configure-private-ip)
+- [Private Service Connect で Cloud SQL に接続する](https://cloud.google.com/sql/docs/mysql/configure-private-service-connect)
 - [書き込み専用引数(write-only arguments)](https://developer.hashicorp.com/terraform/language/resources/ephemeral/write-only)

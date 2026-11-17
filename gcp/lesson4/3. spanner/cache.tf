@@ -1,7 +1,14 @@
 /**
- * Memorystore for Redis
+ * Memorystore for Valkey
  *
- * AWSのElastiCacheに相当する。
+ * AWSのElastiCache(Valkey)に相当する。
+ * ValkeyはRedisから派生したオープンソースで、Redisと同じ方法で接続できる。
+ *
+ * ★ Redis ではなく Valkey を使う理由 ★
+ * Memorystore for Redis(クラスタ無しの標準版)の接続方式は、
+ * 限定公開サービスアクセスかダイレクトピアリングの2つで、PSCは選べない。
+ * PSCで繋げるのは、Memorystore for Valkey と Memorystore for Redis Cluster。
+ * Valkey は PSC でしか繋げない(限定公開サービスアクセスは選べない)。
  *
  * ★ AWSとの違い ★
  * ElastiCacheでは以下の4つを作る必要があった。
@@ -9,36 +16,72 @@
  *   セキュリティグループ / レプリケーショングループ
  *
  * Memorystoreはインスタンス1つで済む。
- *   サブネットグループ   → 不要(限定公開サービスアクセスで接続)
- *   パラメータグループ   → redis_configs で直接指定
- *   セキュリティグループ → 不要(ピアリング経由なのでFirewall Rulesも要らない)
+ *   サブネットグループ   → 不要(PSCのエンドポイントが自動で作られる)
+ *   パラメータグループ   → engine_configs で直接指定
+ *   セキュリティグループ → 不要(エンドポイント宛の通信になるのでFirewall Rulesも要らない)
  *
- * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/redis_instance
+ * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/memorystore_instance
  */
-resource "google_redis_instance" "cache" {
-  name           = "${var.user_name}-cache"
-  region         = "asia-northeast1"
-  memory_size_gb = 1
+resource "google_memorystore_instance" "cache" {
+  instance_id = "${var.user_name}-cache"
+  location    = "asia-northeast1"
 
-  // BASIC       : 1ノード。フェイルオーバーなし
-  // STANDARD_HA : プライマリ + レプリカ。自動フェイルオーバーあり
-  tier = "STANDARD_HA"
+  // CLUSTER_DISABLED : シャードは1つ。Redis と同じ使い方になる
+  // CLUSTER          : データを複数のシャードに分散する(クラスタ対応のクライアントが要る)
+  mode        = "CLUSTER_DISABLED"
+  shard_count = 1
 
-  redis_version = "REDIS_7_2"
+  // プライマリに付けるレプリカの数
+  // 0      : 1ノード。フェイルオーバーなし
+  // 1以上  : プライマリ + レプリカ。自動フェイルオーバーあり
+  replica_count = 0
 
-  // 限定公開サービスアクセスで接続する
-  authorized_network = google_compute_network.vpc.id
-  connect_mode       = "PRIVATE_SERVICE_ACCESS"
+  // 勉強会用の最小サイズ(共有CPU)
+  node_type      = "SHARED_CORE_NANO"
+  engine_version = "VALKEY_8_0"
+
+  // 勉強会用: 通信の暗号化と認証を切る
+  // 本番では transit_encryption_mode = SERVER_AUTHENTICATION と authorization_mode = IAM_AUTH を使うこと
+  transit_encryption_mode = "TRANSIT_ENCRYPTION_DISABLED"
+  authorization_mode      = "AUTH_DISABLED"
 
   // AWSのパラメータグループに相当
-  redis_configs = {
+  engine_configs = {
     maxmemory-policy = "allkeys-lru"
   }
 
-  // ピアリングが張られてから作る
-  depends_on = [google_service_networking_connection.private_service]
+  // PSCのエンドポイントを、自分のVPCの中に自動で作る
+  desired_auto_created_endpoints {
+    network    = google_compute_network.vpc.id
+    project_id = var.project_id
+  }
+
+  // 勉強会用: destroy できるようにする
+  // 本番では true にして誤削除を防ぐこと
+  deletion_protection_enabled = false
+
+  // ポリシーが先にないと、エンドポイントを作れずに失敗する
+  depends_on = [google_network_connectivity_service_connection_policy.memorystore]
+}
+
+/**
+ * 自動で作られたエンドポイントのIP
+ *
+ * エンドポイントは、プライマリ(読み書き)と、レプリカがあるときのリーダー(読み取り専用)の
+ * 2種類。connection_type で見分けて、プライマリのIPをアプリに渡す。
+ */
+locals {
+  cache_connections = flatten([
+    for e in google_memorystore_instance.cache.endpoints : [
+      for c in e.connections : c.psc_auto_connection[0]
+    ]
+  ])
+  cache_host = [
+    for c in local.cache_connections : c.ip_address
+    if c.connection_type == "CONNECTION_TYPE_PRIMARY"
+  ][0]
 }
 
 output "cache_host" {
-  value = google_redis_instance.cache.host
+  value = local.cache_host
 }

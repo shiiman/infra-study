@@ -60,12 +60,14 @@
 | Firewall | 2〜4 | 4〜6 | 4〜6 | 4〜6 | 2〜5 |
 | VM(e2) | 2台(1台に外部IP) | **2台(zone a/b)** | 1〜2台 | **1台(e2-medium)** | **2台(e2-medium・ゾーンa)** |
 | IG | — | 2 | 2 | 2 | 1 |
-| グローバル外部IP | — | 1(LB) | **2**(LB+PSSA) | 2 | 1(別IP) |
+| グローバル外部IP | — | 1(LB) | 1(LB。2026-11-17 に PSC へ変更し、PSSA 用の貸出アドレスは不要) | 1 | 1(別IP) |
 | 地域内外部IP | 1 | 1 | 1 | 1 | 0 |
 | マネージド証明書 | — | 1 | 1 | 1 | 0(HTTPのみ) |
 | グローバル転送ルール | — | 2(http/https) | 2 | 2 | 1 |
 | Router / NAT | 2 / 2 | 1 / 1 | 1 / 1 | 1 / 1 | 1 / 1 |
-| Redis | — | — | **1(1GB)** | 1 | — |
+| Memorystore for Valkey(SHARED_CORE_NANO) | — | — | **1** | 1 | — |
+| サービス接続ポリシー(`gcp-memorystore`) | — | — | **1** | 1 | — |
+| サービス接続ポリシー(`google-cloud-sql`、宿題2) | — | — | — | 1 | — |
 | Spanner(100PU) | — | — | **1** | 1 | — |
 | Cloud SQL | — | — | **1(宿題)** | 1 | — |
 | GCS バケット | 1(tfstate) | 2 | 2 | **2**(+ログ) | 1(tfstate) |
@@ -131,7 +133,8 @@ E2 は `CPUS-PER-VM-FAMILY-per-project-region` に枠を持たず、この汎用
 | ターゲットHTTPSプロキシ / URLマップ | 各 250 | 各 ~40 |
 | ヘルスチェック | 1,250 | ~40 |
 | **Spanner ノード数**(`SpannerNodesPerProject`) | **100ノード(=100,000PU)** | 2ノード(2,000PU) |
-| **Redis 総容量**(`TotalCapacityPerProjectPerRegion`) | **2,000 GB** | 20 GB |
+| **Memorystore(Valkey)の総ユニット数**(`TotalUnitsPerProjectPerRegion`、2026-11-17 に実値確認) | **2,500** | 1ノード × 20人 |
+| **サービス接続ポリシー数**(`RegionalPerProjectServiceConnectionPolicies`、2026-11-17 に実値確認) | **500** | 20人 × 2 = 40 |
 | **Cloud Build 同時実行**(`OngoingBuildsPerProject`) | **30** | 20 |
 | Cloud Build 同時実行vCPU(`OngoingBuildCPUs...`) | 128 | ~40 |
 | IAM カスタムロール(`CustomRolesPerProject`) | 300 | ~20 |
@@ -229,7 +232,7 @@ gcloud quotas info describe CPUS-per-project-region \
   --format="json(dimensionsInfos)"
 ```
 
-確認対象のサービス: `compute` / `sqladmin` / `redis` / `spanner` /
+確認対象のサービス: `compute` / `sqladmin` / `memorystore` / `networkconnectivity` / `spanner` /
 `cloudbuild` / `iam` / `storage` / `run` / `artifactregistry`
 
 `dimensionsInfos[].details.value` が **-1 なら無制限**。
@@ -357,8 +360,8 @@ Cloud Armor・DNS レコード・カスタムロール)。20人が同時に作�
 - 1人あたりの構成は各回の最終スナップショットディレクトリの
   `*.tf` の `resource` 定義の実数から算出
   (lesson2/syukudai2 = 7サブネット / lesson3/syukudai3 = VM2台(zone a/b)・
-  証明書1・グローバルIP1 / lesson4/syukudai2 = Redis・Spanner・SQL 各1・
-  PSSA用グローバルIP / lesson8/0. before = e2-medium 1台の積み上げ状態)
+  証明書1・グローバルIP1 / lesson4/syukudai2 = Valkey・Spanner・SQL 各1・
+  PSCポリシー2(2026-11-17 に PSA から変更) / lesson8/0. before = e2-medium 1台の積み上げ状態)
 - ゾーン分布は `*.tf` の `zone = ` の実数
   (`asia-northeast1-a` 42箇所 / `asia-northeast1-b` 4箇所)
 - 第10回の問2は `count = 2` で e2-medium × 2台を

@@ -26,7 +26,7 @@
 
 > **待ち時間**
 > - S14 `0. before` の apply: 約20分(Spanner/Memorystore/証明書を含む)
-> - S19 イメージのビルドとpush: 2〜5分(Cloud Shellでビルドする)
+> - S19 イメージのビルドとpush: 約2分(Cloud Shellでビルドする。実測112秒+push 4秒)
 > - S41 ロードバランサの伝播: **約7分30秒**(実測)
 >
 > **S41の伝播待ちが最後に来るのが痛い。**
@@ -138,16 +138,17 @@
 ```
 ◼前回やったこと
 
-GCPのマネージドDBは接続方式が3種類ある
+GCPのマネージドDBは接続方式が4種類ある
   Google API経由     Spanner / BigQuery
-  VPCピアリング       Cloud SQL / Memorystore
+  PSC(前回使った)   Cloud SQL / Memorystore
+  VPCピアリング       Cloud SQL / Memorystore(旧方式)
   Auth Proxy         Cloud SQL(別解)
 
 Spanner: 主キーの設計が全て。IAMで認証。パスワードが無い
-Memorystore: ElastiCacheの4リソースが1リソースに
-限定公開サービスアクセスでピアリングを張った
+Memorystore for Valkey: ElastiCacheの4リソースが1リソースに
+PSCで、自分のVPCの中にエンドポイントIPを1つ立てた
 
-★ 今日この「3種類の接続方式」がもう一度出てきます
+★ 今日この「接続方式」がもう一度出てきます
 ```
 
 **[話す]** 前回の話が今日の山場に直結する。覚えておいてほしい。
@@ -618,10 +619,8 @@ resource "google_artifact_registry_repository" "app" {
    第7回(CI/CD)で Cloud Build を使って自動化します
 ```
 
-> **要検証**: Cloud Shell でのビルド時間。
-> 検証時はローカルのdockerで代用し、**60秒**だった(キャッシュなし)。
-> 第4回の VM(e2-medium)では5分16秒。
-> Cloud Shell は 2vCPU なので、その中間(2〜5分)になると思われる。
+> **検証済み(2026-11-17)**: Cloud Shell でのビルドは **112秒**、push は4秒だった(キャッシュなし)。
+> ローカルのdockerでは60秒、第4回の VM(e2-medium)では5分16秒。
 > 開催前に Cloud Shell で実測して差し替えること。
 
 ---
@@ -774,7 +773,7 @@ resource "google_cloud_run_v2_service" "app" {
 ```
       env { name = "DB_KIND"          value = "spanner" }
       env { name = "SPANNER_DATABASE" value = google_spanner_database.app.id }
-      env { name = "CACHE_HOST"       value = google_redis_instance.cache.host }
+      env { name = "CACHE_HOST"       value = local.cache_host }
     }
   }
 
@@ -862,6 +861,10 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 
 > **検証済み(2026-08-28)**: 実環境で上記の出力を確認。
 > Cloud Run のデプロイは 35秒。デプロイ直後からアクセスできる。
+>
+> **PSC 版でも検証済み(2026-11-17、Cloud Shell)**: 同じ出力になった(デプロイ 41秒)。
+> ただし `Cache接続: 失敗` は、接続のタイムアウトを待つため、**返ってくるまで約30秒**かかる。
+> curl が止まったように見えるので、受講者には先に伝えておく。
 
 **[話す]** ここで受講者に聞く。第4回をやっていれば答えが出るはず。
 
@@ -870,17 +873,17 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 ### S29 | なぜ Memorystore に繋がらないのか ★
 
 **[図版]** **新規作成**。この回の最重要図その2。
-第4回 S17 の「3種類の接続方式」の図を再掲し、Cloud Run を左側に置く。
+第4回 S17 の「4種類の接続方式」の図を再掲し、Cloud Run を左側に置く。
 
 ```
                           ┌─ Google API ─┐
    [Cloud Run] ──────────▶│  [Spanner]    │  ○ 繋がる
         │                  └────────────┘
         │
-        │  ✕            ┌─ 自分のVPC ──┐  ┌─ Google のVPC ─┐
-        └───────────▶│  (VPCの外にいる) │◀▶│ [Memorystore]   │
-                          └────────────┘  └──────────────┘
-                                       ピアリング
+        │  ✕            ┌─ 自分のVPC ──────┐  ┌─ Google のVPC ─┐
+        └───────────▶│  エンドポイント      │─▶│ [Memorystore]   │
+                          │  172.16.10.x      │PSC└──────────────┘
+                          └────────────┘
 ```
 
 **[本文]**
@@ -888,15 +891,15 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 ```
 ◼Cloud Run は VPC の外で動いている
 
-第4回でやった「3種類の接続方式」を思い出す
+第4回でやった「4種類の接続方式」を思い出す
 
-  Spanner      Google API 経由    → VPCの外からでも届く
-  Memorystore  VPCピアリング経由  → VPCの中にいないと届かない
+  Spanner      Google API 経由  → VPCの外からでも届く
+  Memorystore  PSC              → VPCの中のIPなので、VPCの中にいないと届かない
 
 ◼Cloud Run はVPCの中にいない
-だからピアリングの先にある Memorystore に届かない
+だから VPC の中にあるエンドポイントIP(172.16.10.x)に届かない
 
-★ 第4回で「接続方式が3種類ある」と言った理由がこれ
+★ 第4回で「接続方式が4種類ある」と言った理由がこれ
    どこからアクセスするかで、必要な準備が変わる
 ```
 
@@ -909,12 +912,12 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 ```
 ◼第4回のVMは private サブネットの中にいた
 
-  [VM] ─ private subnet ─ VPC ─ ピアリング ─ [Memorystore]
-                                                ○ 繋がる
+  [VM] ─ エンドポイント ─ PSC ─ [Memorystore]
+                                      ○ 繋がる
 
 ◼Cloud Run はVPCの外
 
-  [Cloud Run] ────────✕──── ピアリング ─ [Memorystore]
+  [Cloud Run] ──✕── エンドポイント ─ PSC ─ [Memorystore]
 
 ★ 「VMからは繋がったのにCloud Runからは繋がらない」
    移行のときによく踏む
@@ -962,7 +965,7 @@ Cloud Run のインスタンスが VPC 内にIPを持つ様子。
        │ VPC内のIP(private サブネットから払い出される)
        ▼
   ┌─ 自分のVPC ──┐
-  │  private subnet │──ピアリング──▶ [Memorystore]
+  │  private subnet │──PSC エンドポイント──▶ [Memorystore]
   └──────────┘
 
 ◼2つのやり方がある
@@ -1049,6 +1052,9 @@ resource "google_cloud_run_v2_service" "app" {
 > **検証済み(2026-08-28)**: `vpc_access` ブロックを足した apply が **16秒**で完了し、
 > 直後のアクセスで `Cache接続: 成功` になることを確認。
 > 反映を待つ必要はなかった。
+>
+> **PSC 版でも検証済み(2026-11-17、Cloud Shell)**: apply は **21秒**。
+> 10秒後のアクセスで `Cache接続: 成功`、応答は 0.1〜0.3秒。
 
 ---
 
@@ -1365,9 +1371,9 @@ min_instance_count = 0 にできる(Fargateとの一番の違い)
 ◼Cloud Run は VPC の外にいる
 
   Spanner      Google API経由      → そのまま繋がる
-  Memorystore  VPCピアリング経由   → Direct VPC egress が必要
+  Memorystore  PSC(VPC内のIP)    → Direct VPC egress が必要
 
-  第4回の「3種類の接続方式」がそのまま効いてくる
+  第4回の「4種類の接続方式」がそのまま効いてくる
 
 ◼コンテナに入れない
 ECS Exec に相当する機能が無い
@@ -1505,24 +1511,21 @@ Cloud Run のインスタンス自動スケーリング
 宿題などで作成したリソースは
 必ず削除してください！
 
-★★ destroy は2つの障害があります ★★
+★★ destroy は1回では終わりません ★★
 
-   ① 限定公開サービスアクセスのピアリング(第4回と同じ)
-   ② Direct VPC egress が確保したIPアドレス(今回から)
+   Direct VPC egress が確保したIPアドレス(今回から)が
+   サブネットに残るため
 
    1. terraform destroy
-        → ピアリングとサブネットの削除で失敗する
+        → サブネットとVPCの削除で失敗する
+        ★ 第4回のようなピアリングの手作業は要りません
+          (PSC なのでエンドポイントも自動で消えます)
 
-   2. ピアリングを直接消す
-        gcloud compute networks peerings delete \
-          servicenetworking-googleapis-com \
-          --network=[自分の名前]-vpc
-
-   3. SERVERLESS のアドレスが解放されるのを待つ
+   2. SERVERLESS のアドレスが解放されるのを待つ
         ★ 公式ドキュメントに「1〜2時間待て」と書かれています
         ★ 手動では削除できません
 
-   4. terraform destroy
+   3. terraform destroy
 ```
 
 **[話す]** 年末年始を挟む回なので、片付けを特に強く言う。
@@ -1534,12 +1537,12 @@ Cloud Run のインスタンス自動スケーリング
 **[本文]**
 
 ```
-★★ 皆さんは 1 と 2 まででOKです ★★
+★★ 皆さんは 1 まででOKです ★★
 
-   3 の解放待ちがあるので、この場では終わりません。
-   4 は講師がまとめてやります。翌日に打つ必要はありません。
+   2 の解放待ちがあるので、この場では終わりません。
+   3 は講師がまとめてやります。翌日に打つ必要はありません。
 
-★ 1 と 2 のあと残るのは VPC とサブネットだけで、課金はありません
+★ 1 のあと残るのは VPC とサブネットだけで、課金はありません
    当日の夜に見張らなくて大丈夫です
 
 ★ 気になる人は自分で確認できます
@@ -1610,19 +1613,13 @@ URLマップ / HTTPSプロキシ / 転送ルール は `0. before` から外し�
 
 # 付録A-2: destroy の手順(重要)
 
-**この回の destroy は2つの障害がある。** 当日の最後に必ず案内すること。
+**この回の destroy は、1回では終わらない。** 当日の最後に必ず案内すること。
 
-## ① 限定公開サービスアクセスのピアリング(第4回と同じ)
+第4回を PSC に切り替えたので、以前あった「限定公開サービスアクセスのピアリングが消せない」
+障害は無くなった(Memorystore のエンドポイントとサービス接続ポリシーは、
+`terraform destroy` の1回で消える)。残る障害は次の1つ。
 
-```
-Error: Unable to remove Service Networking Connection
-Failed to delete connection; Producer services are still using this connection.
-```
-
-`gcloud compute networks peerings delete servicenetworking-googleapis-com
- --network=<自分の名前>-vpc` で直接消す。
-
-## ② Direct VPC egress が確保したIPアドレス(今回から)
+## Direct VPC egress が確保したIPアドレス(今回から)
 
 ```
 Error: The subnetwork resource '<自分の名前>-private-subnet' is already
@@ -1667,11 +1664,8 @@ The address resource '...' is already being used by
 ```
 # 当日(講義の最後)
 terraform destroy
-  → Cloud Run / Spanner / Memorystore などは消える
-  → ピアリングとサブネットの削除で失敗する
-
-gcloud compute networks peerings delete servicenetworking-googleapis-com \
-  --network=<自分の名前>-vpc
+  → Cloud Run / Spanner / Memorystore / サービス接続ポリシーなどは消える
+  → サブネットとVPCの削除で失敗する
 
 # 翌日
 gcloud compute addresses list --filter="purpose=SERVERLESS"
@@ -1692,9 +1686,9 @@ Cloud Run / Spanner / Memorystore / VM / ロードバランサ / 外部IP は
 
 **受講者への案内**
 
-「destroyでエラーが2種類出ます。慌てないでください。
+「destroyでエラーが出ます。慌てないでください。
 課金されるものは全部消えています。
-ピアリングを消して、翌日にもう一度 destroy してください」
+翌日にもう一度 destroy してください」
 
 と先に言っておくこと。
 **当日中に完全に消そうとすると1〜2時間待つことになる。**
@@ -1704,6 +1698,12 @@ Cloud Run / Spanner / Memorystore / VM / ロードバランサ / 外部IP は
 # 付録B: 制作メモ / 要確認事項
 
 ## 実環境での動作確認: **完了(2026-08-28)**
+
+> **★ 2026-11-17 の注記 ★** 以下は、第4回が限定公開サービスアクセス + Memorystore for Redis だったころの記録。
+> 第4回を PSC + Memorystore for Valkey に変えたあと、この回の `before.tf` と `cloud_run.tf` も差し替えた。
+> `terraform validate` は全ディレクトリで成功(terraform 1.17.2)。
+> **Cloud Run から Valkey への接続(Step2 の失敗、Step3 の Direct VPC egress での成功)は、PSC 版ではまだ通しで実行していない。**
+> Valkey への接続そのものは、第4回側で VM から PONG が返ることを確認した。
 
 受講者相当の権限(第1回 付録Aの10ロール)で Step0〜4 を通しで実行。
 `terraform validate` は全6ディレクトリで成功(google provider 8.0.0)。
@@ -1726,10 +1726,10 @@ Cloud Run / Spanner / Memorystore / VM / ロードバランサ / 外部IP は
 **S28 → S34 の「繋がらない → 繋がる」サイクル**が実環境で再現した。
 
 - Cloud Run は VPC の外にいるので、Google API 経由の Spanner には繋がる
-- ピアリング経由の Memorystore には繋がらない
+- VPC 内のエンドポイントIP(PSC)の先にある Memorystore には繋がらない
 - `vpc_access` ブロックを1つ足すだけで解決する
 
-第4回の「3種類の接続方式」がそのまま回収できている。
+第4回の「4種類の接続方式」がそのまま回収できている。
 
 ### 判明した時間の問題
 

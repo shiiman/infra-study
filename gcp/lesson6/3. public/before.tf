@@ -428,85 +428,70 @@ resource "google_compute_managed_ssl_certificate" "web" {
  */
 
 /**
- * 第4回: 限定公開サービスアクセス
+ * 第4回: Private Service Connect
  */
 /**
- * 限定公開サービスアクセス (Private Service Access)
+ * Private Service Connect (PSC) とサービス接続ポリシー
  *
  * ★ AWSには無い、GCP独自の前提 ★
  *
- * Cloud SQL や Memorystore は「Googleが管理するVPC」の中で動いている。
+ * Memorystore や Cloud SQL は「Googleが管理するVPC」の中で動いている。
  * 自分のVPCとは別のネットワークなので、そのままでは繋がらない。
  *
- * そこで自分のVPCの中からIPレンジを1つ切り出してGoogle側に貸し出し、
- * VPCピアリングで両者を繋ぐ。これが限定公開サービスアクセス。
+ * PSC は、自分のVPCの中に「エンドポイント」(内部IPを1つ)を立てて、
+ * そのIPに向かって接続すると、Google側のサービスに届く仕組み。
  *
  *   自分のVPC 172.16.0.0/16
  *     ├ public  172.16.0.0/24
- *     ├ private 172.16.10.0/24
- *     └ 172.16.192.0/20  ← Googleに貸し出す(ここにCloud SQLなどのIPが入る)
+ *     └ private 172.16.10.0/24
+ *         └ 172.16.10.4  ← エンドポイント。このIP宛に接続する
+ *                ↕ PSC
+ *   Googleが管理するVPC(Memorystore がいる)
  *
- * ★ レンジは大きめに取ること ★
- * サービスごとにこのレンジからブロックを切り出して使う。
- * /24 だと Memorystore を作った時点で埋まり、
- * Cloud SQL の作成が次のエラーで失敗する。
- *
- *   Couldn't find free blocks in allocated IP ranges.
- *   Please allocate new ranges for this service provider.
- *
- * Googleは /16 を推奨している。ここでは /20 にしている。
- *          ↕ VPCピアリング
- *   Googleが管理するVPC
+ * 貸し出すのはIP 1つ分だけで、IPレンジの設計は要らない。
+ * (限定公開サービスアクセスは、IPレンジを丸ごとGoogleに貸し出してピアリングを張っていた)
  *
  * AWSではRDSやElastiCacheが自分のVPCのサブネットに直接ENIを作っていたので、
  * この手順は存在しなかった。代わりにサブネットグループを作っていた。
  *
- * ★ 1つ作れば Cloud SQL と Memorystore の両方で使い回せる
+ * ★ サービス接続ポリシー ★
+ * 「このVPCの、このサブネットに、この種類のサービスのエンドポイントを
+ *  自動で作ってよい」という許可。サービスの種類(サービスクラス)ごとに1つ作る。
  *
- * https://cloud.google.com/vpc/docs/configure-private-services-access
+ *   Memorystore → gcp-memorystore
+ *   Cloud SQL   → google-cloud-sql
+ *
+ * ポリシーがあると、インスタンスを作るときにエンドポイントが自動で作られる。
+ * エンドポイントのIPは、subnetworks に指定したサブネットから払い出される。
+ *
+ * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/network_connectivity_service_connection_policy
  */
-
-variable "private_service_cidr" {}
-
-/**
- * Googleに貸し出すIPレンジを予約する
- *
- * purpose = "VPC_PEERING" が限定公開サービスアクセス用の予約という意味。
- * 第3回で使った google_compute_global_address(ロードバランサのIP)と
- * 同じリソースだが、purposeが違うと全く別の用途になる。
- *
- * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_global_address
- */
-resource "google_compute_global_address" "private_service" {
-  name          = "${var.user_name}-private-service-range"
-  purpose       = "VPC_PEERING"
-  address_type  = "INTERNAL"
-  address       = split("/", var.private_service_cidr)[0]
-  prefix_length = tonumber(split("/", var.private_service_cidr)[1])
+resource "google_network_connectivity_service_connection_policy" "memorystore" {
+  name          = "${var.user_name}-memorystore"
+  location      = "asia-northeast1"
+  service_class = "gcp-memorystore"
   network       = google_compute_network.vpc.id
-}
 
-/**
- * VPCピアリングを張る
- *
- * servicenetworking.googleapis.com が Google側のサービス。
- * 上で予約したレンジを渡して接続する。
- *
- * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_networking_connection
- */
-resource "google_service_networking_connection" "private_service" {
-  network                 = google_compute_network.vpc.id
-  service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_service.name]
+  psc_config {
+    // エンドポイントのIPを払い出すサブネット
+    subnetworks = [google_compute_subnetwork.private.id]
+  }
 }
 
 /**
  * 第4回: Memorystore
  */
 /**
- * Memorystore for Redis
+ * Memorystore for Valkey
  *
- * AWSのElastiCacheに相当する。
+ * AWSのElastiCache(Valkey)に相当する。
+ * ValkeyはRedisから派生したオープンソースで、Redisと同じ方法で接続できる。
+ *
+ * ★ Redis ではなく Valkey を使う理由 ★
+ * Memorystore for Redis(クラスタ無しの標準版)の接続方式は、
+ * 限定公開サービスアクセスかダイレクトピアリングの2つで、PSCは選べない。
+ * PSCで繋げるのは、Memorystore for Valkey と Memorystore for Redis Cluster。
+ * Valkey は PSC でしか繋げない(限定公開サービスアクセスは選べない)。
  *
  * ★ AWSとの違い ★
  * ElastiCacheでは以下の4つを作る必要があった。
@@ -514,34 +499,70 @@ resource "google_service_networking_connection" "private_service" {
  *   セキュリティグループ / レプリケーショングループ
  *
  * Memorystoreはインスタンス1つで済む。
- *   サブネットグループ   → 不要(限定公開サービスアクセスで接続)
- *   パラメータグループ   → redis_configs で直接指定
- *   セキュリティグループ → 不要(ピアリング経由なのでFirewall Rulesも要らない)
+ *   サブネットグループ   → 不要(PSCのエンドポイントが自動で作られる)
+ *   パラメータグループ   → engine_configs で直接指定
+ *   セキュリティグループ → 不要(エンドポイント宛の通信になるのでFirewall Rulesも要らない)
  *
- * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/redis_instance
+ * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/memorystore_instance
  */
-resource "google_redis_instance" "cache" {
-  name           = "${var.user_name}-cache"
-  region         = "asia-northeast1"
-  memory_size_gb = 1
+resource "google_memorystore_instance" "cache" {
+  instance_id = "${var.user_name}-cache"
+  location    = "asia-northeast1"
 
-  // BASIC       : 1ノード。フェイルオーバーなし
-  // STANDARD_HA : プライマリ + レプリカ。自動フェイルオーバーあり
-  tier = "STANDARD_HA"
+  // CLUSTER_DISABLED : シャードは1つ。Redis と同じ使い方になる
+  // CLUSTER          : データを複数のシャードに分散する(クラスタ対応のクライアントが要る)
+  mode        = "CLUSTER_DISABLED"
+  shard_count = 1
 
-  redis_version = "REDIS_7_2"
+  // プライマリに付けるレプリカの数
+  // 0      : 1ノード。フェイルオーバーなし
+  // 1以上  : プライマリ + レプリカ。自動フェイルオーバーあり
+  replica_count = 0
 
-  // 限定公開サービスアクセスで接続する
-  authorized_network = google_compute_network.vpc.id
-  connect_mode       = "PRIVATE_SERVICE_ACCESS"
+  // 勉強会用の最小サイズ(共有CPU)
+  node_type      = "SHARED_CORE_NANO"
+  engine_version = "VALKEY_8_0"
+
+  // 勉強会用: 通信の暗号化と認証を切る
+  // 本番では transit_encryption_mode = SERVER_AUTHENTICATION と authorization_mode = IAM_AUTH を使うこと
+  transit_encryption_mode = "TRANSIT_ENCRYPTION_DISABLED"
+  authorization_mode      = "AUTH_DISABLED"
 
   // AWSのパラメータグループに相当
-  redis_configs = {
+  engine_configs = {
     maxmemory-policy = "allkeys-lru"
   }
 
-  // ピアリングが張られてから作る
-  depends_on = [google_service_networking_connection.private_service]
+  // PSCのエンドポイントを、自分のVPCの中に自動で作る
+  desired_auto_created_endpoints {
+    network    = google_compute_network.vpc.id
+    project_id = var.project_id
+  }
+
+  // 勉強会用: destroy できるようにする
+  // 本番では true にして誤削除を防ぐこと
+  deletion_protection_enabled = false
+
+  // ポリシーが先にないと、エンドポイントを作れずに失敗する
+  depends_on = [google_network_connectivity_service_connection_policy.memorystore]
+}
+
+/**
+ * 自動で作られたエンドポイントのIP
+ *
+ * エンドポイントは、プライマリ(読み書き)と、レプリカがあるときのリーダー(読み取り専用)の
+ * 2種類。connection_type で見分けて、プライマリのIPをアプリに渡す。
+ */
+locals {
+  cache_connections = flatten([
+    for e in google_memorystore_instance.cache.endpoints : [
+      for c in e.connections : c.psc_auto_connection[0]
+    ]
+  ])
+  cache_host = [
+    for c in local.cache_connections : c.ip_address
+    if c.connection_type == "CONNECTION_TYPE_PRIMARY"
+  ][0]
 }
 
 
@@ -742,12 +763,12 @@ resource "google_cloud_run_v2_service" "app" {
      *
      * ★ Cloud Run は既定ではVPCの外にいる ★
      *
-     * 第4回でやった「3種類の接続方式」を思い出す。
+     * 第4回でやった「4種類の接続方式」を思い出す。
      *   Spanner      Google API 経由   → 追加設定なしで繋がる
-     *   Memorystore  VPCピアリング     → VPCの中にいないと繋がらない
+     *   Memorystore  PSC               → VPCの中にいないと繋がらない
      *
      * Cloud Run のインスタンスにVPC内のIPを持たせることで、
-     * ピアリング経由の Memorystore に届くようになる。
+     * VPC内にある PSC のエンドポイントに届くようになる。
      *
      * ★ 2つのやり方がある
      *   サーバレスVPCアクセスコネクタ(旧)  専用VMが立つ。課金される
@@ -798,7 +819,7 @@ resource "google_cloud_run_v2_service" "app" {
       }
       env {
         name  = "CACHE_HOST"
-        value = google_redis_instance.cache.host
+        value = local.cache_host
       }
     }
   }

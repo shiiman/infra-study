@@ -14,7 +14,7 @@ AWS 教材は対象外。Terraform やドキュメントの更新と、稼働環
 | ローカル MySQL | MySQL 8.0 | MySQL 8.4 LTS。OS 更新と未使用ツールの除去 |
 | ローカル Redis | `redis:7-alpine` | `redis:8.8-alpine3.23`。ビルド時に `apk upgrade` |
 | Cloud SQL（第4回宿題2） | `MYSQL_8_0` | `MYSQL_8_4`、`edition = "ENTERPRISE"` を明示し共有 CPU を維持 |
-| Memorystore | `REDIS_7_2` | 維持。サービス側のパッチ適用状況・メンテナンスを実環境で確認 |
+| Memorystore | `REDIS_7_2`(`google_redis_instance`) | 2026-11-17 に Memorystore for Valkey(`google_memorystore_instance`、`VALKEY_8_0`)へ切り替え。サービス側のパッチ適用状況・メンテナンスを実環境で確認 |
 | GitHub Actions | checkout v4 / auth v2 / setup-gcloud v2 | checkout v7 / auth v3 / setup-gcloud v3 |
 | Terraform CLI | インストール例 1.16.3、最低 1.9.0 / 1.11.0 | インストール例・最低バージョンとも 1.17.1 |
 | Google provider | `~> 8.0` | `~> 8.10`。既存作業ディレクトリは `terraform init -upgrade` が必要 |

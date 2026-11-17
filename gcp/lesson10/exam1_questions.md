@@ -115,7 +115,7 @@ Cloud SQL や Memorystore を VPC から使うために必要な仕組みはど�
 
 - A. Private Google Access
 - B. Cloud NAT
-- C. 限定公開サービスアクセス(VPCピアリング)
+- C. Private Service Connect(サービス接続ポリシー)
 - D. Cloud VPN
 
 ---
