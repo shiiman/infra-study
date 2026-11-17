@@ -95,6 +95,7 @@ echo "--- 課金が続くもの(先に消したい) ---"
 check "VM インスタンス"            gcloud compute instances list
 check "Cloud SQL インスタンス"     gcloud sql instances list
 check "Memorystore(Redis)"         gcloud redis instances list --region="$REGION"
+check "Memorystore(Valkey)"        gcloud memorystore instances list --location="$REGION"
 check "Spanner インスタンス"       gcloud spanner instances list
 check "ロードバランサの転送ルール" gcloud compute forwarding-rules list
 check "静的な外部IP"               gcloud compute addresses list

@@ -4,7 +4,13 @@
 - **AWS版対応**: 第5回(AWS データベース編)
 - **Terraformコード**: `gcp/lesson4/`
 - **ゴール**: アプリから Spanner と Memorystore に接続できる
-- **スライド同期**: 2026-11-17 に Googleスライドの1〜16枚目(S01〜S15-2)を原稿へ反映済み。17枚目以降(S17〜)は未同期。S16「休憩」は、デッキの16枚目(S15-2)の次が S17 のため、デッキ側に対応するスライドが見当たらない。
+- **スライド同期**: 2026-11-17 時点で、Googleスライドの1〜16枚目(S01〜S15-2)・18枚目(S17)・S19〜S25(PSC + Valkey に差し替え)・S44〜S47・S50〜S52 を原稿と合わせた。
+  S18 と S26〜S43(Spanner・Cloud SQL の説明)・S46・S48・S49・S53 は、今回の変更の対象外で、未確認のまま。
+  S16「休憩」は、デッキの16枚目(S15-2)の次が S17 のため、デッキ側に対応するスライドが見当たらない。
+  - 今回の PSC + Valkey への切り替え(2026-11-17)は、スライドに次の変更を入れた。内容は付録「PSC + Memorystore for Valkey への切り替え」を参照。
+    - 変更: S19(ピアリングは旧方式に)・S20・S20b・S20c・S21・S22・S23・S24・S25・S34(「Memorystore(5分)」の1か所のみ)・S44・S45・S47・S50・S51(2/2)・S52
+    - 追加: S22b「Memorystore for Valkey の構成」(S22 から分けた)
+    - 削除: S52b「注意事項(2/2)」(PSC では destroy が1回で終わるため)
   - S05「どれを使えばいいのか」・S07「万能なデータベースは無い」はデッキから削除し、欠番。
     S07 の文言は図の中に移っている(S06 の図に「万能なデータベースなど存在しない！」、S08 の図に「様々なワークロードに最適なデータベースを選択すべき！」)
   - S10「今日のゴール」は S04-2「ゴール」へ移動し、欠番
@@ -23,7 +29,7 @@
 | データベースの選び方 | 12分 | S04-3・S06・S08・S09(S05・S07 は欠番) |
 | 準備 + Step1(ローカルDB) | 15分 | S11〜S15-2(S10 は S04-2 へ移動、S12-2 は章扉) |
 | 休憩 | 5分 | S16 |
-| 4種類の接続方式 + Memorystore(Step2) | 27分 | S17〜S25(S20b・S20c 含む) |
+| 4種類の接続方式 + Memorystore(Step2) | 27分 | S17〜S25(S20b・S20c・S22b 含む) |
 | **Spanner(Step3)** | **41分** | S26〜S40 |
 | Cloud SQL(概説のみ) | 6分 | S41〜S44 |
 | まとめ・宿題 | 8分 | S45〜S53 |
@@ -33,8 +39,8 @@
 > これにより待ち時間が 22分 → **12分** に減っている。
 
 > **待ち時間が長い回。**
-> - S15 アプリのビルド: 約5分(e2-medium。e2-microでは終わらない)
-> - S24 Memorystore の作成: 約6分(実測)
+> - S15 スクリプトの実行: 約6分(e2-medium。実機で6分強。e2-microでは終わらない)
+> - S24 Memorystore の作成: 約5分(実測。PSC + Valkey で5分13秒)
 > - S34 Spanner の作成: 約1分(実測)
 >
 > 合計 **約12分**。第3回(17分)より改善している。
@@ -42,7 +48,7 @@
 > 押した場合の削り所: S06(DBの歴史)は口頭のみで圧縮できる。
 > S39(マルチリージョン構成)も飛ばせる。
 >
-> **削ってはいけないのは S17〜S19**(4種類の接続方式)と
+> **削ってはいけないのは S17〜S20c**(4種類の接続方式)と
 > **S28〜S34**(Spannerの構成と主キー設計)。この回の核心。
 
 ## 事前準備(講師)
@@ -50,17 +56,20 @@
 1. 受講者が第3回のリソースを destroy 済みであること
 2. API の有効化
    ```
-   gcloud services enable servicenetworking.googleapis.com \
-     sqladmin.googleapis.com redis.googleapis.com spanner.googleapis.com
+   gcloud services enable networkconnectivity.googleapis.com \
+     memorystore.googleapis.com sqladmin.googleapis.com spanner.googleapis.com
    ```
 3. 受講者のロールに以下を**追加**すること(第1回 付録Aの構成では足りない)
    ```
    roles/spanner.admin                   spanner.databases.setIamPolicy
-   roles/servicenetworking.networksAdmin servicenetworking.services.addPeering
    ```
    Spanner / Cloud SQL / Memorystore の**作成権限は `roles/editor` に含まれている**ので、
-   `roles/cloudsql.admin` や `roles/redis.admin` は不要。
-   Editor に無いのは上記2つの権限だけ。
+   `roles/cloudsql.admin` や `roles/memorystore.admin` は不要。
+   PSC で使うサービス接続ポリシー(`networkconnectivity.serviceConnectionPolicies.*`)の
+   作成・削除・更新の権限も、Editor に含まれていることを確認済み(2026-11-17)。
+   Editor に無いのは上記1つの権限だけ。
+   (以前の手順の限定公開サービスアクセスで必要だった
+   `roles/servicenetworking.networksAdmin` は、PSC では要らない)
 4. **Spanner の課金を事前に確認**すること
    100 PU(最小構成)× 受講者数 × 2時間。
    消し忘れると日割りで効いてくるので、destroy の徹底を強めに案内する
@@ -150,7 +159,7 @@ Cloud SQL(MySQL / PostgreSQL)はみんなだいたい知っているので軽く
 <!-- slide-id: g004slide -->
 
 **[図版]** 第3回 S05 のゴール図をベースに、右側に2つの接続先を描く。
-接続経路(VPCピアリング / Google API 経由)が別々であることが見えるように描くのがポイント。
+接続経路(Private Service Connect / Google API 経由)が別々であることが見えるように描くのがポイント。
 Cloud SQL は今日作らない(宿題)ので図に入れない。
 
 **[本文]**
@@ -166,10 +175,10 @@ asia-northeast1
 Compute Engine
 web VM(アプリ)
 
-① VPCピアリング
+③ Private Service Connect
 
 Memorystore
-(限定公開サービスアクセス)
+(Valkey)
 
 Private Google Access
 (第2回で有効化した)
@@ -433,7 +442,7 @@ CACHE_HOST                          キャッシュ(Redis)の接続先
 
 **[図版]** VM内で実行するコマンドと、実行時間・確認方法を示すスライド。
 上から、web インスタンスへ入るコマンド、VMの中でスクリプトを実行するコマンド、確認の curl を並べる。
-右の吹き出しで「約5分かかる」「終わったら curl で確認」「失敗なら30秒待って再実行」を伝え、下の黄色いバナーで次のページへつなぐ。
+右の吹き出しで「約6分かかる」「終わったら curl で確認」「失敗なら30秒待って再実行」を伝え、下の黄色いバナーで次のページへつなぐ。
 スクリプトの中身は次のページで説明する。
 
 **[本文]**
@@ -451,7 +460,7 @@ CACHE_HOST                          キャッシュ(Redis)の接続先
 ◼確認する
   curl http://localhost
 
-実行には約5分かかります
+実行には約6分かかります
 終わったら下の curl で確認します
 「失敗」なら30秒待って再実行
 
@@ -460,7 +469,7 @@ CACHE_HOST                          キャッシュ(Redis)の接続先
 
 **[話す]** 手順はスクリプト(`setup_local.sh`)にまとめてあります。
 SSHで入ったVMでは、複数行をまとめて貼ると行が欠けることがあるため、貼る行を減らしました。
-スクリプトは約5分かかります。終わったら、確認は手で `curl` を実行します。確認はスクリプトに含めていません。
+スクリプトは約6分かかります。終わったら、確認は手で `curl` を実行します。確認はスクリプトに含めていません。
 MySQLは初回起動が遅いので、「失敗」と出たら30秒ほど待って、もう一度 `curl` を実行してもらいます。
 「DB接続」と「Cache接続」がどちらも「成功」と出れば完了です。待っても失敗が続くときは `docker logs db` / `docker logs app` を見ます。
 
@@ -476,7 +485,11 @@ Spannerのクライアントライブラリ(Google Cloud Go SDK + gRPC)は依存
 > マシンタイプは用途で変える、という実例としても使える。
 >
 > ※ 上の検証は、旧手順(コマンドを1行ずつ実行)での計測。
-> `setup_local.sh` 自体の実機検証は未実施。
+>
+> **`setup_local.sh` の実機検証済み(2026-11-17)**:
+> git・docker が入っていないVMで、スクリプトの実行は**6分強**で完了。
+> 手で実行した `curl http://localhost` でも、問題なく「成功」が返った。
+> git は、スクリプトを取得するために15枚目の `apt-get install -y git` で先に入れる必要がある。
 
 ---
 
@@ -535,64 +548,56 @@ MySQL は初回起動が遅いので、「失敗」なら30秒待って再実行
 
 ### S17 | GCPのマネージドDBはどこにいるのか ★
 
+<!-- slide-id: g016slide -->
+
 **[図版]** **新規作成**。この回の最重要図その1。AWS版との比較。
-
-```
-   AWS                             GCP
-
- ┌─ 自分のVPC ────┐        ┌─ 自分のVPC ──┐
- │  private subnet   │        │ private subnet │
- │   [EC2]           │        │  [VM]          │
- │   [RDS]  ← 中にいる│        └───┬────┬─┘
- │   [ElastiCache]   │             │    │
- └─────────────┘        ピアリング  API経由
-                            ┌────┘    └────┐
-                    ┌─ Google のVPC ─┐ ┌─ Google API ─┐
-                    │ [Cloud SQL]     │ │ [Spanner]     │
-                    │ [Memorystore]   │ │ [BigQuery]    │
-                    └───────────┘ └─────────┘
-```
+左にAWS(DBは自分のVPCの中にいる)、右にGCP(DBはGoogle側にいる)を並べる。
+GCPは、自分のVPCの VM から Google の VPC(Cloud SQL / Memorystore)と Google API(Spanner / BigQuery)へ矢印を引き、
+矢印には ①ピアリング・③PSC・②API経由 の番号を付ける。④Auth Proxy は図に描かず、図の下の凡例で示す。
+凡例は4行で、③の行だけ薄い黄色で「今日はこれ」と示す。
+左下の黄色い枠で、「Spannerが繋がらない」と「Cloud SQLが繋がらない」は原因が全く違うことを伝える。
 
 **[本文]**
 
-```
-◼AWS
-RDSもElastiCacheも、自分のVPCのサブネットにENIを作って入ってくる
-  → サブネットグループで置き場所を指定
-  → セキュリティグループで通信を制御
+```text
+AWS  DBは自分のVPCの中にいる
+  自分の VPC > private subnet > EC2 / RDS / ElastiCache
+  ENIを作ってサブネットに入ってくる
+  サブネットグループ + SGで制御
 
-◼GCP は 4種類の接続方式がある
+GCP  DBはGoogle側にいる。繋ぎ方は4種類
+  自分の VPC > VM
+    ① ピアリング / ③ PSC  → Google の VPC(Cloud SQL / Memorystore)
+    ② API経由             → Google API(Spanner / BigQuery)
 
-  ① VPCピアリング         Cloud SQL / Memorystore
-     Googleが管理する別VPCとピアリングを張る
-     = 限定公開サービスアクセス        ← 今日のハンズオンはこれ
+  ① VPCピアリング … Cloud SQL / Memorystore(旧方式)
+  ② Google API 経由 … Spanner / BigQuery(IPもポートも無い)
+  ③ Private Service Connect … Cloud SQL / Memorystore  ← 今日はこれ
+  ④ Auth Proxy … Cloud SQL の別解。今日は使わない
 
-  ② Google API 経由       Spanner / BigQuery / Cloud Storage
-     IPもポートも無い。APIを叩く
-     第2回でやった Private Google Access で届く
-
-  ③ Private Service Connect   Cloud SQL / Memorystore(①の後継)
-     自分のVPCの中にエンドポイントIPを1つ立てて、そこ宛に繋ぐ
-     ★ 社内では今こちらが主流です(S20b で詳しく)
-
-  ④ Auth Proxy            Cloud SQL(別解)
-     プロキシを立てて繋ぐ。今日は使わない
-
-★ どれを使うかで、必要な準備が全く変わります
-★ ①と③は「同じものへの2つの繋ぎ方」です。①を先にやるのは、
-   なぜ③が生まれたのかが分かるからです
+★「Spannerが繋がらない」と「Cloud SQLが繋がらない」は原因が全く違う
 ```
 
 **[話す]** ここが今日一番大事なところ。
 「Spannerを作ったのにVMから繋がらない」と「Cloud SQLを作ったのに繋がらない」は
 原因が全く違う。
 
-③のPSCは名前だけ出しておき、①を実際に作ったあと S20b で詳しく扱う。
-先に①をやるのは、PSCが「①の何を解決したのか」を体験してからのほうが早いため。
+AWSは、RDSもElastiCacheも、自分のVPCのサブネットにENIを作って入ってくる。
+置き場所はサブネットグループで指定し、通信はセキュリティグループで制御する。
+GCPは、DBが自分のVPCの外(Google側)にいて、繋ぎ方が4種類ある。どれを使うかで、必要な準備が全く変わる。
+
+- ① VPCピアリング: Cloud SQL / Memorystore。Googleが管理する別VPCとピアリングを張る(= 限定公開サービスアクセス)。旧方式。今日は使わない。
+- ② Google API 経由: Spanner / BigQuery / Cloud Storage。IPもポートも無く、APIを叩く。第2回でやった Private Google Access で届く。
+- ③ Private Service Connect: Cloud SQL / Memorystore(①の後継)。自分のVPCの中にエンドポイントIPを1つ立てて、そこ宛に繋ぐ。★ 社内では今こちらが主流。今日のハンズオンはこれ(S19〜S21で詳しく)。
+- ④ Auth Proxy: Cloud SQL の別解。プロキシを立てて繋ぐ。今日は使わない。
+
+①と③は「同じものへの2つの繋ぎ方」。①は旧方式なので、仕組みと弱点を見たうえで、今日は③を実際に作る。
 
 ---
 
 ### S18 | ② Google API 経由(Spanner)
+
+<!-- slide-id: g017slide -->
 
 **[図版]** 新規。第2回 S46 の Private Google Access の図を再掲して繋げる。
 
@@ -632,44 +637,46 @@ Cloud Storage や Secret Manager と同じ仕組み
 
 ---
 
-### S19 | ① VPCピアリング(Cloud SQL / Memorystore)
+### S19 | ① VPCピアリング(旧方式。今日は使わない)
+
+<!-- slide-id: g018slide -->
 
 **[図版]** **新規作成**。この回の最重要図その2。レンジの貸し出しを描く。
+右上に「旧方式。今日は使わない」の札を付け、次のページの PSC と比べるための図であることが分かるようにする。
 
 **[本文]**
 
 ```
-◼Cloud SQL と Memorystore は「Googleが管理するVPC」にいる
+◼① は「限定公開サービスアクセス」という旧方式(今日は使いません)
 
+Cloud SQL と Memorystore は「Googleが管理するVPC」にいる
 自分のVPCとは別ネットワークなので、そのままでは繋がらない
 → 自分のVPCからIPレンジを1つ貸し出して、ピアリングを張る
 
   自分のVPC 172.16.0.0/16
     ├ public   172.16.0.0/24     ← 第2回
     ├ private  172.16.10.0/24    ← 第2回
-    └ 172.16.192.0/20            ← 今日Googleに貸し出す
+    └ 172.16.192.0/20            ← Googleに貸し出す
 
   Cloud SQL / Memorystore のIPはこのレンジから払い出される
 
 ★ 貸し出すレンジは他のサブネットと重複できない
    第2回でCIDR設計をした理由がここで効いてきます
 
-★ 1回作れば Cloud SQL と Memorystore の両方で使い回せます
-
-★★ レンジは大きめに取ること ★★
-   サービスごとにこのレンジからブロックを切り出して使います
-   /24 だと Memorystore を作った時点で埋まり、
-   Cloud SQL の作成が失敗します
+★★ レンジは大きめに取る必要があります ★★
+   サービスごとにこのレンジからブロックを切り出して使うため、
+   /24 だと途中で埋まり、Cloud SQL の作成が失敗します
 
      Couldn't find free blocks in allocated IP ranges.
      Please allocate new ranges for this service provider.
 
-   Googleは /16 を推奨。ここでは /20 にしています
+   Googleは /16 を推奨
 ```
 
 > **検証済み(2026-08-28)**: 最初 `/24` で作ったところ、
 > Memorystore は作れたが Cloud SQL が上記エラーで失敗した。
 > `/20` に変更して解決。
+> (この検証は、以前の手順の限定公開サービスアクセス + Memorystore for Redis で行った)
 
 > **★ さらに注意**: Cloud SQL の作成に失敗すると、
 > インスタンスは `state: FAILED` の状態で残る。
@@ -677,9 +684,76 @@ Cloud Storage や Secret Manager と同じ仕組み
 > `The Cloud SQL instance already exists` で失敗する。
 > `gcloud sql instances delete` で消してから再実行すること。
 
+**[話す]** ここは「こういう方式があった」と見せるだけ。ハンズオンでは作らない。
+実務では、古いドキュメントやすでに動いているシステムで必ず出てくるので、
+**レンジを丸ごと貸し出す仕組みだった**ことだけ押さえてもらう。
+次のページで、PSC が何を解決したのかを見る。
+
 ---
 
-### S20 | Terraform コード(限定公開サービスアクセス)
+### S20 | ③ Private Service Connect ★(今日はこれ)
+
+<!-- slide-id: x0420bslide -->
+
+**[図版]** **新規作成**。①との左右比較。
+左に「① ピアリング(旧方式)」、右に「③ PSC(今日はこれ)」。
+左はGoogleのVPCとの間に太いピアリングの線を引き、貸出レンジを図示する。
+右は自分のVPCの中にエンドポイントIPが1つだけ立っている図にする。
+右の図には、エンドポイントを自動で作る「サービス接続ポリシー」も描く。
+
+```
+   ① 限定公開サービスアクセス          ③ Private Service Connect
+
+  ┌─ 自分のVPC ──────┐          ┌─ 自分のVPC ──────┐
+  │ private 172.16.10.0/24 │          │ private 172.16.10.0/24 │
+  │ 貸出   172.16.192.0/20 │          │   [EP] 172.16.10.4     │← IP 1つだけ
+  └──────┬────────┘          └──────┬────────┘
+      ピアリング(VPC全体がつながる)              PSC(この1点だけ)
+  ┌──────┴────────┐          ┌──────┴────────┐
+  │ Google のVPC           │          │ Google のVPC           │
+  │  [Cloud SQL]           │          │  [Memorystore]         │
+  └─────────────────┘          └─────────────────┘
+```
+
+**[本文]**
+
+```
+◼① ピアリングの弱点
+
+  VPC全体がGoogleのVPCとつながる
+  IPレンジを丸ごと貸し出す(/16 推奨。小さいと次のサービスが作れない)
+  ピアリングは推移しない
+    → Shared VPC や 別VPCから使いたいときに詰む
+
+◼③ Private Service Connect(今日はこれ)
+
+  自分のVPCの中に「エンドポイント」(内部IPを1つ)を立てる
+  そのIPに向かって接続する
+
+  貸し出すのはIP 1つ分だけ。IPレンジの設計が要らない
+  エンドポイントは、サービス接続ポリシーがあると自動で作られる
+  別VPCや別プロジェクトからも、それぞれエンドポイントを立てれば届く
+
+★ Cloud SQL は、公式が ③ を推奨しています(新規は ③ が既定)
+★ Cloud SQL / AlloyDB / Memorystore のほか、
+   サードパーティのSaaSにも同じ仕組みで繋げます
+★ AWSでいうと ① が VPCピアリング、③ が PrivateLink に近い関係です
+```
+
+**[話す]** 「さっきのレンジの話、要らなくなるんです」と言うと伝わりやすい。
+AWS経験者には「PrivateLinkと同じ発想」と言うのが一番早い。
+VPCピアリングとPrivateLinkの使い分けを知っている人なら、そのまま理解できる。
+
+> **なぜハンズオンを PSC にしたのか**: Cloud SQL では、公式が PSC を推奨していて、
+> 新規は PSC が既定になっている。Memorystore も、Valkey は PSC でしか繋げない。
+> 実務で使う形を手で作るほうが、今日の学びが実務に直結する。
+> (以前は ① でやっていたが、2026-11-17 に PSC + Valkey に切り替えた)
+
+---
+
+### S20b | Terraform コード(サービス接続ポリシー)
+
+<!-- slide-id: g019slide -->
 
 **[本文]**
 
@@ -688,86 +762,32 @@ cd ~/works/lesson4 && cp -rf ~/infra-study/gcp/lesson4/"2. cache" ./
 cd "2. cache"
 python3 ~/infra-study/gcp/tools/configure.py
 
-resource "google_compute_global_address" "private_service" {
-  name          = "${var.user_name}-private-service-range"
-  purpose       = "VPC_PEERING"        ← ここが用途の指定
-  address_type  = "INTERNAL"
-  address       = split("/", var.private_service_cidr)[0]
-  prefix_length = var.private_service_prefix_length
+resource "google_network_connectivity_service_connection_policy" "memorystore" {
+  name          = "${var.user_name}-memorystore"
+  location      = "asia-northeast1"
+  service_class = "gcp-memorystore"        ← サービスの種類
   network       = google_compute_network.vpc.id
+
+  psc_config {
+    subnetworks = [google_compute_subnetwork.private.id]
+  }                                        ↑ エンドポイントのIPを払い出すサブネット
 }
 
-resource "google_service_networking_connection" "private_service" {
-  network                 = google_compute_network.vpc.id
-  service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_service.name]
-}
-
-★ google_compute_global_address は第3回でも使いました
-   (ロードバランサのIP)
-   purpose が違うと全く別の用途になります
+★ サービス接続ポリシーは
+   「このVPCに、この種類のサービスのエンドポイントを自動で作ってよい」という許可
+★ サービスの種類(サービスクラス)ごとに1つ作ります
+     Memorystore → gcp-memorystore
+     Cloud SQL   → google-cloud-sql(宿題2で作ります)
 ```
 
 ---
 
-### S20b | ③ Private Service Connect ★
+### S20c | サービス別の使い分け
 
-**[図版]** **新規作成**。①との左右比較。
-左に「ピアリング(いま作ったもの)」、右に「PSC」。
-左はGoogleのVPCとの間に太いピアリングの線を引き、貸出レンジを図示する。
-右は自分のVPCの中にエンドポイントIPが1つだけ立っている図にする。
+<!-- slide-id: x0420cslide -->
 
-```
-   ① 限定公開サービスアクセス          ③ Private Service Connect
-
-  ┌─ 自分のVPC ──────┐          ┌─ 自分のVPC ──────┐
-  │ private 172.16.10.0/24 │          │ private 172.16.10.0/24 │
-  │ 貸出   172.16.192.0/20 │          │   [EP] 172.16.10.50    │← IP 1つだけ
-  └──────┬────────┘          └──────┬────────┘
-      ピアリング(VPC全体がつながる)              PSC(この1点だけ)
-  ┌──────┴────────┐          ┌──────┴────────┐
-  │ Google のVPC           │          │ Google のVPC           │
-  │  [Cloud SQL]           │          │  [Cloud SQL]           │
-  └─────────────────┘          └─────────────────┘
-```
-
-**[本文]**
-
-```
-◼さっき作ったピアリングの弱点
-
-  VPC全体がGoogleのVPCとつながる
-  レンジを丸ごと貸し出す(/16 推奨。さっき /24 で失敗した)
-  1つのVPCが張れるピアリングの数に上限がある
-  ピアリングは推移しない
-    → Shared VPC や 別VPCから使いたいときに詰む
-
-◼Private Service Connect
-
-  自分のVPCの中に「エンドポイント」を1つ立てる
-  その1つのIPに向かって接続する
-
-  貸し出すのはIP 1つ分だけ。レンジの設計が要らない
-  Firewall Rules でそのIP宛だけを許可できる
-  別VPCや別プロジェクトからも、それぞれエンドポイントを立てれば届く
-
-★ 社内では今こちらが主流です
-★ Cloud SQL / Memorystore / AlloyDB のほか、
-   サードパーティのSaaSにも同じ仕組みで繋げます
-```
-
-**[話す]** 「さっきレンジで失敗したやつ、要らなくなるんです」と言うと伝わりやすい。
-①をハンズオンでやったのは、PSCが何を解決したのかを体で分かってもらうため。
-
-> **なぜハンズオンは①のままなのか**: ①のほうが「Googleが管理する別VPCにいる」という
-> GCPの構造がそのまま見えるため。PSCはその構造を隠してくれるぶん、
-> 初見だと「なぜエンドポイントが要るのか」が分からなくなる。
-
----
-
-### S20c | ①と③の使い分け
-
-**[図版]** 表。左列に判断軸、右2列に①と③。
+**[図版]** 表。左列に判断軸、右2列に①と③。続けて、サービス別の対応表を載せる。
+「Valkey は ③ のみ」の行と、「Cloud SQL は新規なら ③」の行を目立たせる。
 
 **[本文]**
 
@@ -779,15 +799,25 @@ resource "google_service_networking_connection" "private_service" {
 Firewall での絞り込み      レンジ単位                  そのIP宛だけ
 別VPCから使う             ピアリングは推移しないので不可  エンドポイントを足せば可
 Shared VPC                 設計が複雑になる             素直に使える
-作るリソース               global_address +            forwarding_rule +
-                          service_networking_connection service_attachment 参照
-料金                      ピアリング自体は無料          エンドポイントに時間課金
+作るリソース               global_address +            サービス接続ポリシー
+                          service_networking_connection
+クライアントIPの把握        —                           Cloud SQL では見えない
 
-◼どちらを選ぶか
+◼サービス別の対応表(どちらで繋げるかは、サービスが決めている)
 
-  ★ サービス側が決めていることがあります
+                                ① PSA     ③ PSC
+  Cloud SQL                      ○         ○   新規は ③ が推奨
+  AlloyDB                        ○         ○
+  Memorystore for Redis(標準)   ○ ※1      —   ※2
+  Memorystore for Redis Cluster  —         ○
+  Memorystore for Valkey         —         ○   ③ のみ ← 今日はこれ
+  Memorystore for Memcached      ○         —   ※2
+  Spanner / BigQuery             どちらも使わない(② Google API 経由)
 
-  nishiki の実際の構成:
+  ※1 標準版は、ダイレクトピアリングも選べる(接続方式は2つだけ)
+  ※2 公式の PSC 対応サービス一覧に載っていない
+
+◼実務の例(nishiki)
 
     Memorystore Cluster (Redis Cluster / Valkey)
       → ③ PSC のみ。①は選べない
@@ -799,22 +829,24 @@ Shared VPC                 設計が複雑になる             素直に使え�
     ①の限定公開サービスアクセスも併存している
       → 貸出レンジは /22
 
-  ★ 新しいサービスほど③しか用意されていません
-     「①を知らないと、なぜ③があるのか分からない」ので今日は①からやりました
-
+★ 新しいサービスほど③しか用意されていません
 ★ ネットの記事や少し古いドキュメントは①の説明が多いので注意
-★ AWSでいうと ① が VPCピアリング、③ が PrivateLink に近い関係です
 ```
 
-**[話す]** AWS経験者には「PrivateLinkと同じ発想」と言うのが一番早い。
-VPCピアリングとPrivateLinkの使い分けを知っている人なら、そのまま理解できる。
+**[話す]** 「どちらかに統一する」ものではなく、**サービスごとに使える方式が違う**ことを押さえてもらう。
+Cloud SQL は、新規なら PSC。ただし、PSC のインスタンスは**クライアントのIPが見えない**。
+Memorystore は製品で決まる。標準の Redis は ①(または ダイレクトピアリング)、Valkey と Redis Cluster は ③ だけ。
 
-nishiki は①と③が両方入っている。「どちらかに統一する」ものではなく、
-**サービスごとに使える方式が違う**ことを押さえてもらう。
+> **出典(2026-11-17 に確認)**: Cloud SQL の「Private IP configuration options」(PSC を推奨、
+> PSA は an earlier type、PSC ではクライアントIPが見えない)、
+> Memorystore for Redis / Valkey / Redis Cluster の Networking、
+> VPC の Private services access の対応サービス一覧、PSC の対応サービス一覧。
 
 ---
 
 ### S21 | AWSでいうと何が消えるのか
+
+<!-- slide-id: g020slide -->
 
 **[本文]**
 
@@ -829,10 +861,11 @@ nishiki は①と③が両方入っている。「どちらかに統一する」
   SGルール(web→cache 6379)     → 不要
 
   代わりに
-  グローバルアドレス予約 + サービスネットワーキング接続 → 新規(1回だけ)
+  サービス接続ポリシー → 新規(サービスの種類ごとに1つ)
 
 ★ Firewall Rules を書かなくてよい理由
-   ピアリング経由の通信はVPC Firewall Rulesの対象外
+   自分のVPCから外へ出る通信(送信)は、既定で許可されているため
+   エンドポイントは自分のVPCの中にあるので、送信が許可されていれば届く
 
 ★ Spanner はこれすら要りません
 ```
@@ -841,71 +874,103 @@ nishiki は①と③が両方入っている。「どちらかに統一する」
 
 ### S22 | Memorystore とは
 
+<!-- slide-id: g021slide -->
+
 **[図版]** AWS版 第5回「Amazon ElastiCache」のスライドを流用。用語を差し替え。
+Memorystore の種類(4つ)と接続方式の対応をテキストで並べる。
 
 **[本文]**
 
 ```
-◼Memorystore for Redis
-マネージドのRedis。AWSのElastiCacheに相当
+◼Memorystore for Valkey
+マネージドの Valkey。AWSのElastiCache(Valkey)に相当
+Valkey は Redis から派生。Redis と同じ方法で繋がる
 
-  BASIC        1ノード。フェイルオーバーなし。開発用
-  STANDARD_HA  プライマリ + レプリカ。自動フェイルオーバー
+◼Memorystore は4種類ある
+  Redis (standard)  … PSA か ダイレクトピアリング
+  Redis Cluster     … PSC
+  Valkey            … PSC のみ  ← 今日はこれ
+  Memcached         … PSA
 
-◼ElastiCache との違い
+◼なぜ Valkey か
+  ① PSC で繋がる(今日の主題と揃う)
+  ② 実務(nishiki)でも Valkey / Redis Cluster を使っている
+  ③ Redis と同じ方法で繋がるので、アプリは変えなくてよい
+```
+
+**[話す]** 標準の Redis(クラスタ無し)は PSC に対応していないので、今日は使わない。
+「PSC で繋ぐなら Valkey か Redis Cluster」と覚えてもらう。
+今日は `mode = CLUSTER_DISABLED`(シャード1つ)なので、アプリは今までどおり `redis.Dial` で繋がる。
+
+---
+
+### S22b | Memorystore for Valkey の構成
+
+<!-- slide-id: g021cslide -->
+
+**[図版]** AWS版 第5回「Amazon ElastiCache」のスライドを流用。用語を差し替え。
+(S22 の「ElastiCache との違い」を、この1枚に分けた)
+
+**[本文]**
+
+```
+◼AWS(ElastiCache)との違い
 
   AWSは4リソース
     セキュリティグループ / サブネットグループ /
     パラメータグループ / レプリケーショングループ
 
   GCPは1リソース
-    google_redis_instance
+    google_memorystore_instance
 
-    サブネットグループ   → 限定公開サービスアクセスで代替
-    パラメータグループ   → redis_configs で直接指定
-    セキュリティグループ → 不要
-
-◼シャード構成は別サービス
-  Memorystore for Redis Cluster
-  (AWSはクラスターモードのON/OFFで切り替えられた)
+    サブネットグループ       → PSCのエンドポイントが自動で作られる
+    パラメータグループ       → engine_configs で直接指定
+    セキュリティグループ     → 不要
+    レプリケーショングループ → replica_count で指定
 ```
 
 ---
 
 ### S23 | Terraform コード(Memorystore)
 
+<!-- slide-id: g022slide -->
+
 **[本文]**
 
 ```
 参照: 2. cache/cache.tf
 
-resource "google_redis_instance" "cache" {
-  name           = "${var.user_name}-cache"
-  region         = "asia-northeast1"
-  memory_size_gb = 1
+resource "google_memorystore_instance" "cache" {
+  instance_id = "${var.user_name}-cache"
+  location    = "asia-northeast1"
 
-  tier          = "STANDARD_HA"
-  redis_version = "REDIS_7_2"
+  mode          = "CLUSTER_DISABLED"   ← シャード1つ。Redis と同じ使い方
+  shard_count   = 1
+  replica_count = 0                    ← 0: 1ノード / 1以上: レプリカ付き
 
-  authorized_network = google_compute_network.vpc.id
-  connect_mode       = "PRIVATE_SERVICE_ACCESS"
+  node_type      = "SHARED_CORE_NANO"  ← 勉強会用の最小サイズ
+  engine_version = "VALKEY_8_0"
 
-  redis_configs = {
-    maxmemory-policy = "allkeys-lru"
+  engine_configs = { maxmemory-policy = "allkeys-lru" }
+
+  desired_auto_created_endpoints {     ← PSCのエンドポイントを自動で作る
+    network    = google_compute_network.vpc.id
+    project_id = var.project_id
   }
 
-  depends_on = [google_service_networking_connection.private_service]
+  depends_on = [google_network_connectivity_service_connection_policy.memorystore]
 }
 
 ★ depends_on を書く理由
-   ピアリングが張られる前に作ろうとすると失敗します
-   Terraformは参照関係から順序を推測しますが、
-   このケースは参照がないので明示する必要があります
+   ポリシーが先にないと、エンドポイントを作れずに失敗します
+   Terraformは参照関係から順序を推測しますが、ここは参照がないので明示します
 ```
 
 ---
 
 ### S24 | Step2 実行
+
+<!-- slide-id: g023slide -->
 
 **[本文]**
 
@@ -914,21 +979,26 @@ resource "google_redis_instance" "cache" {
   terraform plan
   terraform apply
 
-★ Memorystoreの作成には6分前後かかります
-   (限定公開サービスアクセスのピアリングも含めて)
+★ Memorystoreの作成には5分前後かかります
    待っている間に Spanner の話に進みます(S26へ)
 
 ◼確認
   terraform output cache_host
-  → 172.16.200.x
+  → 172.16.10.x
 ```
 
-> **検証済み(2026-08-28)**: ピアリング + Memorystore で 6分5秒。
-> cache_host は貸し出しレンジから 172.16.200.84 が払い出された。
+> **検証済み(2026-11-17)**: サービス接続ポリシー + Memorystore for Valkey で、
+> Memorystore の作成に 5分13秒(ポリシーは12秒)。
+> cache_host は private サブネット(172.16.10.0/24)から払い出される(172.16.10.3 や .4)。
+> プライマリとリーダーのどちらが先の番号になるかは決まっていないので、
+> `connection_type` で選んでいる(検証では順番が逆になることもあった)。
+> `replica_count = 0` で新規に作ったときも、リーダーエンドポイントは作られた(Cloud Shell で確認)。
 
 ---
 
 ### S25 | アプリの接続先を切り替える
+
+<!-- slide-id: g024slide -->
 
 **[本文]**
 
@@ -949,7 +1019,7 @@ resource "google_redis_instance" "cache" {
   curl -X GET "http://localhost"     → Cache接続: 成功
 
 ★ Firewall Rules を1つも書いていないのに繋がります
-   ピアリング経由なのでVPC Firewall Rulesの対象外だからです
+   自分のVPCから外へ出る通信(送信)は、既定で許可されているからです
 ```
 
 ---
@@ -1261,7 +1331,7 @@ resource "google_spanner_database_iam_member" "web" {
   terraform apply
 
 ★ Spannerの作成は1〜2分で終わります
-   Cloud SQL(15分)や Memorystore(6分)よりずっと速い
+   Cloud SQL(15分)や Memorystore(5分)よりずっと速い
 
 ◼確認
   terraform output spanner_database
@@ -1554,6 +1624,8 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
 
 ### S44 | Cloud SQL は宿題で作ります
 
+<!-- slide-id: g043slide -->
+
 **[本文]**
 
 ```
@@ -1569,7 +1641,8 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
 
   回答例: gcp/lesson4/syukudai2/
 
-★ 限定公開サービスアクセス(今日作ったもの)をそのまま使い回します
+★ サービス接続ポリシー(今日作ったもの)をそのまま使い回します
+   Cloud SQL 用のポリシーだけ、宿題で1つ足します
 ★ password_wo が本当に tfstate に残らないかも確認してみてください
 ```
 
@@ -1580,6 +1653,8 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
 ---
 
 ### S45 | 本日のまとめ ①
+
+<!-- slide-id: g044slide -->
 
 **[図版]** AWS版 第5回「本日のまとめ」のレイアウトを流用。
 
@@ -1592,13 +1667,15 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
                      Private Google Access があれば届く
                      IPもポートもパスワードも無い
 
-  VPCピアリング       Cloud SQL / Memorystore
-                     限定公開サービスアクセスの設定が必要
-                     Firewall Rules は不要
-
-  PSC                Cloud SQL / Memorystore
+  PSC(今日使った)  Cloud SQL / Memorystore
                      エンドポイントIPを1つ立てて繋ぐ
-                     ①の後継(社内では今こちらが主流)
+                     サービス接続ポリシーで作成を許可する
+                     Firewall Rules は不要
+                     社内では今こちらが主流
+
+  VPCピアリング       Cloud SQL / Memorystore(旧方式)
+                     限定公開サービスアクセスの設定が必要
+                     Valkey は選べない
 
   Auth Proxy         Cloud SQL(別解)
 
@@ -1634,13 +1711,16 @@ database/sql で書ける(ドライバが違うだけ)
 
 ### S47 | 本日のまとめ ③(その他)
 
+<!-- slide-id: g046slide -->
+
 **[本文]**
 
 ```
 ◼Memorystore
 ElastiCacheの4リソースが1リソースになる
-BASIC / STANDARD_HA
-シャード構成は別サービス
+Memorystore for Valkey を PSC で繋ぐ
+replica_count = 0 は1ノード、1以上でフェイルオーバーあり
+標準の Redis は PSC に対応していないので使わない
 
 ◼Cloud SQL
 RDSの6リソースが3リソースになる
@@ -1683,12 +1763,16 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
 ### S50 | 宿題2 実装課題
 
+<!-- slide-id: g049slide -->
+
 **[本文]**
 
 ```
-◼1. Memorystore にリードレプリカを追加しよう
+◼1. Memorystore にレプリカを追加しよう
 
-  ★ 1つハマりどころがあります。エラーメッセージをよく読んでください
+  replica_count を 0 → 1 にして apply する
+  読み取り専用のエンドポイントが使えるようになる
+  そこに書き込むとどうなるか試してみる
 
 ◼2. Spanner のインターリーブを体験しよう
 
@@ -1702,10 +1786,11 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
   Cloud SQL(REGIONAL)を作る
   アプリを Cloud SQL に向ける
+  PSC のエンドポイントIPをアプリに渡す(private_ip_address は空になる)
   password_wo が tfstate に残らないことを確認する
   フェイルオーバーを起こして復旧時間を測る
 
-  ★ 作成に10分かかります。時間のあるときにやってください
+  ★ 作成に7〜10分かかります。時間のあるときにやってください
 
   回答例: gcp/lesson4/syukudai2/
 
@@ -1715,6 +1800,8 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 ---
 
 ### S51 | 宿題3 調べ物
+
+<!-- slide-id: g050slide, p3_4_g050bdy_1 -->
 
 **[本文]**
 
@@ -1738,14 +1825,17 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
 ◼ドキュメントを眺めてみよう
   Spanner            https://cloud.google.com/spanner/docs
-  Memorystore        https://cloud.google.com/memorystore/docs/redis
-  限定公開サービスアクセス
-    https://cloud.google.com/vpc/docs/configure-private-services-access
+  Memorystore for Valkey
+    https://cloud.google.com/memorystore/docs/valkey
+  Private Service Connect
+    https://cloud.google.com/vpc/docs/private-service-connect
 ```
 
 ---
 
 ### S52 | 注意事項
+
+<!-- slide-id: g051slide -->
 
 **[図版]** AWS版「注意事項」スライドを流用。
 
@@ -1764,54 +1854,21 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 ★★ この回は課金が大きいです ★★
    Spanner(100 PU)      無料枠なし。今日の中で一番高い
    Cloud SQL (REGIONAL)  2ゾーン分
-   Memorystore (STANDARD_HA)  レプリカの分も
+   Memorystore (Valkey)  レプリカを付けると、その分も
 
-★ destroy にも時間がかかります
+★ destroy にも時間がかかります(1回で終わります)
+   Memorystore の削除に約8〜10分、Cloud SQL に約2分
    時間に余裕を持って実行してください
 
 ★ deletion_protection / force_destroy の設定を確認
    本番では逆にする(消せないようにする)設定です
 
 ★ tfstate用のバケットは残しておいてください
-
-★★ ただし destroy は素直に終わりません ★★
-   次のページで、失敗する理由と手順を説明します
 ```
 
-**[話す]** destroy は一度では終わらない。失敗する理由と手順は次のページ(S52b)で説明する。
-
----
-
-### S52b | 注意事項(続き)
-
-**[本文]**
-
-```
-★★ destroy は素直に終わりません ★★
-   Cloud SQL / Memorystore を消したあと、
-   限定公開サービスアクセスの接続を消そうとして失敗します
-
-     Error: Unable to remove Service Networking Connection
-     Failed to delete connection; Producer services
-     (e.g. CloudSQL, Cloud Memstore, etc.) are still using this connection.
-
-   Terraformの削除順序は正しく、DBは消えています
-   Google側がピアリングを解放してくれないのが原因です
-
-   ◼手順(この順でやってください)
-   1. terraform destroy
-        → DBは消える。ピアリングの削除で失敗する
-
-   2. ピアリングを直接消す
-        gcloud compute networks peerings delete \
-          servicenetworking-googleapis-com \
-          --network=[自分の名前]-vpc
-
-   3. terraform destroy
-        → 残りが消える
-
-★ 待っても解決しません。手順2が必要です
-```
+**[話す]** PSC は、ピアリングのときのような「1回目の destroy が失敗する」問題が無い。
+1回で終わる(実機で確認済み。付録A-2)。ただし Memorystore の削除は8分ほどかかる。
+S52b(旧「注意事項(続き)」)は、この説明が不要になったので欠番にした。
 
 ---
 
@@ -1839,15 +1896,15 @@ Artifact Registry / Cloud Run
 |---|---|---|---|
 | 0 | `0. before/` | 第2回+第3回の全リソース(23個) | HTTPSでアクセスできる |
 | 1 | `1. web/` | (Terraform変更なし) | ローカルコンテナのMySQL/Redisに接続 |
-| 2 | `2. cache/` | 限定公開サービスアクセス + Memorystore | **Firewall Ruleなしで繋がる** |
+| 2 | `2. cache/` | サービス接続ポリシー(PSC) + Memorystore for Valkey | **Firewall Ruleなしで繋がる** |
 | 3 | `3. spanner/` | Spanner インスタンス/DB/IAM | **パスワードなしで繋がる** |
 
 宿題:
 
 | 宿題 | ディレクトリ | 内容 |
 |---|---|---|
-| 2-1,2-2 | `syukudai1/` | Memorystore リードレプリカ + Spanner インターリーブ |
-| 2-3 | `syukudai2/` | Cloud SQL の構築とフェイルオーバー計測 |
+| 2-1,2-2 | `syukudai1/` | Memorystore レプリカ(`replica_count = 1`) + Spanner インターリーブ |
+| 2-3 | `syukudai2/` | Cloud SQL(PSC)の構築とフェイルオーバー計測 |
 | 3-2 | `syukudai3/` | Spanner のレプリケーション(調べ物のみ) |
 
 AWS版 第5回との対応:
@@ -1856,68 +1913,95 @@ AWS版 第5回との対応:
 |---|---|---|
 | 0. before | 0. before | 23リソース |
 | 1. web | 1. web | 設定を環境変数化。ビルドし直しが不要に |
-| 2. cache | 2. cache | **限定公開サービスアクセスが新規に必要** |
+| 2. cache | 2. cache | **サービス接続ポリシー(PSC)が新規に必要。Redis ではなく Valkey** |
 | 3. db (Aurora) | **3. spanner** | **主役を差し替え。AWS版に対応するものが無い** |
 | — | syukudai2 | AWS版の 3. db に相当。講義では概説のみ、構築は宿題 |
 
 ---
 
-# 付録A-2: destroy の手順(重要)
+# 付録A-2: destroy の手順
 
-**この回の destroy は1回では終わらない。かつ、待っても解決しない。**
-当日の最後に必ず手順を案内すること。
+**PSC + Valkey の構成では、`terraform destroy` は1回で終わる。**
+当日の最後に案内するのは「宿題で作ったディレクトリで destroy する」ことだけ。
 
 ```
-# 1回目
 terraform destroy
-  → Cloud SQL / Memorystore / Spanner は消える
-  → 限定公開サービスアクセスの接続の削除で失敗する
-
-# ピアリングを直接消す
-gcloud compute networks peerings delete servicenetworking-googleapis-com \
-  --network=[自分の名前]-vpc
-
-# 2回目
-terraform destroy
-  → 残りが消える
+  → Cloud SQL / Memorystore / Spanner が消える
+  → サービス接続ポリシー、サブネット、VPC も、同じ1回で消える
 ```
 
-**なぜ失敗するのか**
+> **検証済み(2026-11-17)**: VPC + サブネット + サービス接続ポリシー2つ +
+> Memorystore for Valkey(レプリカ付き) + Cloud SQL(REGIONAL) + VM を
+> `terraform destroy` した。**1回で成功**(エラー無し、手動削除も不要)。
+>
+> | 削除したもの | 所要時間 |
+> |---|---|
+> | Memorystore for Valkey | 7分53秒(Cloud Shell では9分56秒) |
+> | Cloud SQL(REGIONAL) | 1分52秒 |
+> | サービス接続ポリシー(各) | 約11秒 |
+> | サブネット / VPC | 22秒 / 33秒 |
 
-Terraform の削除順序は正しい(`depends_on` により DB が先に消える)。
-実際に Cloud SQL / Memorystore / Spanner は消えている。
+**なぜ1回で終わるのか**
 
-問題は Google 側。プロデューサーサービスを削除しても
-ピアリングが `ACTIVE` のまま残り続け、
-`google_service_networking_connection` の削除が弾かれる。
+PSC のエンドポイント(転送ルール)は、Memorystore / Cloud SQL を消すと
+一緒に消える。ポリシーはその後に消せる。
+限定公開サービスアクセスのように、Google側が接続を握り続けることがない。
 
-**待っても解決しない。**
+**旧方式(限定公開サービスアクセス)の場合**(2026-08-28 に検証。今は使わない)
 
-> **検証済み(2026-08-28)**: DBを全て削除した状態で
-> `terraform destroy` を **12分間・6回** リトライしたが、
-> 毎回同じエラーで失敗した。
-> `gcloud compute networks peerings delete` でピアリングを
-> 直接消したところ、次の destroy が33秒で完了した。
-
-**ピアリングが残ると VPC も消せない。**
-共有プロジェクトなので、消し残しは他の受講者のQuotaを圧迫する。
-手順2を飛ばさないよう強めに案内すること。
-
-**別解: deletion_policy = "ABANDON"**
-
-`google_service_networking_connection` には
-`deletion_policy = "ABANDON"` という設定がある。
-destroy 時に「接続は消さず、stateから外すだけ」にできる。
-
-ただしピアリングは残るので、VPCが消せない問題は解決しない。
-結局 `gcloud compute networks peerings delete` は必要になる。
-教材では素直に手順を案内する方を採った。
+`google_service_networking_connection` の削除が
+`Producer services (e.g. CloudSQL, Cloud Memstore, etc.) are still using this connection`
+で失敗し、**待っても解決しなかった**(12分・6回リトライ)。
+`gcloud compute networks peerings delete servicenetworking-googleapis-com` で
+ピアリングを直接消してから、もう一度 destroy する必要があった。
+これが無くなったのは、PSC に切り替えた利点の1つ。
 
 ---
 
 # 付録B: 制作メモ / 要確認事項
 
-## 実環境での動作確認: **完了(2026-08-28)**
+## PSC + Memorystore for Valkey への切り替え(2026-11-17)
+
+講義のハンズオンを「限定公開サービスアクセス + Memorystore for Redis」から
+「**PSC(サービス接続ポリシー) + Memorystore for Valkey**」に変更した。
+
+**変更した理由**
+
+- 社内では Valkey を使っている。実務に近い構成で実習したい
+- Google は Cloud SQL について PSC を推奨している(新規プロジェクトの既定も PSC)
+- Memorystore for Valkey は PSC でしか繋げない。標準の Redis は PSC に対応していないので、
+  PSC で揃えるなら Valkey にするしかない
+
+**実環境で確認したこと**(共有プロジェクト。確認用のリソースは全て削除済み)
+
+| 項目 | 結果 |
+|---|---|
+| サービス接続ポリシー(`gcp-memorystore`) | OK。12秒 |
+| Memorystore for Valkey(`CLUSTER_DISABLED`、`SHARED_CORE_NANO`) | OK。5分13秒 |
+| VM から PSC エンドポイントへ接続 | OK。**Firewall Rule は IAP 用の ingress だけで届いた**(egress は既定で許可) |
+| リーダーエンドポイントへの書き込み(`replica_count = 1`) | `-READONLY You can't write against a read only replica.` |
+| リーダーエンドポイント(`replica_count = 0`) | `-ERR no replicas found`。**新規作成した直後から存在する**(Cloud Shell で確認。プライマリは PONG) |
+| `replica_count` の 0 → 1 変更 | **in-place**。約3分25秒 |
+| `replica_count` の 1 → 0 変更 | **in-place**。約30〜40秒 |
+| `engine_configs` の追加 | in-place(上と同時に適用して確認) |
+| Cloud SQL(REGIONAL、PSC) | OK。7分0秒。PSC エンドポイントのIPで MySQL 8.4.11 のバナーを確認 |
+| Cloud SQL の接続先IP | `private_ip_address` は**空**。`settings[0].ip_configuration[0].psc_config[0].psc_auto_connections[0].ip_address` に入る |
+| destroy | **1回で成功**(付録A-2)。Cloud Shell でも `-parallelism=2` で1回(25リソース、11分33秒。Valkey の削除は9分56秒) |
+| `terraform validate`(PSC / Valkey を含む32ディレクトリ。terraform 1.17.2 で `required_version` を緩めずに実行) | 全て成功 |
+| Cloud Shell(terraform 1.17.1、`-parallelism=2`)で `2. cache` を apply | OK。25リソース。Valkey の作成は5分15秒 |
+
+**確認していないこと**
+
+- 受講者相当のサービスアカウントでの実行。権限は、Editor のロール定義に
+  `memorystore.instances.*` と `networkconnectivity.serviceConnectionPolicies.*`
+  が含まれることを確認しただけ(実行は講師アカウント)。
+  **`roles/servicenetworking.networksAdmin` が要らなくなったかどうかも、これで初めて分かる**
+  (2026-11-17 に、検証用SAへのロール付与が自動の権限判定で止められたため未実施)
+- Cloud Shell で実行したのは `2. cache` まで。`syukudai2`(Cloud SQL の PSC)は講師のPCでだけ実行した
+
+## 以前の構成(限定公開サービスアクセス)での動作確認: 完了(2026-08-28)
+
+> 以下は旧構成での結果。講義の構成は上のとおり PSC + Valkey に変わっている。
 
 Step0〜3 と Cloud SQL(宿題2相当)を通しで apply → destroy 済み。
 `terraform validate` は全6ディレクトリで成功(google provider 8.0.0)。
@@ -1925,7 +2009,7 @@ Step0〜3 と Cloud SQL(宿題2相当)を通しで apply → destroy 済み。
 | 項目 | 結果 |
 |---|---|
 | `0. before`(23リソース) | OK。4分48秒 |
-| 限定公開サービスアクセス + Memorystore | OK。6分5秒。IPは貸出レンジから払い出された |
+| 限定公開サービスアクセス + Memorystore for Redis | OK。6分5秒。IPは貸出レンジから払い出された |
 | Spanner(インターリーブDDL含む) | OK。**1分6秒**。Cloud SQLよりずっと速い |
 | **外部IPなしVMから Spanner へ到達** | **OK**。Private Google Access のみで届いた |
 | **Spanner の IAM** | **OK**。DB単位の `roles/spanner.databaseUser` だけで足りた |
@@ -1933,11 +2017,11 @@ Step0〜3 と Cloud SQL(宿題2相当)を通しで apply → destroy 済み。
 | Spanner + Memorystore 同時接続 | OK |
 | Cloud SQL(REGIONAL) | OK。9分28秒。プライマリ 1-a / セカンダリ 1-c |
 | **`password_wo` が tfstate に残らない** | **OK**。`password: None` のみ。実値の grep は0件 |
-| destroy | ピアリング削除に回避策が必要(付録A-2) |
+| destroy | ピアリング削除に回避策が必要(付録A-2。PSC では不要) |
 
 ### 見つけて修正したバグ
 
-**1. 貸し出しレンジが `/24` では足りない**
+**1. 貸し出しレンジが `/24` では足りない**(限定公開サービスアクセスの話。PSC ではレンジの貸し出し自体が無い)
 
 Memorystore を作った時点でブロックが埋まり、Cloud SQL の作成が失敗した。
 
@@ -1963,9 +2047,9 @@ Terraformのstateには入らないので次のapplyは
 第3回のVMも e2-medium に変更し、`0. before` と整合させた。
 第3回のビルドも 6分46秒 → 2分14秒 に改善している。
 
-**3. destroy が待っても終わらない**
+**3. destroy が待っても終わらない**(限定公開サービスアクセスの話。PSC では1回で終わる)
 
-付録A-2 に手順を記載。12分・6回リトライしても解決せず、
+付録A-2 に記載。12分・6回リトライしても解決せず、
 `gcloud compute networks peerings delete` が必要だった。
 
 ### 受講者相当の権限での検証(2026-08-28 実施)
@@ -1980,7 +2064,6 @@ Terraformのstateには入らないので次のapplyは
 
 ### まだ検証できていないこと
 - **Cloud Shell での実行**。第1回〜第4回とも未実施
-- 宿題1(Memorystore リードレプリカの5GB制約)のエラーメッセージ実測
 
 ## 受講者ロールへの追加が必要
 
@@ -1988,13 +2071,14 @@ Terraformのstateには入らないので次のapplyは
 
 ```
 roles/spanner.admin
-roles/servicenetworking.networksAdmin
 ```
 
-`roles/cloudsql.admin` / `roles/redis.admin` は**不要**。
+`roles/servicenetworking.networksAdmin` は、PSC に切り替えたので**不要**になった
+(第1回の付録Aには、まだ残っている)。
+`roles/cloudsql.admin` / `roles/redis.admin` / `roles/memorystore.admin` も**不要**。
 作成権限は `roles/editor` に含まれている。
 
-**第1回の付録Aに追記済み(計9ロール)。**
+第1回の付録Aは計9ロールで、`roles/servicenetworking.networksAdmin` を含んだまま。外す場合は第1回の側で直す。
 
 ## 新規作図が必要なスライド
 
@@ -2003,7 +2087,7 @@ roles/servicenetworking.networksAdmin
 | S17 | 4種類の接続方式(AWS/GCP比較) | **最高** |
 | S29 | 主キーとスプリット / ホットスポット | **最高** |
 | S27 | Aurora / DynamoDB / Spanner の比較表 | 高 |
-| S19 | VPCピアリング(レンジの貸し出し) | 高 |
+| S19・S20 | 限定公開サービスアクセスの仕組みと PSC の仕組み | 高 |
 | S04-2 | ゴール構成図(接続経路が2系統。旧 S10) | 高 |
 | S26 | Spannerの立ち位置(2軸図) | 中 |
 | S28 | Spannerの構成単位 | 中 |

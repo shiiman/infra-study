@@ -2,50 +2,60 @@
 
 ## 課題
 
-1. Memorystore にリードレプリカを追加する
+1. Memorystore にレプリカを追加する
 2. Spanner のインターリーブテーブルにデータを入れて、実行計画を見る
 
-## 課題1: Memorystore のリードレプリカ
+## 課題1: Memorystore のレプリカ
 
-`cache.tf` を参照。変更点は3つ。
+`cache.tf` を参照。変更点は1つ。
 
 ```hcl
-resource "google_redis_instance" "cache" {
-  memory_size_gb     = 5                          # 1 → 5 に変更
-  tier               = "STANDARD_HA"
-  read_replicas_mode = "READ_REPLICAS_ENABLED"    # 追加
-  replica_count      = 1                          # 追加
+resource "google_memorystore_instance" "cache" {
+  replica_count = 1    # 0 → 1 に変更
 }
 ```
 
-### ハマりどころ
+`replica_count` はプライマリに付けるレプリカの数。0 は1ノードで、フェイルオーバーしない。
+1 以上にすると、プライマリ + レプリカの構成になる。
 
-**リードレプリカは 5GB 以上でないと有効化できない。**
-`memory_size_gb = 1` のまま `read_replicas_mode` を付けると apply が失敗する。
+### 読み取り専用のエンドポイントが使えるようになる
 
-AWSのElastiCacheは `cache.t2.micro` でもレプリカを作れたので、
-同じ感覚でいると引っかかる。
+Memorystore for Valkey は、PSC のエンドポイントを2種類持つ。
 
-**tier は STANDARD_HA が必須。** BASIC ではレプリカを持てない。
+- `CONNECTION_TYPE_PRIMARY` … 読み書き両方。プライマリに繋がる
+- `CONNECTION_TYPE_READER` … 読み取り専用。レプリカに繋がる
+
+`replica_count = 0` のときは、レプリカが無いので読み取り専用のエンドポイントは使えない
+(接続すると `-ERR no replicas found` が返る)。
+`replica_count = 1` にすると、レプリカが読み取りを受けるようになる。
+
+`cache.tf` の output `cache_read_endpoint` に、読み取り専用のIPが出る。
+
+```
+terraform output cache_read_endpoint
+```
+
+★ レプリカの追加は、インスタンスを作り直さずに行われる(`terraform plan` で `~ update in-place` になる)。
+  実測では、0 → 1 に約3分半、1 → 0 に約30〜40秒かかった。
 
 ### 確認方法
 
 ```
-gcloud redis instances describe [自分の名前]-cache --region=asia-northeast1 \
-  --format="yaml(host,readEndpoint,replicaCount,readReplicasMode)"
+gcloud memorystore instances describe [自分の名前]-cache --location=asia-northeast1 \
+  --format="yaml(state,replicaCount,endpoints)"
 ```
 
-エンドポイントが2つある。
-
-- `host` … 読み書き両方。プライマリに繋がる
-- `readEndpoint` … 読み取り専用
-
-読み取り専用エンドポイントに書き込もうとすると拒否される。
+読み取り専用のエンドポイントに書き込もうとすると拒否される。
 
 ```
-redis-cli -h [readEndpoint] set foo bar
+redis-cli -h [cache_read_endpoint] set foo bar
 (error) READONLY You can't write against a read only replica.
 ```
+
+### AWSとの違い
+
+ElastiCache は、レプリケーショングループにレプリカを足す形だった。
+Memorystore for Valkey は、同じインスタンスの `replica_count` を変えるだけで済む。
 
 ---
 
@@ -126,6 +136,6 @@ gcloud spanner databases execute-sql test-db \
 
 ## 参考
 
-- [読み取りレプリカ](https://cloud.google.com/memorystore/docs/redis/about-read-replicas)
+- [Memorystore for Valkey のネットワーク](https://docs.cloud.google.com/memorystore/docs/valkey/networking)
 - [テーブルのインターリーブ](https://cloud.google.com/spanner/docs/schema-and-data-model#create-interleaved-tables)
 - [クエリ実行プラン](https://cloud.google.com/spanner/docs/query-execution-plans)

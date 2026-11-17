@@ -16,9 +16,6 @@ subnet_cache_cidr         = "172.16.50.0/24"
 subnet_osaka_public_cidr  = "172.16.100.0/24"
 subnet_osaka_private_cidr = "172.16.110.0/24"
 
-// 第4回〜: 限定公開サービスアクセス用
-private_service_cidr = "172.16.192.0/20"
-
 // 第3回〜: Cloud DNS のマネージドゾーン名
 dns_zone_name = ""
 

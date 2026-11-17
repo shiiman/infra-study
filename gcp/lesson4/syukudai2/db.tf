@@ -1,4 +1,24 @@
 /**
+ * Cloud SQL 用のサービス接続ポリシー
+ *
+ * Memorystore で作ったポリシー(private_service_connect.tf)とは別に、
+ * Cloud SQL のサービスクラス google-cloud-sql 用のポリシーが要る。
+ * ポリシーは、サービスクラスごとに1つ作る。
+ *
+ * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/network_connectivity_service_connection_policy
+ */
+resource "google_network_connectivity_service_connection_policy" "sql" {
+  name          = "${var.user_name}-sql"
+  location      = "asia-northeast1"
+  service_class = "google-cloud-sql"
+  network       = google_compute_network.vpc.id
+
+  psc_config {
+    subnetworks = [google_compute_subnetwork.private.id]
+  }
+}
+
+/**
  * Cloud SQL for MySQL
  *
  * AWSのRDS / Auroraに相当する。
@@ -10,7 +30,7 @@
  *   RDSクラスター / RDSクラスターインスタンス
  *
  * Cloud SQLはインスタンス1つ + データベース + ユーザーで済む。
- *   サブネットグループ   → 不要(限定公開サービスアクセスで接続)
+ *   サブネットグループ   → 不要(PSCのエンドポイントが自動で作られる)
  *   パラメータグループ   → database_flags で直接指定
  *   セキュリティグループ → 不要
  *   クラスター/インスタンスの2階層 → 1つにまとまっている
@@ -38,9 +58,21 @@ resource "google_sql_database_instance" "db" {
 
     ip_configuration {
       // パブリックIPを持たせない。VPC内からのみ接続する
-      ipv4_enabled                                  = false
-      private_network                               = google_compute_network.vpc.id
-      enable_private_path_for_google_cloud_services = true
+      ipv4_enabled = false
+
+      // PSCで接続する。自分のVPCの中にエンドポイントが自動で作られる
+      psc_config {
+        psc_enabled = true
+
+        // このプロジェクトからの接続だけを許可する
+        allowed_consumer_projects = [var.project_id]
+
+        // エンドポイントを作るVPC。ポリシーがあるので自動で作られる
+        psc_auto_connections {
+          consumer_network            = google_compute_network.vpc.id
+          consumer_service_project_id = var.project_id
+        }
+      }
     }
 
     // AWSのパラメータグループに相当
@@ -60,7 +92,8 @@ resource "google_sql_database_instance" "db" {
   // 本番では true にして誤削除を防ぐこと
   deletion_protection = false
 
-  depends_on = [google_service_networking_connection.private_service]
+  // ポリシーが先にないと、エンドポイントを作れずに失敗する
+  depends_on = [google_network_connectivity_service_connection_policy.sql]
 }
 
 /**
@@ -124,8 +157,10 @@ resource "google_sql_user" "app" {
   }
 }
 
+// PSC では private_ip_address は空になる。
+// 自動で作られたエンドポイントのIPは、psc_auto_connections に入っている
 output "db_host" {
-  value = google_sql_database_instance.db.private_ip_address
+  value = google_sql_database_instance.db.settings[0].ip_configuration[0].psc_config[0].psc_auto_connections[0].ip_address
 }
 
 output "db_connection_name" {
