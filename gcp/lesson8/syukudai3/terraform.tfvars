@@ -12,8 +12,6 @@ subnet_private_cidr = "172.16.10.0/24"
 dns_zone_name = "infra-study-gcp"
 
 // Googleに貸し出すレンジ
-private_service_cidr = "172.16.192.0/20"
-
 // TODO: 講師が作成した Slack 通知チャンネルの表示名を指定
 //   確認: gcloud beta monitoring channels list --format="value(displayName,type)"
 notification_channel_name = ""

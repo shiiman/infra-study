@@ -12,8 +12,6 @@ subnet_private_cidr = "172.16.10.0/24"
 dns_zone_name = "infra-study-gcp"
 
 // Googleに貸し出すレンジ
-private_service_cidr = "172.16.192.0/20"
-
 // 社内IP
 // TODO: 会社のIPを指定する
 company_ip = []

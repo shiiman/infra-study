@@ -129,7 +129,7 @@ resource "google_cloud_run_v2_service" "app" {
       }
       env {
         name  = "CACHE_HOST"
-        value = google_redis_instance.cache.host
+        value = local.cache_host
       }
     }
   }

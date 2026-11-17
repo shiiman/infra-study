@@ -10,6 +10,3 @@ subnet_private_cidr = "172.16.10.0/24"
 
 // 勉強会で共有するCloud DNSのゾーン名（ドメイン名ではない）
 dns_zone_name = "infra-study-gcp"
-
-// Googleに貸し出すレンジ
-private_service_cidr = "172.16.192.0/20"
