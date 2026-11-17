@@ -4,6 +4,11 @@
 - **AWS版対応**: 第5回(AWS データベース編)
 - **Terraformコード**: `gcp/lesson4/`
 - **ゴール**: アプリから Spanner と Memorystore に接続できる
+- **スライド同期**: 2026-11-17 に Googleスライドの1〜16枚目(S01〜S15-2)を原稿へ反映済み。17枚目以降(S17〜)は未同期。S16「休憩」は、デッキの16枚目(S15-2)の次が S17 のため、デッキ側に対応するスライドが見当たらない。
+  - S05「どれを使えばいいのか」・S07「万能なデータベースは無い」はデッキから削除し、欠番。
+    S07 の文言は図の中に移っている(S06 の図に「万能なデータベースなど存在しない！」、S08 の図に「様々なワークロードに最適なデータベースを選択すべき！」)
+  - S10「今日のゴール」は S04-2「ゴール」へ移動し、欠番
+  - S04-2(ゴール)・S04-3(章扉)・S12-2(章扉「本日の実習」)・S15-2(スクリプトの説明)は S番号を振り直さないための仮番号(第2回と同じ扱い)。S11 以降の番号は変えていない
 
 > **この回はAWS版と構成を大きく変えている。**
 > 社内で Spanner をメインで使っているため、**Spanner を本編**に据え、
@@ -14,9 +19,9 @@
 
 | セクション | 時間 | スライド |
 |---|---|---|
-| 導入 | 6分 | S01〜S04 |
-| データベースの選び方 | 12分 | S05〜S09 |
-| 準備 + Step1(ローカルDB) | 15分 | S10〜S15 |
+| 導入 | 6分 | S01〜S04-2(S04-2 はゴール) |
+| データベースの選び方 | 12分 | S04-3・S06・S08・S09(S05・S07 は欠番) |
+| 準備 + Step1(ローカルDB) | 15分 | S11〜S15-2(S10 は S04-2 へ移動、S12-2 は章扉) |
 | 休憩 | 5分 | S16 |
 | 4種類の接続方式 + Memorystore(Step2) | 27分 | S17〜S25(S20b・S20c 含む) |
 | **Spanner(Step3)** | **41分** | S26〜S40 |
@@ -34,7 +39,7 @@
 >
 > 合計 **約12分**。第3回(17分)より改善している。
 >
-> 押した場合の削り所: S06〜S07(DBの歴史)は口頭のみで圧縮できる。
+> 押した場合の削り所: S06(DBの歴史)は口頭のみで圧縮できる。
 > S39(マルチリージョン構成)も飛ばせる。
 >
 > **削ってはいけないのは S17〜S19**(4種類の接続方式)と
@@ -107,36 +112,79 @@
 
 Compute Engine でVMを作り、コンテナでアプリを動かした
 ロードバランサを6つの部品で組み立てた
-130.211.0.0/22 と 35.191.0.0/16 を開けないとヘルスチェックが通らない
+130.211.0.0/22 と 35.191.0.0/16 をファイヤーウォールへ設定し、ヘルスチェックを通した
 Cloud DNS でドメインを割り当て、マネージドSSL証明書でHTTPS化した
 ```
 
 ---
 
-### S04 | 今日の主役は Spanner
+### S04 | 今日のアジェンダ
 
-**[図版]** 新規。Spannerのロゴを大きく。
+**[図版]** 第3回 S04 と同じスライドを複製して、内容を第4回のものに差し替える。
 
 **[本文]**
 
 ```
-◼今日の主役は Spanner です
+データベースの選び方
 
-うちで実際にメインで使っているデータベース
+4種類の接続方式
 
-  Cloud SQL(MySQL / PostgreSQL)は
-  みんなだいたい知っているので軽くやります
+Memorystore
 
-◼アジェンダ
-  データベースの選び方
-  4種類の接続方式(GCP独自の話)
-  Memorystore
-  Spanner        ← ここが本編
-  Cloud SQL      ← 軽く
+Spanner
+
+Cloud SQL
+
+ハンズオン：ローカルDB → Memorystore → Spanner
 ```
 
-**[話す]** リレーショナルDBといえばAurora / Cloud SQLが定番だが、
+**[話す]** 今日の主役は Spanner。うちで実際にメインで使っているデータベース。
+Cloud SQL(MySQL / PostgreSQL)はみんなだいたい知っているので軽くやる。
+リレーショナルDBといえばAurora / Cloud SQLが定番だが、
 今回はSpannerを主役にする。実務で使っているものを深くやりたいので。
+
+---
+
+### S04-2 | ゴール
+
+<!-- slide-id: g004slide -->
+
+**[図版]** 第3回 S05 のゴール図をベースに、右側に2つの接続先を描く。
+接続経路(VPCピアリング / Google API 経由)が別々であることが見えるように描くのがポイント。
+Cloud SQL は今日作らない(宿題)ので図に入れない。
+
+**[本文]**
+
+```text
+アプリから、接続経路の違う Spanner と Memorystore に接続する
+
+VPC ネットワーク
+
+private subnet
+asia-northeast1
+
+Compute Engine
+web VM(アプリ)
+
+① VPCピアリング
+
+Memorystore
+(限定公開サービスアクセス)
+
+Private Google Access
+(第2回で有効化した)
+
+② Google API 経由
+
+Spanner
+(IPもポートも無い)
+
+ゴール：Spanner と Memorystore に接続できる
+
+Hello, Infra Study
+DB接続(Spanner): 成功
+Cache接続: 成功
+```
 
 ---
 
@@ -144,16 +192,17 @@ Cloud DNS でドメインを割り当て、マネージドSSL証明書でHTTPS�
 
 ---
 
-### S05 | どれを使えばいいのか
+### S04-3 | データベースの選び方(章扉)
 
-**[図版]** AWS版 第5回「データベース」の問いかけスライドを流用。
+<!-- slide-id: audit_section_4_0 -->
 
 **[本文]**
 
+```text
+
 ```
-データベースって種類がいっぱいあるけど
-どれを使えばいいの？
-```
+
+> **欠番**: S05「どれを使えばいいのか」はデッキから削除した。
 
 ---
 
@@ -165,18 +214,18 @@ Cloud DNS でドメインを割り当て、マネージドSSL証明書でHTTPS�
 
 ```
 ◼リレーショナルデータベース
-1970年代後半〜  Oracle / DB2 / SQL Server
-2000年前後      MySQL / PostgreSQL
+  1970年代後半〜  Oracle / DB2 / SQL Server
+  2000年前後      MySQL / PostgreSQL
 
 ◼NoSQL
-2000年以降      MongoDB / Redis / Cassandra
+  2000年以降      MongoDB / Redis / Cassandra
                 「スケールするために一貫性を諦める」
 
 ◼そして
-2012年  Google が Spanner の論文を公開
-        「スケールするのに一貫性も諦めない」
+  2012年         Google が Spanner の論文を公開
+                「スケールするのに一貫性も諦めない」
 
-★ 今日やるSpannerは、この流れの答えとして生まれたもの
+万能なデータベースなど存在しない！
 ```
 
 **[話す]** NoSQLは「水平にスケールしたいから、トランザクションや
@@ -185,20 +234,10 @@ JOINを諦める」という割り切りだった。Spannerはそこを諦めな
 
 ---
 
-### S07 | 万能なデータベースは無い
-
-**[図版]** AWS版 第5回「万能なデータベースなど存在しない！」を流用。
-
-**[本文]**
-
-```
-万能なデータベースなど存在しない！
-
-様々なワークロードに
-最適なデータベースを選択すべき！
-
-★ ただし「まずSpanner」で成立する場面は増えている
-```
+> **欠番**: S07「万能なデータベースは無い」はデッキから削除した。
+> 文言は図の中に移っている。「万能なデータベースなど存在しない！」は S06 の図、
+> 「様々なワークロードに最適なデータベースを選択すべき！」は S08 の図。
+> 「★ ただし「まずSpanner」で成立する場面は増えている」は載せていない。
 
 ---
 
@@ -209,23 +248,21 @@ JOINを諦める」という割り切りだった。Spannerはそこを諦めな
 **[本文]**
 
 ```
-用途                        GCP                    AWS
-──────────────────────────────────────────────────────────
-★ リレーショナル(スケール)  Spanner                (相当なし)
-   リレーショナル(一般)      Cloud SQL              RDS
-   リレーショナル(高性能PG)  AlloyDB                Aurora
-   キャッシュ                Memorystore            ElastiCache
-   ドキュメント              Firestore              DynamoDB
-   ワイドカラム(大規模)      Bigtable               DynamoDB
-★ データ分析                BigQuery               Redshift / Athena
+用途                              GCP           AWS
+リレーショナル(スケール)          Spanner       相当なし
+リレーショナル(一般)              Cloud SQL     RDS
+リレーショナル(PostgreSQL互換)    AlloyDB       Aurora
+キャッシュ                        Memorystore   ElastiCache
+ドキュメント                      Firestore     DynamoDB
+ワイドカラム(大規模)              Bigtable      DynamoDB
+データ分析                        BigQuery      Redshift / Athena
 
-★ Spanner と BigQuery は AWS に相当するものが無い
-   GCPを選ぶ理由になりやすい2つ
+様々なワークロードに最適なデータベースを選択すべき！
 ```
 
 ---
 
-### S09 | Cloud SQL / AlloyDB / その他(概説)
+### S09 | Cloud SQL / AlloyDB / その他（概説）
 
 **[本文]**
 
@@ -260,34 +297,8 @@ PostgreSQL互換の高性能DB。AWSのAuroraに近い
 
 ---
 
-### S10 | 今日のゴール
-
-**[図版]** **新規作成**。第3回のゴール図をベースに、右側に3つの接続先を描く。
-**接続経路(ピアリング / Google API 経由)が別々であることが見えるように描くのがポイント。**
-
-```
- ┌─ 自分のVPC ──────────┐
- │  private subnet            │
- │    [web VM]                │
- │      │  │                  │
- │      │  └──────────┼──▶ [Memorystore]  VPCピアリング
- │      │                     │            (限定公開サービスアクセス)
- │      └─────────────┼──▶ [Cloud SQL]    同上
- │                            │
- │  Private Google Access ────┼──▶ [Spanner]      Google API経由
- └────────────────────┘            (IPもポートも無い)
-```
-
-**[本文]**
-
-```
-これを理解して作れる！
-
-  Hello, Infra Study
-  hostname: xxxx
-  DB接続(Spanner): 成功
-  Cache接続: 成功
-```
+> **欠番**: S10「今日のゴール」は、第3回と同じ位置(アジェンダの直後)の S04-2「ゴール」へ移動した。
+> Cloud SQL は今日作らない(宿題)ので、図から外している。
 
 ---
 
@@ -331,31 +342,54 @@ terraform init
 terraform plan, terraform apply
 
 証明書の発行を待つ間に、次の解説へ進みます。
-各ステップの中で設定を反映します。同じGCSのstateを引き継ぎます。
-1. web はアプリのコード例です。Web VMはここで作成済みです。
+```
+
+---
+
+# 本日の実習
+
+---
+
+### S12-2 | 本日の実習(章扉)
+
+<!-- slide-id: h5412d2891662c16b_0_21 -->
+
+**[本文]**
+
+```text
+
 ```
 
 ---
 
 ### S13 | まずはローカルのDBに繋ぐ
 
-**[図版]** AWS版 第5回「EC2」の「まずはWebインスタンス内のアプリを更新しよう！」を流用。
+<!-- slide-id: g012slide -->
+
+**[図版]** AWS版 第5回「EC2」の「まずはWebインスタンス内のアプリを更新しよう！」を参考に新規作図。
+web VM の枠の中に db / app / cache の3コンテナを横に並べ、app から db と cache へ矢印を引く。
+下に黄色のバナーで「1つずつ置き換えていく」を入れる。
 
 **[本文]**
 
-```
+```text
 ◼いきなりマネージドサービスに繋がない
 
 まずVMの中でMySQLとRedisをコンテナで動かし、
 アプリから繋がることを確認する
 
-  [web VM]
-    ├ appコンテナ    :80
-    ├ dbコンテナ     :3306   MySQL
-    └ cacheコンテナ  :6379   Redis
+Compute Engine  web VM
+
+dbコンテナ
+MySQL  :3306
+
+appコンテナ
+アプリ  :80
+
+cacheコンテナ
+Redis  :6379
 
 そのあと、1つずつ置き換えていく
-
 ★ 「動いている状態」を基準に、1つずつ変えるのが安全
 ```
 
@@ -363,10 +397,18 @@ terraform plan, terraform apply
 
 ### S14 | 今日のアプリ
 
+<!-- slide-id: g013slide -->
+
+**[図版]** 新規作図。左にアプリの出力例(curl の結果)、右に環境変数とその意味を表で並べる。
+「アプリが何を表示するか」と「接続先をどう切り替えるか」を左右に分けて見せる。
+下の黄色いバナーで、環境変数で渡す理由を伝える。
+
 **[本文]**
 
-```
-◼DBとキャッシュに繋がるかを表示するだけのアプリ
+```text
+◼アプリが表示するもの
+
+curl http://localhost
 
   Hello, Infra Study
   hostname: [CONTAINER ID]
@@ -375,64 +417,52 @@ terraform plan, terraform apply
 
 ◼設定は環境変数から読みます
 
-  DB_KIND    mysql / spanner を切り替える
-  DB_HOST / DB_USER / DB_PASS / DB_NAME
-  SPANNER_DATABASE
-  CACHE_HOST
+DB_KIND                             使うDBを切り替える(mysql / spanner)
+DB_HOST / DB_USER / DB_PASS / DB_NAME   MySQL の接続先
+SPANNER_DATABASE                    Spanner の接続先
+CACHE_HOST                          キャッシュ(Redis)の接続先
 
-★ 接続先をmain.goに直書きすると、変更のたびにビルドし直しです
-   環境変数にしておくと、接続先を変えるたびにビルドしなくて済みます
-   第5回のCloud Runでも同じやり方が使えます
-
-★ Spanner も database/sql で書けます
-   ドライバが違うだけで、使い方は MySQL と同じです
+※ 環境変数で渡すのは、接続先を変えるたびにビルドし直さなくて済むため
 ```
 
 ---
 
-### S15 | Step1 ローカルDBに接続
+### S15 | Step1 ローカルDBに接続する
 
-**[図版]** AWS版 第5回「EC2」のコマンド一覧スライドを流用。コマンドを差し替え。
+<!-- slide-id: g014slide -->
+
+**[図版]** VM内で実行するコマンドと、実行時間・確認方法を示すスライド。
+上から、web インスタンスへ入るコマンド、VMの中でスクリプトを実行するコマンド、確認の curl を並べる。
+右の吹き出しで「約5分かかる」「終わったら curl で確認」「失敗なら30秒待って再実行」を伝え、下の黄色いバナーで次のページへつなぐ。
+スクリプトの中身は次のページで説明する。
 
 **[本文]**
 
-```
+```text
 ◼webインスタンスに入る
   gcloud compute ssh [自分の名前]-web --zone=asia-northeast1-a --tunnel-through-iap
 
-◼VMの中で
+◼VMの中で、スクリプトを実行する
   sudo su -
-  apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-  apt-get install -y docker.io git default-mysql-client redis-tools
-  systemctl start docker
+  apt-get update && apt-get install -y git
+  git clone https://github.com/shiiman/infra-study.git
+  bash "infra-study/gcp/lesson4/1. web/setup_local.sh"
 
-  cd /root
-  [ -d infra-study ] || git clone https://github.com/shiiman/infra-study.git
-  cd "infra-study/gcp/lesson4/1. web/web_app"
+◼確認する
+  curl http://localhost
 
-  docker network create app-nw
+実行には約5分かかります
+終わったら下の curl で確認します
+「失敗」なら30秒待って再実行
 
-  docker build --pull --no-cache -t db:0.1 -f ./dockerfile_mysql .
-  docker run -d --network app-nw --name db db:0.1
-
-  docker build --pull --no-cache -t cache:0.1 -f ./dockerfile_redis .
-  docker run -d --network app-nw --name cache cache:0.1
-
-  docker build --pull --no-cache -t app:0.1 .
-  docker run -d -p 80:8080 --network app-nw --name app \
-    -e DB_HOST=db -e DB_PASS=infra-study -e CACHE_HOST=cache \
-    app:0.1
-
-◼確認
-  curl -X GET "http://localhost"
-  → DB接続(MySQL): 成功 / Cache接続: 成功
+次のページで、このスクリプトが何をしているかを見ていきます
 ```
 
-**[吹き出し]** まとめて実行するとエラーになるため / 1行ずつ実行してください
-
-**[話す]** ここは約5分かかる。MySQLの初回起動に時間がかかるので、
-`失敗` が出たら30秒ほど待って再実行してもらう。
+**[話す]** 手順はスクリプト(`setup_local.sh`)にまとめてあります。
+SSHで入ったVMでは、複数行をまとめて貼ると行が欠けることがあるため、貼る行を減らしました。
+スクリプトは約5分かかります。終わったら、確認は手で `curl` を実行します。確認はスクリプトに含めていません。
+MySQLは初回起動が遅いので、「失敗」と出たら30秒ほど待って、もう一度 `curl` を実行してもらいます。
+「DB接続」と「Cache接続」がどちらも「成功」と出れば完了です。待っても失敗が続くときは `docker logs db` / `docker logs app` を見ます。
 
 **★ 第4回からVMを e2-medium に上げています。**
 Spannerのクライアントライブラリ(Google Cloud Go SDK + gRPC)は依存が大きく、
@@ -444,6 +474,46 @@ Spannerのクライアントライブラリ(Google Cloud Go SDK + gRPC)は依存
 >
 > `0. before` の machine_type を e2-medium に変更済み。
 > マシンタイプは用途で変える、という実例としても使える。
+>
+> ※ 上の検証は、旧手順(コマンドを1行ずつ実行)での計測。
+> `setup_local.sh` 自体の実機検証は未実施。
+
+---
+
+### S15-2 | Step1 スクリプトがやっていること
+
+<!-- slide-id: p2_4_g014bdy_1 -->
+
+**[図版]** スクリプトがやっていることを表にした図。左にステップ名、右にそのステップでやっていること。
+準備・ネットワーク・確認は青、db と cache は黄、app は白(青枠)で色分けする。⑥ 確認だけはスクリプトに含めず、手で実行する。
+下の黄色いバナーで、MySQL は初回起動が遅いので「失敗」なら30秒待って再実行することを伝える。
+
+**[本文]**
+
+```text
+① 準備        docker・git と mysql / redis のクライアントを入れる
+② ネットワーク  コンテナ同士をつなぐ app-nw を作る
+③ db          MySQL のコンテナをビルドして起動する(:3306)
+④ cache       Redis のコンテナをビルドして起動する(:6379)
+⑤ app         アプリのコンテナをビルドして起動する(:80)  約5分
+⑥ 確認(手動)  curl で「成功」と返るか、自分で確認する
+
+MySQL は初回起動が遅いので、「失敗」なら30秒待って再実行
+```
+
+**[話す]** 前のページのスクリプトは、①〜⑤を上から順にやっているだけです。
+③〜⑤は、各コンテナを `docker build` して `docker run` しているだけで、第3回までにやった操作と同じです。
+⑥の確認はスクリプトに含めず、手で `curl` を実行します。MySQLは初回起動が遅いので、「失敗」と出たら30秒ほど待ってもう一度実行します。
+スクリプトの中身は、`gcp/lesson4/1. web/setup_local.sh` で読めます。
+
+> **参考(スクリプトの②〜⑤を手で打つ場合)**:
+>
+> ```bash
+> docker network create app-nw
+> docker build --pull --no-cache -t db:0.1 -f ./dockerfile_mysql . && docker run -d --network app-nw --name db db:0.1
+> docker build --pull --no-cache -t cache:0.1 -f ./dockerfile_redis . && docker run -d --network app-nw --name cache cache:0.1
+> docker build --pull --no-cache -t app:0.1 . && docker run -d -p 80:8080 --network app-nw --name app -e DB_HOST=db -e DB_PASS=infra-study -e CACHE_HOST=cache app:0.1
+> ```
 
 ---
 
@@ -1934,7 +2004,7 @@ roles/servicenetworking.networksAdmin
 | S29 | 主キーとスプリット / ホットスポット | **最高** |
 | S27 | Aurora / DynamoDB / Spanner の比較表 | 高 |
 | S19 | VPCピアリング(レンジの貸し出し) | 高 |
-| S10 | ゴール構成図(接続経路が2系統) | 高 |
+| S04-2 | ゴール構成図(接続経路が2系統。旧 S10) | 高 |
 | S26 | Spannerの立ち位置(2軸図) | 中 |
 | S28 | Spannerの構成単位 | 中 |
 | S30 | インターリーブの物理配置 | 中 |
