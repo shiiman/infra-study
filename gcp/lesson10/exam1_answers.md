@@ -117,12 +117,13 @@ Firewall ルールで `130.211.0.0/22` と `35.191.0.0/16` を許可していな
 
 Spanner は Google API 経由、Memorystore は VPC 内にあるため。
 
-第4回でやった**3種類の接続方式**です。
+第4回でやった**4種類の接続方式**です。
 
 | 方式 | サービス | 必要な準備 |
 |---|---|---|
 | Google API 経由 | Spanner / BigQuery / Cloud Storage | Private Google Access |
-| VPCピアリング | Cloud SQL / Memorystore | 限定公開サービスアクセス |
+| Private Service Connect | Cloud SQL / Memorystore | サービス接続ポリシー |
+| VPCピアリング(旧方式) | Cloud SQL / Memorystore(Redis) | 限定公開サービスアクセス |
 | Auth Proxy | Cloud SQL(別解) | プロキシの起動 |
 
 Cloud Run は **VPC の外**で動くので、Google API には繋がるが
@@ -134,15 +135,15 @@ VPC 内のものには繋がりません。Direct VPC egress で解決します(
 
 ## 問9 — 答え: **C**
 
-限定公開サービスアクセス(VPCピアリング)。
+Private Service Connect(サービス接続ポリシー)。
 
-グローバルアドレスを予約して Google に貸し出し、
-サービスネットワーキング接続を張ります。
+サービス接続ポリシーで「この VPC のこのサブネットに、このサービスの
+エンドポイントを作ってよい」と許可します。Memorystore や Cloud SQL を作ると、
+サブネットからエンドポイントのIPが1つ払い出され、そこ宛に接続します。
 
-**CIDR は `/24` では足りません。**
-制作時の検証で `/24` にしたら
-`Couldn't find free blocks in allocated IP ranges` で失敗しました。
-`/20` 以上にしてください。
+- Memorystore for Valkey は PSC でしか繋げません
+- 旧方式の限定公開サービスアクセス(VPCピアリング)は、IPレンジを丸ごと
+  Google に貸し出す方式です。Memorystore for Redis(標準版)はこちらのみ対応です
 
 → 第4回
 
