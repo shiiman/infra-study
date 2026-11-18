@@ -1774,7 +1774,7 @@ PSC は単なる4つ目の選択肢ではなく、**①限定公開サービス�
 | 項目 | 変更前 | 変更後 |
 |---|---|---|
 | 接続方式(第4回) | 限定公開サービスアクセス(貸出レンジ + サービスネットワーキング接続) | PSC(サービス接続ポリシー + 自動作成エンドポイント) |
-| Memorystore | for Redis(`google_redis_instance`) | for Valkey(`google_memorystore_instance`、VALKEY_8_0、`SHARED_CORE_NANO`) |
+| Memorystore | for Redis(`google_redis_instance`) | for Valkey(`google_memorystore_instance`、VALKEY_9_1、`SHARED_CORE_NANO`) |
 | 宿題2の Cloud SQL | プライベートIP(PSA) | PSC(`psc_config` + `psc_auto_connections`) |
 | 第5〜8回の `before.tf` | PSA + Redis | PSC + Valkey に差し替え |
 | `private_service_cidr` 変数 | あり | 廃止(IPレンジの設計が要らない) |
@@ -1786,8 +1786,9 @@ PSC は単なる4つ目の選択肢ではなく、**①限定公開サービス�
 (限定公開サービスアクセスかダイレクトピアリングのみ)。PSC で繋げるのは Valkey と
 Redis Cluster。Valkey は PSC でしか繋げない。
 
-**実測(2026-11-17、講師アカウント)**: Valkey 作成 5分13秒 / Cloud SQL(REGIONAL・PSC)7分0秒 /
-destroy は Valkey 7分53秒・Cloud SQL 1分52秒・ポリシー約11秒・サブネット22秒・VPC33秒で、
+**実測(2026-11-17、講師アカウント。Valkey は 8.0 で計測)**: Valkey 作成 5分13秒
+(2026-11-18 に 9.1 + `SHARED_CORE_NANO` でも作成を確認、6分5秒) / Cloud SQL(REGIONAL・PSC)7分0秒 /
+destroy は Valkey 7分53秒(9.1 を Cloud Shell で試したときは11分48秒)・Cloud SQL 1分52秒・ポリシー約11秒・サブネット22秒・VPC33秒で、
 1回で完走。`replica_count` は 0→1 が約3分25秒、1→0 が約30〜40秒で、どちらも in-place。
 詳細と未検証の点は第4回 原稿の付録A・Bを参照。
 

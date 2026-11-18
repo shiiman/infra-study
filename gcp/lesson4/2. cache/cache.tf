@@ -38,7 +38,7 @@ resource "google_memorystore_instance" "cache" {
 
   // 勉強会用の最小サイズ(共有CPU)
   node_type      = "SHARED_CORE_NANO"
-  engine_version = "VALKEY_8_0"
+  engine_version = "VALKEY_9_1"
 
   // 勉強会用: 通信の暗号化と認証を切る
   // 本番では transit_encryption_mode = SERVER_AUTHENTICATION と authorization_mode = IAM_AUTH を使うこと
