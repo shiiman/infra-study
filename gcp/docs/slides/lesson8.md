@@ -436,95 +436,95 @@ Terraform と CI/CD の責務を分けた
 
 ### S12b | GCP の監視だけで足りるのか ★
 
-**[図版]** **新規作成**。1つのシステムに対して、
-GCPの監視(Cloud Monitoring / Logging)と SaaS の監視(Datadog)が
-両側から見ている図。真ん中にアプリ、左右から矢印。
+<!-- slide-id: x0812bslide -->
 
-```
-                    [Cloud Run / LB / Spanner]
-                      │                  │
-        メトリクス・ログ │                  │ エージェント / API
-                      ▼                  ▼
-          [Cloud Monitoring]        [Datadog]
-           GCPのことは全部見える      GCP以外もまとめて見える
-```
+**[図版]** 上に「Cloud Run / LB / Spanner」の箱。そこから2本の矢印で、左の青い箱「Cloud Monitoring / Logging」と
+右の黄色い箱「Datadog」へ。それぞれの下に灰色の説明枠。いちばん下に緑の ★ 枠。
+(2026-11-19 にデッキ側で図を作り直した。図形は dg1212… 始まりの ID)
 
 **[本文]**
 
 ```
-◼社内では Datadog を使っているプロダクトが複数あります
+Cloud Run / LB / Spanner
 
-  ghost / nishiki のどちらでも使っています
+Cloud Monitoring / Logging
+  GCPのリソースは、何も入れなくても見える
 
-  nishiki では
-    Terraform に DataDog プロバイダを入れて、監視設定もコードで管理
-    外形監視(Synthetics)のIPをファイアウォールで許可
-    APIキーは SOPS で暗号化して Git に置く
+  GCPの外は見えない
+  → 複数クラウドが混ざると足りない
 
-◼なぜ両方あるのか
+Datadog
+  GCP / AWS / オンプレ / SaaS(外部サービス)を1画面で
 
-  Cloud Monitoring   GCPのリソースは、何も入れなくても見える
-                     GCPの外は見えない
+  APM(アプリ性能監視)が強い
+  → 入れる手間と、料金がかかる
 
-  Datadog            GCP / AWS / オンプレ / SaaS を1つの画面で見られる
-                     APM(アプリ内部の追跡)が強い
-                     入れる手間と、料金がかかる
-
-◼複数のクラウドやオンプレが混ざると、Cloud Monitoring だけでは足りません
-
-  「このリクエストが遅い」を追うのに、
-  GCPの画面とAWSの画面を行き来することになる
-
-★ 今日やった考え方(症状を鳴らす / 平均でなく95%ile / 通知先は別リソース)は
-   どちらでも同じです。道具が変わるだけです
+★ Datadog は監視専用の外部サービス。ghost / nishiki のどちらでも使っています
+★ nishiki は Datadog の設定も Terraform で管理  ―  今日ダッシュボードとアラートを書いたのと同じ
 ```
 
 **[話す]** 「GCPを勉強したのにDatadogの話?」と思われないように、
 先に「考え方は同じ」と言ってから入る。
 道具の名前ではなく、何をどう見るかが本題であることを強調する。
+略語は初出で説明する: APM は Application Performance Monitoring(アプリ内部の処理時間を追跡する仕組み)、
+SaaS は Software as a Service(自分で動かさず、インターネット越しに使うサービス)。
 
 > **★ 監視設定もコードで管理する。** nishiki は Datadog の設定を
 > Terraform(DataDog プロバイダ)で書いている。
 > 「画面でポチポチ作った監視」は誰がいつ作ったか分からなくなる。
 > **今日ダッシュボードとアラートを Terraform で書いたのと同じ考え方。**
-
+>
+> 講師メモ(旧スライドにあった内容。文字が多いのでデッキからは外した。口頭で補う):
+> nishiki では外形監視(Synthetics)の接続元IPをファイアウォールで許可している。
+> Datadog の API キーは SOPS で暗号化して Git に置いている。
 ---
 
 ### S12c | 道具が変わっても同じところ
 
-**[図版]** 表。左に「今日やること(GCP)」、右に「Datadog だと」。
+<!-- slide-id: x0812cslide -->
+
+**[図版]** 8行×3列の表(機能 / Cloud Monitoring / Datadog)。見出し行は灰色。
 
 **[本文]**
 
 ```
-                        Cloud Monitoring        Datadog
-────────────────────────────────────────────────────────────
-メトリクスの取得         自動(GCPリソース)        Integration を有効化
-ログ                    Cloud Logging           Log Management
-ダッシュボード            ダッシュボード            Dashboard
-アラート条件             アラートポリシー          Monitor
-通知先                  通知チャンネル            Notification (Slack など)
-外形監視                 Uptime check            Synthetic Monitoring
-分散トレース             Cloud Trace             APM
-SLO                     SLO モニタリング          SLO
+機能              Cloud Monitoring        Datadog
+メトリクス取得    自動(GCPリソース)       Integration を有効化
+ログ              Cloud Logging           Log Management
+ダッシュボード    ダッシュボード          Dashboard
+アラート条件      アラートポリシー        Monitor
+通知先            通知チャンネル          Notification(Slackなど)
+外形監視          Uptime check            Synthetic Monitoring
+分散トレース      Cloud Trace             APM(アプリ性能監視)
+SLO               SLO モニタリング        SLO
+```
 
+**[話す]** 表は左から読む。「名前が違うだけで構造は同じ」が次のページ。
+
+---
+
+### S12d | 道具が変わっても同じところ（補足）
+
+<!-- slide-id: p2_8_x0812cbdy_notes -->
+
+**[図版]** 表のページから文字を分けた補足ページ(文字が小さくなるため分割)。
+
+**[本文]**
+
+```
 ◼名前が違うだけで、構造は同じです
-
   「いつ鳴らすか」と「どこに鳴らすか」が分かれているのも同じ
 
 ★ 片方を覚えれば、もう片方はドキュメントを見れば書けます
 ★ 大事なのは、どのメトリクスを、どのしきい値で見るかの判断です
 ```
-
 ---
 
-### S13 | 休憩
+### S13 | 休憩（5分）
 
 **[本文]**
 
 ```
-5分休憩
-
 後半はハンズオンです
 ```
 
@@ -534,7 +534,7 @@ SLO                     SLO モニタリング          SLO
 
 ---
 
-### S14 | 準備
+### S14 | ハンズオンの準備
 
 **[本文]**
 
@@ -559,6 +559,11 @@ SLO                     SLO モニタリング          SLO
 
 ### S15 | 前回までの構成を作成する
 
+<!-- slide-id: g014slide -->
+
+**[図版]** 第2回の Step ページと同じ形式。上の灰色の枠に cp の3行、下の灰色の枠に `terraform init` / `terraform plan, terraform apply`。
+その間に説明を2段で並べる。
+
 **[本文]**
 
 ```
@@ -569,18 +574,20 @@ python3 ~/infra-study/gcp/tools/configure.py
 第6回までの構成を再作成します。
 Cloud Run / Cloud Storage / ロードバランサなど
 
-configure.py：project_id・user_name・backendのbucketだけを反映
-terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
+configure.py：project ID・user name・bucket だけを反映します
+DNSなど各回固有の値は、コピー後に確認・設定してください。
 
 terraform init
-terraform plan
-terraform apply
+terraform plan, terraform apply
 
 第7回のCI/CDは含めていません。
 監視を学ぶために必要なアプリと配信基盤から始めます。
-各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
+各ステップの中で設定を反映します。
+同じ Cloud Storage の state を引き継ぎます。
 ```
 
+**[話す]** `0. before` の apply は約10分(第6回の完成状態、38リソース)。
+「DNSなど各回固有の値」は口頭で補う(cp 後に tfvars を書き換える手順は、スライドには載せない)。
 ---
 
 ### S16 | ログを見る
@@ -608,7 +615,14 @@ terraform apply
 
 ---
 
-### S17 | ログベース指標
+### S17 | ログベース指標（1/2）
+
+<!-- slide-id: g016slide -->
+
+**[図版]** 上の灰色の枠に cp の3行、その下にコード枠、いちばん下に黄色の ※ 枠。
+`1. logging/` の中身は、この Step で使うコード一式(`logging.tf`)と、前の Step までの `before.tf`。
+cp するとログベース指標・バケット・シンク・IAM がまとめて入るが、apply は「Step1 実行」で1回だけ。
+この回の Step ディレクトリは積み上げ式(2. monitoring は logging.tf も含む)。
 
 **[本文]**
 
@@ -632,6 +646,19 @@ resource "google_logging_metric" "app_error" {
   }
 }
 
+※ cp すると、この Step のコード一式が入ります
+   (ログベース指標 / バケット / シンク / IAM)。apply は「Step1 実行」で1回だけ
+```
+
+---
+
+### S17b | ログベース指標（2/2）
+
+<!-- slide-id: p2_8_g016bdy_1 -->
+
+**[本文]**
+
+```
 ◼ログから「数」を作る
 
   条件に合うログを数えて、メトリクスにする
@@ -640,7 +667,7 @@ resource "google_logging_metric" "app_error" {
 ◼なぜ要るのか
 
   Cloud Run はリクエスト数やエラー率を出してくれる
-  でも **アプリが何をしたか** は出してくれない
+  でも アプリが何をしたか は出してくれない
 
     「DB接続に失敗した回数」
     「決済が失敗した回数」
@@ -649,10 +676,15 @@ resource "google_logging_metric" "app_error" {
 
 ★ AWSの CloudWatch Logs メトリクスフィルタと同じ考え方
 ```
-
 ---
 
-### S18 | ログルーター(シンク)
+### S18 | ログルーター（シンク）（1/2）
+
+<!-- slide-id: g017slide -->
+
+**[図版]** コード枠(シンク)と、下に黄色の ※ 枠。
+シンクも、次ページの IAM も、流し先のバケット(`google_storage_bucket.logs`)も、cp 済みの `logging.tf` に入っている。
+バケット自体のコードはスライドに出さない(30日で消えるライフサイクル付き。`1. logging/logging.tf` を参照)。
 
 **[本文]**
 
@@ -660,33 +692,41 @@ resource "google_logging_metric" "app_error" {
 resource "google_logging_project_sink" "app_logs" {
   name        = "${var.user_name}-app-logs"
   destination = "storage.googleapis.com/${google_storage_bucket.logs.name}"
-
   filter = <<-EOT
     resource.type="cloud_run_revision"
     resource.labels.service_name="${google_cloud_run_v2_service.app.name}"
   EOT
-
   unique_writer_identity = true
 }
 
-◼ログは黙っていると30日で消える
-
-  それより長く持ちたい / 別の場所で分析したい
-  → シンクで外に流す
-
-◼流し先の選び方
-
-  Cloud Storage  安い。長期保存・監査ログ向け
-  BigQuery       SQLで分析できる
-  Pub/Sub        他システムへリアルタイムに渡す
-
-★ 今回は Cloud Storage
-   「とりあえず消えないようにする」が一番多い用途
+※ このシンクも、次ページの IAM も、流し先のバケット(google_storage_bucket.logs)も
+   cp 済みの logging.tf に入っています。apply は「Step1 実行」で1回だけ
 ```
 
 ---
 
-### S19 | シンクは作っただけでは動かない ★
+### S18b | ログルーター（シンク）（2/2）
+
+<!-- slide-id: p3_8_g017bdy_1 -->
+
+**[本文]**
+
+```
+◼ログは黙っていると30日で消える
+  それより長く持ちたい / 別の場所で分析したい
+  → シンクで外に流す
+◼流し先の選び方
+  Cloud Storage  安い。長期保存・監査ログ向け
+  BigQuery       SQLで分析できる
+  Pub/Sub        他システムへリアルタイムに渡す
+★ 今回は Cloud Storage
+   「とりあえず消えないようにする」が一番多い用途
+```
+---
+
+### S19 | シンクは作っただけでは動かない（1/2） ★
+
+<!-- slide-id: g018slide -->
 
 **[本文]**
 
@@ -704,25 +744,13 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 
 ◼そのSAに書き込み権限を付けないと、何も流れない
 
-  ★ しかも **エラーが出ません** ★
+  ★ しかも エラーが出ません ★
 
   「シンクは作ったのにバケットが空のまま」
   という状態になり、気づくのに時間がかかります
 
 ★ 第7回の「権限が2つ要る」と同じ構図
 ★ ただしこちらは失敗しても静かなので、余計にたち悪い
-
-★★ さらに厄介なこと ★★
-
-   Cloud Storage への書き込みは1時間ごとのバッチで、
-   最初のログが出るまで2〜3時間かかります
-
-   つまり「バケットが空」のとき、原因が
-     権限不足なのか
-     まだ書き込まれていないだけなのか
-   **見た目では区別できません**
-
-   → 先に writer_identity の権限を確認する癖をつける
 ```
 
 **[話す]** これは実際にハマる。シンクを作って満足して、
@@ -730,14 +758,36 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 
 ---
 
-### S20 | Step1 実行
+### S19b | シンクは作っただけでは動かない（2/2） ★
+
+<!-- slide-id: p2_8_g018bdy_1 -->
+
+**[本文]**
+
+```
+★ さらに厄介なこと
+
+   Cloud Storage への書き込みは1時間ごとのバッチで、
+   最初のログが出るまで2〜3時間かかります
+
+   つまり「バケットが空」のとき、原因が
+     権限不足なのか
+     まだ書き込まれていないだけなのか
+   見た目では区別できません
+
+   → 先に writer_identity の権限を確認する癖をつける
+```
+---
+
+### S20 | Step1 実行（1/2）
+
+<!-- slide-id: g019slide -->
 
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ◼確認
   terraform output log_metric_name
@@ -747,25 +797,34 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 
 ◼ログバケットの中を見てみる
   gcloud storage ls --recursive gs://[ログバケット]/
-
-  → 今日は **空のままです**
-
-★★ Cloud Storage へのエクスポートは1時間ごとのバッチ ★★
-
-   最初のログが現れるまで **2〜3時間** かかります
-   講義中には確認できません
-
-   ファイルはこう並びます
-     [バケット]/[ログID]/YYYY/MM/DD/08:00:00_08:59:59_S0.json
-
-★ 「シンクを作ったのにバケットが空」は
-   権限不足のときも、単に待ち時間のときも同じ見え方です
-   **切り分けは writer_identity の権限を先に確認する**
+  → 今日は 空のままです
 ```
 
 ---
 
+### S20b | Step1 実行（2/2）
+
+<!-- slide-id: p3_8_g019bdy_1 -->
+
+**[本文]**
+
+```
+★ Cloud Storage へのエクスポートは1時間ごとのバッチ
+   最初のログが現れるまで 2〜3時間 かかります
+   講義中には確認できません
+   ファイルはこう並びます
+     [バケット]/[ログID]/YYYY/MM/DD/08:00:00_08:59:59_S0.json
+★ 「シンクを作ったのにバケットが空」は
+   権限不足のときも、単に待ち時間のときも同じ見え方です
+   切り分けは writer_identity の権限を先に確認する
+```
+
+**[話す]** 2〜3時間は実機で測った値(付録B)。このページ(2/2)は、1ページに入りきらなかったので分けた。
+---
+
 ### S21 | ログベース指標に数字が入るまで
+
+<!-- slide-id: g020slide -->
 
 **[本文]**
 
@@ -782,14 +841,17 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
 ★ 宿題2で、この指標を使ったアラートを作ります
 ★ Step2 のダッシュボードにも並べます(最初は0)
 ```
-
 ---
 
 # Step2: ダッシュボードと外形監視
 
 ---
 
-### S22 | Uptime check(外形監視)
+### S22 | Uptime check（外形監視）（1/2）
+
+<!-- slide-id: g021slide -->
+
+**[図版]** 上の灰色の枠に cp の3行、その下にコード枠。`content_matchers` の行の右に「← ★ わざと」。
 
 **[本文]**
 
@@ -804,27 +866,28 @@ resource "google_monitoring_uptime_check_config" "web" {
   timeout      = "10s"
 
   http_check {
-    path         = "/this-path-does-not-exist"   ← ★ わざと
+    path         = "/"
     port         = 443
     use_ssl      = true
     validate_ssl = true
   }
 
-  monitored_resource {
-    type = "uptime_url"
-    labels = {
-      project_id = var.project_id
-      host       = "${var.user_name}.${trimsuffix(data.google_dns_managed_zone.public.dns_name, ".")}"
-    }
+  content_matchers {
+    content = "ALL SYSTEMS NORMAL"   ← ★ わざと
+    matcher = "CONTAINS_STRING"
   }
 
-  selected_regions = ["ASIA_PACIFIC", "USA_OREGON", "EUROPE"]
+  ~~~~~
 }
 ```
 
+**[話す]** `monitored_resource` と `selected_regions`(3拠点)は `~~~~~` で省略している。コードは `2. monitoring/monitoring.tf`。
+
 ---
 
-### S22b | Uptime check(外形監視)(続き)
+### S22b | Uptime check（外形監視）（2/2）
+
+<!-- slide-id: g021bslide -->
 
 **[本文]**
 
@@ -839,7 +902,7 @@ resource "google_monitoring_uptime_check_config" "web" {
   区別できない
 
   Uptime check は Google が世界の複数拠点から定期的に叩くので、
-  **誰も使っていない時間帯でも壊れていることに気づけます**
+  誰も使っていない時間帯でも壊れていることに気づけます
 
 ★ AWSの Route53 ヘルスチェック / CloudWatch Synthetics に相当
 ```
@@ -848,21 +911,28 @@ resource "google_monitoring_uptime_check_config" "web" {
 
 ### S23 | わざと壊しています
 
+<!-- slide-id: g022slide -->
+
 **[本文]**
 
 ```
-  path = "/this-path-does-not-exist"
+  content = "ALL SYSTEMS NORMAL"
 
-◼存在しないパスに向けています
+◼ページに無い文字列を、期待する本文に指定しています
 
   すぐ失敗する状態を作って、
   「監視しているのに誰も気づかない」を体験するためです
 
-  Step3 でアラートを繋いだあと、正しいパスに戻します
+  Step3 でアラートを繋いだあと、"DB接続" に直します
 
+★ このアプリはどんなパスでも 200 を返します
+   パスを間違えても失敗しないので、本文を見ます
+★ 200 が返る = 正しく動いている、ではありません
 ★ 本番でこれをやると、当然ずっと鳴り続けます
 ```
 
+**[話す]** 「存在しないパスを叩けば失敗する」は成り立たなかった(付録B 検証1)。
+アプリが `http.HandleFunc("/", handler)` なので、どんなパスでも 200 を返す(実測)。
 ---
 
 ### S24 | ダッシュボード
@@ -922,12 +992,13 @@ resource "google_monitoring_dashboard" "app" {
 
 ### S26 | Step2 実行
 
+<!-- slide-id: g025slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ◼ダッシュボードを見る
   コンソール → Monitoring → ダッシュボード
@@ -939,12 +1010,13 @@ resource "google_monitoring_dashboard" "app" {
 ◼Uptime check の結果
   コンソール → Monitoring → 稼働時間チェック
 
-  → しばらくすると **失敗** になります
+  → しばらくすると 失敗 になります
 ```
-
 ---
 
 ### S27 | 失敗しているのが見える
+
+<!-- slide-id: g026slide -->
 
 **[図版]** ダッシュボードのスクリーンショット。
 **開催前に実物を撮ること**(外形監視のタイルが0のまま)。
@@ -956,13 +1028,15 @@ resource "google_monitoring_dashboard" "app" {
 
   1 = 成功、0 = 失敗
 
-  存在しないパスを叩いているので、当然失敗しています
+  本文に ALL SYSTEMS NORMAL が無いので、当然失敗しています
 
-◼リクエスト数のグラフには 404 が並びます
+◼リクエスト数のグラフは、普通に増えています
+
+  アプリは 200 を返し続けているので、
+  リクエスト数やエラー数だけ見ていても気づけません
 
 ★ 見れば分かる。でも……
 ```
-
 ---
 
 ### S28 | 誰も見ていない ★
@@ -1020,6 +1094,10 @@ resource "google_monitoring_dashboard" "app" {
 
 ### S30 | Slack 連携は講師が用意しています
 
+<!-- slide-id: g029slide -->
+
+**[図版]** 上の灰色の枠に cp の3行、その下にコード枠(`data` ブロック)、その下に本文。
+
 **[本文]**
 
 ```
@@ -1041,15 +1119,17 @@ data "google_monitoring_notification_channel" "slack" {
   講師が1回だけ認可して通知チャンネルを作ってあります
   受講者は表示名で参照するだけ
 
-★ terraform.tfvars に表示名を貼ってください
-
 ★ メール通知は auth_token が要らないので自分で作れます
    → 宿題2でやります
 ```
 
+**[話す]** 通知チャンネルの表示名(`notification_channel_name`)は、口頭で伝える。
+cp 後に `terraform.tfvars` へ貼る手順はスライドには載せない(2026-11-19 に削除)。
 ---
 
-### S31 | アラートポリシー
+### S31 | アラートポリシー（1/2）
+
+<!-- slide-id: g030slide -->
 
 **[本文]**
 
@@ -1075,21 +1155,32 @@ resource "google_monitoring_alert_policy" "uptime" {
 
   notification_channels = [data.google_monitoring_notification_channel.slack.name]
 }
+```
 
+---
+
+### S31b | アラートポリシー（2/2）
+
+<!-- slide-id: p2_8_g030bdy_1 -->
+
+**[本文]**
+
+```
 ◼duration = 300s の意味
 
   「その状態が5分続いたら」鳴らす
 
   1拠点が一瞬失敗しただけで鳴らすと、うるさくて誰も見なくなる
-  **鳴らさない工夫**のほうが、しきい値より大事なことが多い
+  鳴らさない工夫のほうが、しきい値より大事なことが多い
 
 ★ ALIGN_FRACTION_TRUE で「成功した割合」になります
    1未満 = どこかの拠点で失敗した
 ```
-
 ---
 
-### S32 | documentation を書く ★
+### S32 | documentation を書く（1/2） ★
+
+<!-- slide-id: g031slide -->
 
 **[本文]**
 
@@ -1121,22 +1212,23 @@ resource "google_monitoring_alert_policy" "uptime" {
 
 **[話す]** 「まず何を見るか」が書けないアラートは、
 作った本人しか対応できない。それは運用として弱い。
-
 ---
 
-### S32b | documentation を書く ★(続き)
+### S32b | documentation を書く（2/2） ★
+
+<!-- slide-id: g031bslide -->
 
 **[本文]**
 
 ```
-★★ Slack は Markdown を解釈しません ★★
+★ Slack は Markdown を解釈しません
 
    mime_type = "text/markdown" と書いても、
-   Slack には ## や ** が **文字のまま** 出ます
+   Slack には ## や ** が 文字のまま 出ます
    (コンソールの画面では整形されます)
 
    通知が届く先は Slack なので、
-   **記号を使わず素のテキストで書く**のが正解
+   記号を使わず素のテキストで書くのが正解
 
      × ## サイトが見えません / **確認すること**
      ◯ サイトが見えません   / 確認すること
@@ -1147,10 +1239,11 @@ resource "google_monitoring_alert_policy" "uptime" {
 
 **[話す]** 通知の届く先は Slack なので、Markdown で書いても記号がそのまま見える。
 素のテキストで書く、と覚えておく。(コンソールの画面では整形される)
-
 ---
 
 ### S33 | Step3 実行 → Slack が鳴る
+
+<!-- slide-id: g032slide -->
 
 **[図版]** Slack の通知画面。**開催前に実物のスクリーンショットを撮ること**。
 
@@ -1158,8 +1251,7 @@ resource "google_monitoring_alert_policy" "uptime" {
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ★ 5分ほどで Slack に飛びます
    duration = 300s なので、それより早くは鳴りません
@@ -1173,7 +1265,6 @@ resource "google_monitoring_alert_policy" "uptime" {
   with a value of 0.389.
 
   Alert open   No severity
-
   Documentation
   (ここに documentation の文章がそのまま出る)
 
@@ -1181,13 +1272,13 @@ resource "google_monitoring_alert_policy" "uptime" {
 
 ★ 「0.389」は成功した拠点の割合です
    3拠点中1つだけ一時的に通った、という状態
-
 ★ 全員分が同じチャンネルに飛ぶので、にぎやかになります
 ```
-
 ---
 
-### S34 | 直す
+### S34 | 直す（1/2）
+
+<!-- slide-id: g033slide -->
 
 **[本文]**
 
@@ -1203,11 +1294,24 @@ resource "google_monitoring_alert_policy" "uptime" {
   terraform apply
 
 ★ 5分ほどで Slack に「解決」の通知が届きます
+```
 
-★★ 宿題をやるときの注意 ★★
+**[話す]** これは講義の中で `3. alert/monitoring.tf` を1行直す操作。
+cp 後の tfvars / common.tf の書き換えとは別物。
+
+---
+
+### S34b | 直す（2/2）
+
+<!-- slide-id: p2_8_g033bdy_1 -->
+
+**[本文]**
+
+```
+★ 宿題をやるときの注意
 
    宿題のディレクトリ(syukudai1〜3)にも monitoring.tf が入っていて、
-   そちらは **"ALL SYSTEMS NORMAL" のまま**です
+   そちらは "ALL SYSTEMS NORMAL" のままです
 
    宿題を apply すると、せっかく直した設定が戻ってアラートが再発します
    宿題側でも同じ1行を直してください
@@ -1221,7 +1325,6 @@ resource "google_monitoring_alert_policy" "uptime" {
   次の障害で鳴らないことがあります
   既定は7日。短めにしておくのが安全です
 ```
-
 ---
 
 ### S35 | ここまでの到達点
@@ -1294,6 +1397,8 @@ resource "google_monitoring_alert_policy" "uptime" {
 
 ### S38 | Batch と BigQuery
 
+<!-- slide-id: g037slide -->
+
 **[本文]**
 
 ```
@@ -1302,7 +1407,8 @@ resource "google_monitoring_alert_policy" "uptime" {
   バッチ処理を動かす基盤
   VMを立てて、処理して、落とすまでを面倒見てくれる
 
-  Cloud Run は最大60分。それを超える処理はこちら
+  Cloud Run のリクエストは最大60分。それ以上は Batch か
+  Cloud Run ジョブ(終わったら止まる Cloud Run。最大7日)
 
   ★ AWSの AWS Batch に相当
 
@@ -1319,240 +1425,214 @@ resource "google_monitoring_alert_policy" "uptime" {
    インフラとして構築するより、繋ぎ方を知っておくとよい
 ```
 
+**[話す]** 時間の上限は公式ドキュメントで確認した(2026-11-19)。
+Cloud Run サービスのリクエストタイムアウトは最大60分、ジョブのタスクタイムアウトは最大168時間(7日)。
 ---
 
-### S38b | ログを BigQuery に貯める ★
+### S38b | ログを BigQuery に貯める ★ ①
 
-**[図版]** **新規作成**。2つの経路の比較。
-上が「Cloud Logging のシンク → BigQuery」、
-下が「アプリ → Pub/Sub → BigQuery」。
-下はさらに2つに枝分かれ(BigQuery サブスクリプション / Dataflow)。
+<!-- slide-id: x0838bslide -->
 
-```
-  ① GCPのログを貯める
-     [Cloud Logging] ──シンク──▶ [BigQuery]      今日 Step1 でやったやつ
-
-  ② アプリのイベントを貯める
-     [アプリ] ──▶ [Pub/Sub] ─┬─ BigQuery サブスクリプション ─▶ [BigQuery]
-                              └─ [Dataflow] ──加工──────▶ [BigQuery]
-```
+**[図版]** 2つの経路を上下に並べた図(2026-11-19 にデッキ側で作り直した。図形は p56_ 始まりの ID)。
+上段「① GCPのログを貯める」: Cloud Logging → シンク → 右に2つの箱。
+Cloud Storage(注釈「今日 Step1 でやったもの / nishiki は Cloud Armor のログをここへ」)と
+BigQuery(注釈「SQL で集計・分析したいとき」)。
+下段「② アプリのイベントを貯める ← nishiki の行動ログはこちら」: アプリ → Pub/Sub →
+BigQuery サブスクリプション → BigQuery、と、Pub/Sub → Dataflow → BigQuery の2本。
+いちばん下に略語の説明と ★ のまとめ。
 
 **[本文]**
 
 ```
-◼①は今日やりました
+① GCPのログを貯める
+  Cloud Logging → シンク → Cloud Storage    今日 Step1 でやったもの
+                                             nishiki は Cloud Armor のログをここへ
+                         → BigQuery          SQL で集計・分析したいとき
 
-  ログルーターのシンク先に BigQuery を選ぶだけ
-  GCPのログ(監査ログ / Cloud Run のログ)はこれで貯まります
+② アプリのイベントを貯める  ← nishiki の行動ログはこちら
+  アプリ → Pub/Sub → BigQuery サブスクリプション → BigQuery
+                   → Dataflow → BigQuery
 
-◼②はアプリが出すイベントを貯めたいとき
-
-  ゲームのプレイログ、行動ログなど
-  Cloud Logging を経由させると量とコストが厳しい
-
-  そこで Pub/Sub に流して、そこから BigQuery に入れます
-
-◼Pub/Sub から BigQuery への入れ方は2つ
-
-  BigQuery サブスクリプション
-    Pub/Sub の設定だけで直接書き込まれる
-    コードもDataflowも要らない。安い
-    ★ 加工なしでそのまま入れるなら、まずこちら
-
-  Dataflow
-    間に処理を挟める(整形 / フィルタ / 結合 / 別テーブルへの振り分け)
-    ストリーミング処理の基盤。テンプレートも用意されている
-    その分、動かし続けるコストがかかる
-
-★ 「まず BigQuery サブスクリプション。加工が要るなら Dataflow」
-★ AWSでいうと Kinesis Data Firehose に近い立ち位置です
-
-◼nishiki の実際の構成
-
-  アプリの行動ログは ② の経路です
-
-    アプリ (ActionLogger) → Pub/Sub → BigQuery
-
-  BigQuery のテーブルはこう作ってあります
-
-    time_partitioning { type = "DAY", field = "timestamp" }
-    require_partition_filter = true
-    storage_billing_model    = "PHYSICAL"
-
-  ★ require_partition_filter = true が効いています
-     WHERE で日付を指定しないとクエリが実行できない
-     → 「全期間を1回スキャンして数万円」を仕組みで防いでいる
-
-  ★ 一方、Cloud Armor のログは Cloud Storage に流している
-     用途で流し先を変えている(分析するなら BigQuery、保管なら GCS)
+Pub/Sub: イベントを受け取って、必要な先へ配るメッセージの仕組み
+BigQuery サブスクリプション: Pub/Sub の設定だけで、加工せずに BigQuery へ書き込む
+Dataflow: 間で整形・フィルタなどの加工をしてから届ける(動かし続けるコストがかかる)
+★ まず BigQuery サブスクリプション。加工が要るなら Dataflow
 ```
 
 **[話す]** 第8回のシンクの話と地続きなので、
-「さっきのシンク先をBigQueryにすると何ができるか」から入るとつながる。
+「さっきのシンク先を BigQuery にすると何ができるか」から入るとつながる。
+①は、今日の Step1 のシンクの流し先を BigQuery にしたもの。今日は Cloud Storage に流した。
+②はアプリが出すイベント(ゲームのプレイログ、行動ログなど)を貯めたいとき。
+Cloud Logging を経由させると量とコストが厳しいので、Pub/Sub に流してから BigQuery に入れる。
 
+> 2026-11-19 の修正: 旧図は「① Cloud Logging のシンク → BigQuery(今日 Step1 でやったやつ)」と描いており、
+> 今日の Step1 のシンク先は Cloud Storage なので事実と合わなかった。流し先を2つ並べる形に直した。
+> 旧本文の「Kinesis Data Firehose に近い立ち位置」は、デッキに無いので外した(AWSとの対応を言うなら要確認)。
+> 旧本文の「全期間を1回スキャンして数万円」は、金額の根拠が確認できないので「高額になる」に弱めた。
 
+---
 
+### S38c | ログを BigQuery に貯める ★ ②
+
+<!-- slide-id: x0838cslide -->
+
+**[図版]** 上に小見出し「nishiki の BigQuery テーブルの作り方」、灰色のコード枠、
+その下に各設定の説明(・の箇条書き)、いちばん下に黄色の ※ 枠。
+
+**[本文]**
+
+```
+nishiki の BigQuery テーブルの作り方
+
+time_partitioning { type = "DAY", field = "timestamp" }
+require_partition_filter = true
+storage_billing_model    = "PHYSICAL"
+
+・time_partitioning: 日付ごとにテーブルを区切る(パーティション)
+・require_partition_filter: 日付を指定しないクエリを拒否する
+・storage_billing_model = PHYSICAL: 圧縮後のサイズで保存料金を計算する
+
+※ require_partition_filter = true が効いています
+   WHERE で日付を指定しないとクエリが実行できません
+   → 「全期間をスキャンして高額になる」ミスを仕組みで防ぎます
+```
+
+**[話す]** 「PHYSICAL」は圧縮後(物理)のサイズで保存料金を計算する設定。
+既定の LOGICAL は圧縮前(論理)のサイズ。どちらが安いかはデータ次第なので、ここでは「選べる」とだけ言う。
 ---
 
 ### S39 | 選ぶときの考え方
 
-**[図版]** **新規作成**。処理時間と起動方法での分類。
+<!-- slide-id: g038slide -->
+
+**[図版]** 4列(いつ動く / 1回の最大時間 / 何を使うか)の対応図。デッキ側で5行の表の形に作り直してある。
 
 **[本文]**
 
 ```
-              いつ動く         どれくらい動く    何を使うか
-   ─────────────────────────────────────────────────────
-   常に待つ    リクエスト       〜60分           Cloud Run
-   イベント    ファイル/メッセージ 〜60分          Cloud Run functions
-   定時        スケジュール      〜60分           Cloud Scheduler + Cloud Run
-   長時間      任意             時間単位          Batch
-   常時稼働    -                無制限            GCE / GKE
+いつ動く                 1回の最大時間     何を使うか
+常に待つ(リクエスト)     〜60分            Cloud Run
+イベント(ファイル/メッセージ)  〜9分       Cloud Run functions
+定時(スケジュール)       〜30分            Cloud Scheduler + Cloud Run
+長時間(任意)             〜7日             Cloud Run ジョブ / Batch
+常時稼働                 無制限            GCE / GKE
 
 ★ 「まず Cloud Run で書けないか」を考えるのが今風です
-★ 60分を超える、GPUが要る、といった理由が出てから他を検討する
+★ 時間の上限を超える、常時起動が要る、といった理由が出てから他を検討する
 ```
 
+**[話す]** 時間の上限は公式ドキュメントで確認した(2026-11-19)。
+Cloud Run functions(第2世代)のイベント駆動は最大540秒(=9分。HTTP 関数は最大60分)、
+Cloud Scheduler の attemptDeadline は最大30分、Cloud Run ジョブは最大168時間(7日)。
+旧原稿の「イベント 〜60分」「定時 〜60分」「長時間 時間単位」は、上のとおり直した。
 ---
 
 # 料金と規模の見積もり
 
 ### S39b | いくらかかるのかを、作る前に知る ★
 
-**[図版]** **新規作成**。3ステップの横フロー。
-「見積もる → 負荷をかける → 台数とスペックを決める」。
-各ステップの下に使う道具を書く。
+<!-- slide-id: x0839bslide -->
 
-```
-   ① 見積もる            ② 負荷をかける          ③ 決める
-  Pricing Calculator  →  負荷試験ツール      →  台数・スペック・上限
-  課金レポート             (k6 / Locust など)      オートスケールの設定
-  予算アラート
-```
+**[図版]** 3ステップの横フロー(青 ① 見積もる・作る前 → 黄 ② 負荷をかける・作ったあと → 緑 ③ 決める・試験の結果から)。
+各ステップの下に使う道具の箱。いちばん下に赤い ★ 枠。
 
 **[本文]**
 
 ```
-◼今日まで、料金の話をしてきませんでした
+① 見積もる       作る前       Pricing Calculator / 課金レポート / 予算アラート
+② 負荷をかける   作ったあと   負荷試験ツール(k6 / Locust / JMeter)
+③ 決める         試験の結果から  台数・スペック・上限 / オートスケールの設定
 
-  勉強会の共有プロジェクトなので、講師が見ていました
-  実務では、これを自分でやる必要があります
-
-◼作る前に見積もる
-
-  Pricing Calculator   cloud.google.com/products/calculator
-                       リソースを並べると月額が出る
-
-  無料枠を確認する      Always Free の対象と上限
-                       第1回でやった「asia-northeast1 は対象外」の話
-
-◼作ったあとに見る
-
-  課金レポート          何にいくらかかっているか。ラベルで分解できる
-  予算アラート          しきい値を超えたら通知。★ 必ず入れる
-  コスト分析            推移を見る
-
-★ 「作ってから請求書で気づく」が一番まずいです
-★ 予算アラートは、リソースを作るのと同じタイミングで入れてください
+★「作ってから請求書で気づく」が一番まずい
+★ 予算アラートは、リソースを作るのと同じタイミングで入れること
 ```
 
-**[話す]** 第1回で「Always Free の対象リージョンに東京は入っていない」と言った。
-あれを覚えていれば、見積もりの入り口は分かっている。
-
+**[話す]** 今日まで料金の話をしてこなかった。勉強会の共有プロジェクトなので講師が見ていた。
+実務では、これを自分でやる必要がある。
+・Pricing Calculator(cloud.google.com/products/calculator): リソースを並べると月額が出る。
+・無料枠(Always Free)の対象と上限を確認する。第1回の「asia-northeast1 は対象外」の話。
+・課金レポート(何にいくらかかっているか。ラベルで分解できる)・予算アラート(しきい値超過で通知)・コスト分析(推移)。
+第1回で「Always Free の対象リージョンに東京は入っていない」と言った。あれを覚えていれば、見積もりの入り口は分かっている。
 ---
 
 ### S39c | GCPで料金が跳ねるところ
 
-**[図版]** 表。サービスごとの「何で課金されるか」と「気をつけるところ」。
+<!-- slide-id: x0839cslide -->
+
+**[図版]** 表(サービス / 課金の単位 / 注意点)、9行。補足は次のページに分けた(文字が小さくなるため)。
 
 **[本文]**
 
 ```
-   サービス          何で課金されるか            気をつけるところ
-────────────────────────────────────────────────────────────────
-   Compute Engine    起動時間 × マシンタイプ      止め忘れ。ディスクは止めても課金
-   Cloud Run         リクエスト数 + 実行時間      min-instances を入れると常時課金
-   ロードバランサ      転送ルール1つあたり + 転送量  作るだけで固定費がかかる
-   Cloud NAT          ゲートウェイ + 処理量        これも作るだけで固定費
-   Cloud Storage      容量 + 取り出し + 操作回数    Nearline/Coldline は取り出しが高い
-   Cloud CDN          キャッシュ配信量 + 埋め込み   ヒット率が低いと逆に高くなる
-   Spanner            ノード数(または処理ユニット)  最小構成でも常時課金。今日一番高い
-   Memorystore        容量 × 時間                 止められない
-   ネットワーク        外向きの通信量               ★ リージョン間・ゾーン間も課金される
-
-◼一番効くのは「作るだけで固定費がかかるもの」
-
-  ロードバランサ / Cloud NAT / Spanner / Memorystore
-  → 検証で作ったら、消す
-
-★ この勉強会で毎回 destroy させているのは、これが理由です
-★ ゾーンをまたぐ通信にも課金されます。冗長化の設計はコストと直結します
+サービス          課金の単位                          注意点
+Compute Engine    起動時間 × マシンタイプ              止め忘れ。停止後もディスクは課金
+Cloud Run         リクエスト数 + 実行時間              min-instances を入れると常時課金
+ロードバランサ    転送ルール + 転送量                  作るだけで固定費
+Cloud NAT         ゲートウェイ + 処理量                作るだけで固定費
+Cloud Storage     容量 + 取り出し + 操作回数           Nearline / Coldline は取り出しが高い
+Cloud CDN         キャッシュ配信量 + オリジンからの取得量  ヒット率が低いと逆に高くなる
+Spanner           ノード数 / 処理ユニット              最小構成でも常時課金。この勉強会で一番高い
+Memorystore       容量 × 時間                         止められない
+ネットワーク      外向きの通信量                      リージョン間・ゾーン間にも課金
 ```
 
 ---
 
-### S39d | 負荷試験とキャパシティプランニング
+### S39c2 | GCPで料金が跳ねるところ（補足）
 
-**[図版]** **新規作成**。負荷試験の結果グラフ(横軸=同時アクセス数、
-縦軸=レイテンシとエラー率)を1枚描き、
-「ここが限界」「ここを運用点にする」を矢印で示す。
-
-```
-  レイテンシ                              ┃ここから急に崩れる
-      ↑                                 ┃
-      │                            ╱━━━━┃
-      │                    ╱━━━━━╱      ┃
-      │━━━━━━━━━━╱                    ┃
-      └────────────────────────────────→ 同時アクセス数
-                    ↑                  ↑
-              運用点(限界の6〜7割)      限界
-```
+<!-- slide-id: p2_8_x0839cbdy_notes -->
 
 **[本文]**
 
 ```
-◼負荷試験は「壊れる点」を探すためにやります
+◼一番効くのは「作るだけで固定費がかかるもの」
+  ロードバランサ / Cloud NAT / Spanner / Memorystore
+  → 検証で作ったら、消す
+★ この勉強会で毎回 destroy させているのは、これが理由です
+★ ゾーンをまたぐ通信にも課金されます。冗長化の設計はコストと直結します
+```
+---
 
-  壊れない範囲を確かめるのではなく、
-  どこで壊れるか、どう壊れるかを見る
+### S39d | 負荷試験とキャパシティプランニング
 
-  見るもの: レイテンシ(95%ile) / エラー率 / CPU / メモリ / DBの待ち
+<!-- slide-id: x0839dslide -->
 
-◼道具
+**[図版]** 左に折れ線グラフ(横軸=同時アクセス数、縦軸=レイテンシ95%ile。緑の破線が運用点、赤の破線が限界)、
+右に緑の枠「結果から決めること」(1〜4)、下に黄色の ★ 枠。
+(2026-11-19 にデッキ側で図形の位置と文字を直した。図形は dg1212… 始まりの ID)
 
-  k6 / Locust / JMeter などをVMやGKEから流す
+**[本文]**
 
-  ★ nishiki は k6 を使っています
-     PRごとに smoke テスト(軽い負荷)を GitHub Actions で回している
-     → 「重い負荷試験」の前に「壊れていないか」を毎回見る
+```
+レイテンシ 95%ile
+同時アクセス数 →
+運用点(限界の6〜7割)    限界    ここから急に崩れる
 
-  ★ 本番に向けて流さない。同じ構成の検証環境を作って流す
-     nishiki には lod(負荷試験)という専用環境があります
-     dev / stg / prd とは別に、負荷をかけるためだけの環境
+結果から決めること
+1. 限界を知る
+2. 運用点を決める
+3. 台数と上限を決める
+4. 予算と突き合わせる
 
-◼結果から決めること(キャパシティプランニング)
-
-  1. 限界を知る          同時Nでレイテンシが崩れた
-  2. 運用点を決める       限界の6〜7割を上限とする
-  3. 台数と上限を決める    Cloud Run の max-instances
-                        インスタンスグループの最小・最大
-  4. 予算と突き合わせる    その台数で月いくらか(S39b に戻る)
-
-◼スケールの前に、詰まっている場所を見る
-
-  台数を増やしても、DBが詰まっていれば速くなりません
-  ★ 第4回でやった Spanner のホットスポットが、まさにこれです
-
-★ 「見積もる → 流す → 決める → また見積もる」のループです
-★ 今日の監視は、このループを回すための計器です
+★ nishiki は k6 を使っています
+   PRごとに smoke テスト(軽い負荷)を GitHub Actions で回している
+   → 重い負荷試験の前に「壊れていないか」を毎回見る
+★ 本番に向けて流さない。nishiki には lod(負荷試験)という専用環境がある
+★ 台数を増やしても、DBが詰まっていれば速くならない(第4回のホットスポット)
+※ 95%ile: 遅い方の5%を除いた値。平均より実態に近い
 ```
 
 **[話す]** ここは触りだけ。1回分のテーマになる内容なので、
 「こういう順番でやる」という地図だけ渡して終わる。
 興味がある人は全体アンケートに書いてもらう。
+・負荷試験は「壊れる点」を探すためにやる。見るもの: レイテンシ(95%ile) / エラー率 / CPU / メモリ / DBの待ち。
+・道具は k6 / Locust / JMeter など。同じ構成の検証環境を作って流す(本番に向けて流さない)。
+・3. 台数と上限: Cloud Run の max-instances、インスタンスグループの最小・最大。
+・「見積もる → 流す → 決める → また見積もる」のループ。今日の監視は、このループを回すための計器。
 
-
-
+> **未確認**: 「運用点は限界の6〜7割」は一般的な経験則の目安で、公式ドキュメントの値ではない
+> (2026-11-19 時点で出典を確認できていない)。「目安」と言って渡すこと。
+> 95%ile の説明は「遅い方の5%を除いた値」(全リクエストを速い順に並べて95%目の値)。
 ---
 
 # まとめ
@@ -1561,45 +1641,53 @@ resource "google_monitoring_alert_policy" "uptime" {
 
 ### S40 | 本日のまとめ ①
 
+<!-- slide-id: g039slide -->
+
+**[図版]** 丸数字(青い円に白抜きの 1〜4)+ 太字の結論1行 + 補足1行 を4段に並べる(第4回 S45 と同じ形)。
+図形は p62_ 始まりの ID。宿題・片付けは載せない(宿題のページで説明する)。
+
 **[本文]**
 
 ```
-◼監視の考え方
-目的は2つ。壊れたことに気づく / 原因を絞り込む
-見ても何もしないグラフは、無いのと同じ
-**症状を鳴らす。原因はダッシュボードとログで調べる**
-鳴りすぎるアラートは、無いより悪い
+1  監視の目的は2つだけ
+   気づくこと、原因を絞り込むこと。症状を鳴らす
 
-◼3種類のデータ
-ログ      1つ1つの詳細。多い。原因を調べるとき
-メトリクス 数の推移。少ない。いつも見る
-トレース   1リクエストの内訳。遅い原因を探すとき
+2  ログは自動で集まる。数にすると使える
+   ログベース指標で数にする。シンクは権限が無いと静かに失敗する
+
+3  ダッシュボードは調べる道具、気づくのはアラート
+   Uptime check は本文まで見る。200 が返る = 正常、ではない
+
+4  鳴らす工夫と、通知に書く文章が大事
+   duration で続いたときだけ鳴らす。「まず何を見るか」を書く
 ```
 
+**[話す]** 今日の話を4つに絞ると、この4点。
 ---
 
 ### S41 | 本日のまとめ ②
 
+<!-- slide-id: g040slide -->
+
+**[図版]** 5行×4列の表(見出し行は青、左の列は灰色)。下に黄色の ※ 枠(第4回 S46 と同じ形)。図形は p63_ 始まりの ID。
+
 **[本文]**
 
 ```
-◼Cloud Logging
-ログは黙っていても集まる。保持は既定30日
-ログベース指標で「アプリが何をしたか」を数にできる
-シンクで外に流せる。**書き込み権限を忘れると静かに失敗する**
+                   ログ                  メトリクス          トレース
+何が分かるか       1つ1つの出来事の詳細  数の推移            1リクエストの内訳
+量                 多い                  少ない              中くらい
+いつ見るか         原因を調べるとき      いつも / 異常検知   遅い原因を探すとき
+GCPのサービス      Cloud Logging         Cloud Monitoring    Cloud Trace
 
-◼Cloud Monitoring
-Uptime check は「誰も使っていない時間帯」でも気づける
-ダッシュボードは外から見た様子と中の様子を並べる
-レイテンシは平均ではなく95パーセンタイルを見る
-
-◼アラート
-ポリシー(いつ)とチャンネル(どこ)は別
-duration で「続いたら鳴らす」。鳴らさない工夫が大事
-documentation に「まず何を見るか」を書く
-書けないアラートは、たぶん要らない
+※ 使い分け
+「なんか遅い」→ メトリクスで範囲を絞る
+「このリクエストが遅い」→ トレースでどこが遅いか見る
+「なぜ失敗した」→ ログで詳細を見る
 ```
 
+**[話す]** 3種類のデータを並べると、量と見るタイミングが違うことが分かる。
+最後の ※ が、障害のときの使い分けの目安。
 ---
 
 ### S42 | 本日はここまで
@@ -1626,45 +1714,66 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
 ---
 
-### S44 | 宿題2 実装課題
+### S44 | 宿題2 実装課題 ①②
+
+<!-- slide-id: g043slide -->
+
+**[図版]** 第3回 S52 と同じ形式(◼見出し + 説明 + ・の補足 + 回答例)。1ページに入りきらないので、①② と ③ の2ページに分ける。
 
 **[本文]**
 
 ```
 ◼1. SLO を1つ定義して、バーンレートでアラートしよう
-
   「30日で成功率99%」を目標にする
   エラーバジェットを速く使っているときだけ鳴らす
 
-  ★ 「エラー率が高い」ではなく
-     「使い切るまであと何日か」で見るのがSLO
+  ・エラーバジェット = 失敗してよい量(99%なら1%)
+  ・バーンレート = それを使うペースの速さ
+  ・「エラー率が高い」ではなく「使い切るまであと何日か」で見るのが SLO
 
   回答例: gcp/lesson8/syukudai1/
 
-
 ◼2. 自分あてのメール通知を足そう
-
   Slack に加えて、自分のメールにも飛ばす
-  Step1で作ったログベース指標でアラートする
+  Step1 で作ったログベース指標でアラートする
 
-  ★ メールは auth_token が要らないので自分で作れます
+  ・メールは auth_token が要らないので自分で作れます
+  ・通知チャンネルを作って、アラートポリシーに足します
 
   回答例: gcp/lesson8/syukudai2/
-
-
-◼3. ログのコストを下げよう
-
-  ヘルスチェックの成功ログを取り込まないようにする
-  保持期間の短いログバケットを作る
-
-  ★ 何を消してよいかは「障害のときに見るか」で決める
-
-  回答例: gcp/lesson8/syukudai3/
 ```
 
 ---
 
-### S45 | 宿題3 ドキュメント
+### S44b | 宿題2 実装課題 ③
+
+<!-- slide-id: x0843bslide -->
+
+**[本文]**
+
+```
+◼3. ログのコストを下げよう
+  ヘルスチェックの成功ログを取り込まないようにする
+  保持期間の短いログバケットを作る
+
+  ・取り込まないようにする設定を「除外(exclusion)」といいます
+  ・除外したログは取り込まれないので、あとから見られません
+  ・何を消してよいかは「障害のときに見るか」で決めます
+
+  回答例: gcp/lesson8/syukudai3/
+```
+
+> 2026-11-19: 第3回の形(◼見出し + 説明 + ・の補足 + 回答例)に揃え、①② と ③ に分けた。
+> 略語・用語を初出で説明した(エラーバジェット / バーンレート / 除外)。
+> 回答例の `syukudai1〜3` は、`monitoring.tf` が `"ALL SYSTEMS NORMAL"` のままである点に注意(S34b)。
+---
+
+### S45 | 宿題3 ドキュメント ①
+
+<!-- slide-id: g044slide -->
+
+**[図版]** 第3回 S54 と同じ形式(◼見出し + リンク)。調べ物の課題ではなく、眺めるだけ。
+URL は1行ごとにリンクを貼る。
 
 **[本文]**
 
@@ -1683,6 +1792,59 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
   「症状で鳴らす」の出典はここです
 ```
 
+**[リンク]**
+
+- [https://cloud.google.com/monitoring/docs](https://cloud.google.com/monitoring/docs)
+- [https://cloud.google.com/logging/docs](https://cloud.google.com/logging/docs)
+- [https://sre.google/sre-book/monitoring-distributed-systems/](https://sre.google/sre-book/monitoring-distributed-systems/)
+
+> 3つの URL は 2026-11-19 に取得できること(HTTP 200)を確認した。
+> 「SRE本の章」は旧宿題から引き継いだ項目(調べ物ではなく読み物)。残してよいかはユーザー判断(報告済み)。
+
+---
+
+### S45b | 宿題3 ドキュメント ②
+
+<!-- slide-id: x0844bslide -->
+
+**[図版]** 第3回 S54 と同じ形式。リソース名(google_xxx)の1つ1つにリンクを貼る。
+
+**[本文]**
+
+```
+◼Terraform google provider の各ドキュメントを眺めてみよう
+  google_logging_metric
+  google_logging_project_sink
+  google_logging_project_exclusion
+  google_logging_project_bucket_config
+  google_storage_bucket
+  google_storage_bucket_iam_member
+  google_monitoring_uptime_check_config
+  google_monitoring_dashboard
+  google_monitoring_alert_policy
+  google_monitoring_notification_channel
+  google_monitoring_custom_service
+  google_monitoring_slo
+```
+
+**[リンク]**
+
+- [google_logging_metric](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/logging_metric)
+- [google_logging_project_sink](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/logging_project_sink)
+- [google_logging_project_exclusion](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/logging_project_exclusion)
+- [google_logging_project_bucket_config](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/logging_project_bucket_config)
+- [google_storage_bucket](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket)
+- [google_storage_bucket_iam_member](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_iam)
+- [google_monitoring_uptime_check_config](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_uptime_check_config)
+- [google_monitoring_dashboard](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_dashboard)
+- [google_monitoring_alert_policy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy)
+- [google_monitoring_notification_channel](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_notification_channel)
+- [google_monitoring_custom_service](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_custom_service)
+- [google_monitoring_slo](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_slo)
+
+> 12個のリソースが、`gcp/lesson8/` の `*.tf` で実際に使われていること、
+> 上の URL が取得できること(HTTP 200)を 2026-11-19 に確認した。
+> `google_storage_bucket_iam_member` のドキュメントは `storage_bucket_iam` のページにまとまっている。
 ---
 
 ### S46 | 参考
@@ -1708,34 +1870,63 @@ Google SRE Book(無料)
 
 ---
 
-### S47 | 注意事項
+### S47 | 注意事項 ①
+
+<!-- slide-id: g046slide -->
+
+**[図版]** 第3回 S56 と同じ形式。タイトル行、◼リソースの削除、cd 行を灰色の枠で囲み右に「←」の注釈、
+`terraform destroy` は別の小さな枠(右に「→ 確認で yes と入力」)、その下に ※ で2項目。
+文字が多いので、共有プロジェクトの注意などは ② に分けた。
 
 **[本文]**
 
 ```
-宿題などで作成したリソースは
-必ず削除してください！
+宿題などで作成したリソースは必ず削除してください！
 
-★★ この場で terraform destroy を1回打つだけでOKです ★★
+◼リソースの削除(最後に apply したディレクトリで実行)
+  cd ~/works/lesson8/syukudai3       ← 実装課題③まで
+  cd ~/works/lesson8/syukudai2       ← 実装課題②まで
+  cd ~/works/lesson8/syukudai1       ← 実装課題①まで
+  cd ~/works/lesson8/"3. alert"      ← 講義 Step3 まで
 
-   → private サブネットだけ失敗します。それで終わりです
-     Direct VPC egress が確保したIPの解放待ち(1〜2時間)のためで、
-     手動では消せません
+  terraform destroy   → 確認で yes と入力
 
-★★ 残りは講師がまとめて片付けます ★★
-   翌日にもう1回打つ必要はありません
+※ destroy は1回打つだけで OK です
+   private サブネットだけ失敗します
+   Direct VPC egress が確保した IP の解放待ち(1〜2時間)のためで、
+   手動では消せません。残りは講師がまとめて片付けます
 
-★★ ただし1回目は必ず打ってください ★★
-   アラートポリシーが残ると Slack が鳴り続けます
-   この回の残骸は第10回の試験にも影響します
-
-★ 残るのは VPC とサブネットだけで、課金はありません
-
-★ 確認したい人は  gcp/tools/check-leftover.sh [自分の名前]
-
-★ 次回(第9回)は3月18日(木)、試験対策です
-   ★ 曜日が違うので注意してください
+※ アラートポリシーが残ると Slack が鳴り続けます
+   1回目は必ず打ってください
 ```
+
+---
+
+### S47b | 注意事項 ②
+
+<!-- slide-id: x0846bslide -->
+
+**[本文]**
+
+```
+※ 全員で1つのプロジェクトを共有しています
+   消し忘れはQuotaを圧迫して、他の人のapplyを止めます
+   この回の消し忘れは、第10回の試験にも影響します
+
+※ tfstate用のバケットは残しておいてください
+
+※ 残るのは VPC とサブネットだけで、課金はありません
+
+※ 確認したい人は  gcp/tools/check-leftover.sh [自分の名前]
+
+※ 次回(第9回)は3月18日(木)、試験対策です
+   曜日が違うので注意してください
+```
+
+> **実機で確認した内容(付録B。2026-08-31)**: 1回目の destroy で private サブネットだけが失敗する。
+> Direct VPC egress の予約IPの解放待ちは、公式ドキュメントにも「1〜2時間」とある(第5回の原稿)。
+> 今回(2026-11-19)は destroy を再実行していない。待ち時間の実測値は付録B を参照。
+> 「3月18日(木)」の日付は、2026-11-19 時点で開催日程の一次情報を確認していない(要確認)。
 
 > **★ 講師メモ: 2回目は講師がやる。この回はいちばん重要 ★**
 >
@@ -1782,35 +1973,38 @@ Google SRE Book(無料)
 > ```
 >
 > 第10回の「事前準備 7」でも同じ確認をする。
-
 ---
 
 ### S48 | おしまい
 
+<!-- slide-id: g047slide -->
+
 **[本文]**
 
 ```
-次回は 試験対策 です(3月18日 木曜)
-
-Associate Cloud Engineer と
-Cloud Digital Leader の出題範囲を見ながら、
-ここまでの8回を復習します
-
-そのあと第10回で実践テストをやります
-
-お楽しみに！！
+次回 試験対策編 もお楽しみに！
 ```
 
+**[話す]** 次回は試験対策(3月18日 木曜)。Associate Cloud Engineer と Cloud Digital Leader の出題範囲を見ながら、
+ここまでの8回を復習する。そのあと第10回で実践テストをやる。
+(旧原稿は上の内容をスライドに載せていたが、デッキは1行にまとまっている。デッキに合わせた)
 ---
 
 # 付録A: ハンズオンのステップ対応表
 
 | Step | ディレクトリ | 作るもの | 確認すること |
 |---|---|---|---|
-| 0 | `0. before/` | `0. before/`(第2〜6回の全リソース、38個)を読み込むだけ | 約10分 |
+| 0 | `0. before/` | 第2〜6回の全リソース(38個)を再作成する(`before.tf` に全部入っている) | 約10分 |
 | 1 | `1. logging/` | ログベース指標 + シンク + バケット | シンクは権限が無いと静かに失敗する |
 | 2 | `2. monitoring/` | Uptime check + ダッシュボード | **失敗しているのに誰も気づかない** |
 | 3 | `3. alert/` | アラートポリシー(Slackチャンネル参照) | **Slack が鳴る** |
+
+> **Step のディレクトリは積み上げ式。** `1. logging/` には `before.tf`(前の Step まで)と、この Step の `logging.tf` が入る。
+> `2. monitoring/` には `logging.tf` と `monitoring.tf`、`3. alert/` には `alert.tf` も入る(同じ state を引き継ぐ)。
+> 「`1. logging/` に後の Step のファイルが入っている」わけではない。
+> cp すると、その Step のコード一式(ログベース指標・バケット・シンク・IAM)が一度に入るが、
+> スライドでは見せる順に分けて説明する。**apply は「Step1 実行」で1回だけ**
+> (S17 / S18 / S19 の各ページと S20 に注記した。2026-11-19)。
 
 AWS版との対応:
 
@@ -1858,6 +2052,44 @@ AWS版との対応:
 4. **宿題ディレクトリが Step3 の修正を上書きする**
    `syukudai1〜3` の `monitoring.tf` は `"ALL SYSTEMS NORMAL"` のままなので、
    宿題を apply すると外形監視が失敗に戻る。S34 に注意を追記した
+
+## 2026-11-19 の見直し(第1〜4回のレビュー指摘を先回りで反映)
+
+デッキ側の編集を正として、原稿を合わせた。コードは変えていない(`gcp/lesson8/` は無変更)。
+
+**直したもの**
+
+- **まとめ**: 第4回の形に。S40 は丸数字1〜4 + 太字の結論 + 補足、S41 は3種類のデータの表 + ※(使い分け)。宿題・片付けは載せない
+- **宿題2**: 第3回の形(◼見出し + 説明 + ・の補足 + 回答例)。S44(①②)と S44b(③)に分割。エラーバジェット / バーンレート / 除外(exclusion)を初出で説明
+- **宿題3 ドキュメント**: 第3回 S54 の形。S45(Cloud Monitoring / Cloud Logging / SRE本)と S45b(Terraform の12リソース)。原稿に [リンク] 一覧を追加
+- **注意事項**: 第3回 S56 の形。S47(cd 行 + destroy)と S47b(共有プロジェクト・Quota・次回の案内)。1回目の destroy で private サブネットだけ失敗することを具体的に書いた
+- **Step ページ**: S15 / S17 / S22 / S30 の cp 行を第2回の形に揃えた。`terraform plan, terraform apply` は1行(S20 / S26 / S33)。cp 後の tfvars 書き換えの手順は載せない
+- **Step1 の整理(8回 p17 の指摘)**: `1. logging/` の中身を確認した。`logging.tf`(ログベース指標・バケット・シンク・IAM)は Step1 のコードで、
+  後の Step のファイルではない。ただし cp で全部入るのに、スライドは見せる順に分けていたため
+  「後の Step のコードまで入っている」ように見えた。S17 / S18 に「cp すると一式が入る。apply は Step1 実行で1回だけ」の注記を足し、
+  ディレクトリは動かさなかった(`2. monitoring` 以降は `logging.tf` を含む積み上げ式で、全 Step が同じ state を引き継ぐ構成のため)
+- **Uptime check**: 旧原稿の「存在しないパス」「404」は、検証1(付録B)で成り立たないと分かったあとも残っていた。
+  デッキに合わせて `path = "/"` + `content_matchers`(本文に ALL SYSTEMS NORMAL)に統一(S22 / S23 / S27)
+- **S38b(BigQuery)**: 旧図は今日のシンク先を BigQuery としていたが、実際は Cloud Storage。流し先を2つ並べる形に直した。
+  S38b / S38c の2ページに分割。Pub/Sub / BigQuery サブスクリプション / Dataflow を初出で説明。「数万円」は根拠が確認できないので「高額になる」に弱めた
+- **S12b〜S12d(Datadog)**: 略語 APM / SaaS を初出で説明。表のページから文字を分けて補足ページ(S12d)にした
+- **S39 / S39b〜S39d(その他・料金)**: S39 の時間の上限を公式ドキュメントで確認して直した(functions のイベント駆動は9分、Scheduler は30分、ジョブは7日)。
+  S39c の表の列名を「課金の単位 / 注意点」に。S39d は95%ile の説明を足し、文字を減らした
+- **S38**: Cloud Run のリクエスト最大60分、ジョブ最大7日を明記(公式ドキュメントで確認)
+- **ページ分割**: 文字が小さいページを(1/2)(2/2)に分けた。デッキのタイトルに合わせ、原稿も S17 / S18 / S19 / S20 / S22 / S31 / S32 / S34 に b を足した
+- **S48(おしまい)**: デッキは1行なので原稿を合わせた(旧本文は [話す] に移した)
+
+**実機で確認していないもの**
+
+- 今回(2026-11-19)は apply / destroy / gcloud を実行していない(認証切れ)。待ち時間・Slack の着弾時間などの数字は、上の2026-08-31の実測のまま
+- 「運用点は限界の6〜7割」(S39d): 経験則で、出典を確認できていない
+- 次回(第9回)の日付「3月18日(木)」(S47b): 一次情報を確認していない
+- `before.tf` の `DB_KIND=spanner`: 第4回でアプリが3行表示になり `DB_KIND` は廃止されたため、第6回・第8回の `before.tf`(全14か所)から環境変数を削除した(第5回・第7回は削除済み)。実機の apply では未確認
+
+**sync の残り**
+
+- `check-slide-sync.py 8` で、タイトルが合わないのは S01(表紙)と S04(今日やること。デッキは「今日のアジェンダ」「今日のゴール」)。今回は触っていない
+- S18 の差分(※ の注記)は、デッキ側で別の図形に分けているための誤検出
 
 ## 受講者ロールの照合結果(2026-08-31 実施)
 

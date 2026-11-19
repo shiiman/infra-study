@@ -28,7 +28,7 @@ resource "google_compute_backend_bucket" "static" {
   // これだけでCDNが有効になる
   enable_cdn = true
 
-  // 宿題3: Cloud Armor のポリシーを紐づける
+  // 宿題2の③: Cloud Armor のポリシーを紐づける
   // ★ バックエンドバケットには edge_security_policy を使う
   //   security_policy という属性は存在しない
   //   指定するポリシーは type = "CLOUD_ARMOR_EDGE" である必要がある

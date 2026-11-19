@@ -809,10 +809,6 @@ resource "google_cloud_run_v2_service" "app" {
 
       // 設定は環境変数で渡す(第4回で環境変数化しておいた)
       env {
-        name  = "DB_KIND"
-        value = "spanner"
-      }
-      env {
         name  = "SPANNER_DATABASE"
         value = "projects/${var.project_id}/instances/${google_spanner_instance.main.name}/databases/${google_spanner_database.app.name}"
       }

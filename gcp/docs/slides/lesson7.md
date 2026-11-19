@@ -158,7 +158,7 @@ done
 | ロール | いつ要るか |
 |---|---|
 | `roles/logging.logWriter` | **講義**。無いとビルドがそもそも始まらない |
-| `roles/clouddeploy.jobRunner` | **宿題1・2**。Cloud Deploy の実行主体として必要 |
+| `roles/clouddeploy.jobRunner` | **実装課題①②**。Cloud Deploy の実行主体として必要 |
 
 どちらもプロジェクト単位でしか付けられないので、受講者には配れない。
 
@@ -180,6 +180,13 @@ done
 
 サービスアカウントの鍵ファイルは作らない。
 GitHub が発行する OIDC トークンを GCP が直接検証する形にする。
+
+> **略語(スライドでも初出で説明している)**
+> - **WIF** = Workload Identity Federation。GCPの外のID(ここでは GitHub Actions)を、
+>   GCPのIAMで扱えるようにする仕組み。プールとプロバイダを作って使う
+> - **OIDC** = OpenID Connect。「このトークンは発行元(ここでは GitHub)が出した本物」を
+>   署名で確かめられる仕組み
+> - **sub** = トークンの subject クレーム。「誰のトークンか」を表す文字列
 
 ```
 PROJECT_ID=[プロジェクトID]
@@ -209,6 +216,19 @@ gcloud iam workload-identity-pools providers create-oidc github \
 > これが無いと、**世界中のどのGitHubリポジトリからでも**
 > トークンの入口までは通ってしまう(実際にSAを使えるかは
 > 受講者側の `principalSet` 次第だが、入口は絞っておくべき)。
+
+> **★ なぜ `google.subject=assertion.sub` だけに頼らないのか(事実確認 2026-11-19)**
+> GitHub は `sub` に組織・リポジトリの**数値ID(不変ID)**を含める形式
+> (`repo:OWNER@ID/REPO@ID:ref:refs/heads/BRANCH`)を用意している。
+> GitHub のドキュメントによると、**2026-07-15 以降に作ったリポジトリは既定でこの形式**で、
+> それ以前のリポジトリも org / リポジトリの設定で選べる
+> (https://docs.github.com/en/actions/reference/security/oidc)。
+> このアプリ用リポジトリで実際に出たトークンは、この形式だった(S34e2)。
+> 名前が素直に入る `repository` / `ref` クレームから属性を作る方が、読みやすく書ける。
+> **なお、名前は削除・再作成で第三者に取られうるため、Google は `repository_owner_id` などの
+> ID を条件に使うことを勧めている**
+> (https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines)。
+> この勉強会は名前ベース(`repository_owner=='[org]'`)のまま。実運用では ID での絞り込みも検討する。
 
 **受講者に渡す値**
 
@@ -324,7 +344,7 @@ allUsers に公開しないとCDNも読めなかった
 
 ---
 
-### S04 | 今日やること
+### S04 | 今日のアジェンダ
 
 **[図版]** **新規作成**。push から Cloud Run までの流れ。
 
@@ -619,7 +639,7 @@ options:
 
 ---
 
-### S13 | 休憩
+### S13 | 休憩(5分)
 
 **[本文]**
 
@@ -635,7 +655,7 @@ options:
 
 ---
 
-### S14 | 準備
+### S14 | ハンズオンの準備
 
 **[本文]**
 
@@ -668,6 +688,8 @@ options:
 
 ### S15 | 前回までの構成を作成する
 
+<!-- slide-id: g014slide -->
+
 **[本文]**
 
 ```
@@ -679,21 +701,21 @@ python3 ~/infra-study/gcp/tools/configure.py
 ネットワーク / Memorystore / Spanner / Cloud Run /
 Cloud Storage / バックエンドバケット / ロードバランサ
 
-configure.py：project_id・user_name・backendのbucketだけを反映
-terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
+configure.py：project ID・user name・bucketだけを反映
 
 terraform init
-terraform plan
-terraform apply
+terraform plan, terraform apply
 
 今日は、この構成に自動デプロイの仕組みを追加します。
 Cloud Run に追加した lifecycle は Step3 で説明します。
-各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
+各ステップの中で設定を反映します。同じGCSのstateを引き継ぎます。
 ```
 
 ---
 
 ### S16 | Artifact Registry を作る
+
+<!-- slide-id: g015slide -->
 
 **[本文]**
 
@@ -731,6 +753,8 @@ resource "google_artifact_registry_repository" "app" {
 
 ### S17 | ビルド用のサービスアカウント ★
 
+<!-- slide-id: g016slide -->
+
 **[本文]**
 
 ```
@@ -748,9 +772,9 @@ data "google_service_account" "build" {
 
 ◼なぜ既定のSAを使わないのか
 
-  Cloud Build には昔から使われている既定のSAがありますが、
-  2024年以降のプロジェクトでは自動では作られず、
-  明示的に指定するのが推奨になっています
+  Cloud Build の既定のサービスアカウント(SA)は、以前は Cloud Build 専用のものでしたが、
+  2024年5〜6月以降の新しいプロジェクトでは Compute Engine の既定SAに変わりました。
+  公式は「自分で作ったSAを指定する」方法を、いちばん安全だとしています
 
   それ以上に大事なのは
   **ビルドが持つ権限を自分で決められる**こと
@@ -834,12 +858,13 @@ resource "google_artifact_registry_repository_iam_member" "build_writer" {
 
 ### S19 | Step1 実行
 
+<!-- slide-id: g019slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ◼確認
   terraform output repository_url
@@ -859,6 +884,8 @@ resource "google_artifact_registry_repository_iam_member" "build_writer" {
 ---
 
 ### S20 | ビルドトリガー
+
+<!-- slide-id: g020slide -->
 
 **[本文]**
 
@@ -924,12 +951,13 @@ cloudbuild_repository = ""
 
 ### S22 | Step2 実行
 
+<!-- slide-id: g022slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ◼確認
   gcloud builds triggers list --region=asia-northeast1 \
@@ -1132,6 +1160,8 @@ GCPでもAWSでも、CI/CDを組むたびに出てくる。
 
 ### S29 | 権限を2つ足す
 
+<!-- slide-id: g029slide -->
+
 **[本文]**
 
 ```
@@ -1166,12 +1196,13 @@ resource "google_service_account_iam_member" "build_act_as_run" {
 
 ### S30 | Step3 実行
 
+<!-- slide-id: g030slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ★ 数秒で終わります
 
@@ -1186,6 +1217,8 @@ resource "google_service_account_iam_member" "build_act_as_run" {
 ---
 
 ### S31 | 今度は成功する
+
+<!-- slide-id: g031slide -->
 
 **[本文]**
 
@@ -1203,8 +1236,9 @@ resource "google_service_account_iam_member" "build_act_as_run" {
   version: a1b2c3d              ← コミットのSHA
   revision: [自分の名前]-app-00002-xyz
   hostname: localhost
-  DB接続(spanner): 成功
+  DB接続(PostgreSQL): 未設定     ← この構成には Cloud SQL がない
   Cache接続: 成功
+  Spanner接続: 成功
 
 ★ push しただけで、ここまで来ました
 ```
@@ -1291,6 +1325,8 @@ Cloud Run に自動でデプロイされる
 
 ### S34b | もう1つのやり方
 
+<!-- slide-id: x0734bslide -->
+
 **[図版]** **新規作成**。同じ「push → デプロイ」を2本の経路で描く。
 左が今やった Cloud Build、右がこれからやる GitHub Actions。
 GitHub の箱は共通で、そこから2本に分かれる。
@@ -1320,7 +1356,7 @@ GitHub の箱は共通で、そこから2本に分かれる。
   GitHub の中でビルドが走り、そこからGCPを操作する
   ビルドするマシンはGCPの外にいる
 
-◼実務ではこちらのほうが多いです
+◼社内の nishiki ではこちらです
 
   アプリのテストもリンタも、もう GitHub Actions で回っている
   デプロイだけ Cloud Build に分けると、2か所を見ることになる
@@ -1335,6 +1371,8 @@ GitHub の箱は共通で、そこから2本に分かれる。
 ---
 
 ### S34c | 鍵ファイルを配らない ★
+
+<!-- slide-id: x0734cslide -->
 
 **[図版]** **新規作成**。この回の最重要図その4。
 上下2段。上が「昔のやり方(鍵ファイル)」、下が「Workload Identity 連携」。
@@ -1367,9 +1405,12 @@ GitHub の箱は共通で、そこから2本に分かれる。
   漏れたら、取り消すまで誰でも使える
   誰がコピーを持っているか分からない
 
-◼Workload Identity 連携(WIF)
+◼Workload Identity 連携(WIF = Workload Identity Federation)
+
+  GCPの外のID(ここでは GitHub Actions)を、GCPのIAMで扱えるようにする仕組み
 
   GitHub Actions は、実行のたびに OIDC トークンを発行できる
+  OIDC = OpenID Connect。「GitHub が出した本物のトークン」と署名で確かめられる仕組み
   そのトークンには「どのリポジトリの、どのブランチか」が入っている
 
     repository : sumzap/infra-study-app
@@ -1441,7 +1482,9 @@ GitHub の箱は共通で、そこから2本に分かれる。
 
 ---
 
-### S34e | Step4: 自分のSAに許可を足す
+### S34e | Step4 自分のSAに許可を足す
+
+<!-- slide-id: x0734eslide -->
 
 **[本文]**
 
@@ -1463,15 +1506,14 @@ resource "google_service_account_iam_member" "gha_wif" {
 }
 
   terraform init
-  terraform apply
+  terraform plan, terraform apply
 
 ★ principalSet:// で始まるのが、外部IDを指す書き方です
 ★ @refs/heads/<自分の名前> で、自分のブランチだけに絞っています
    ここを消すと、誰のブランチからでも自分のSAが使えてしまいます
 
 ★ apply の直後に push しないでください
-   IAM の反映に時間がかかり、早すぎると getAccessToken が denied になります
-   (数分〜10分ほど。落ちたら少し待って Re-run)
+   IAM の反映待ちで getAccessToken が denied になります(数分〜10分。落ちたら Re-run)
 ```
 
 **[話す]** ここは1リソースだけ。Step3 でやった
@@ -1485,28 +1527,32 @@ IAMの反映は、実測では数分では足りず、約10分後の再実行で
 
 ### S34e2 | ドキュメントどおりに書くと通らない ★
 
+<!-- slide-id: x0734e2slide -->
+
 **[図版]** **新規作成**。実際に発行されたトークンの sub を大きく見せ、
 数値IDの部分を赤で囲む。下に「repository / ref は素直」と対比を置く。
 
 **[本文]**
 
 ```
-◼公式ドキュメントには、こう書いてあります
+◼sub をそのまま使う書き方(principal://)
 
-  principal://iam.googleapis.com/<プール>/subject/
-    repo:OWNER/REPO:ref:refs/heads/BRANCH
+  principal://iam.googleapis.com/<プール>/subject/<sub の値>
+    例: repo:OWNER/REPO:ref:refs/heads/BRANCH (従来の sub の形)
 
   sub の完全一致で、リポジトリとブランチを1つの文字列で縛れる
 
-◼ところが、実際に発行されたトークンの sub はこうでした
+◼ところが、このリポジトリで実際に発行されたトークンの sub はこうでした
 
   repo:sumzap@45473687/infra-study-app@1351899519:ref:refs/heads/yamada-taro
             ~~~~~~~~~                ~~~~~~~~~~~
             組織の数値ID              リポジトリの数値ID
 
-  ★ この組織は「OIDCのsubjectに不変IDを含める」設定が有効です
-     名前を変えても同じ主体を指せるようにするための設定で、
+  ★ GitHub には、sub に数値ID(不変ID)を含める形式があります
+     名前を変えても同じ主体を指せるようにするための形式で、
      セキュリティ的にはこちらのほうが堅牢です
+     2026-07-15 以降に作ったリポジトリは既定でこの形式で、
+     それ以前のリポジトリも設定で選べます
 
 ◼どうするか
 
@@ -1522,15 +1568,25 @@ IAMの反映は、実測では数分では足りず、約10分後の再実行で
   → principalSet://<プール>/attribute.repo_ref/
        sumzap/infra-study-app@refs/heads/yamada-taro
 
-★ 「ドキュメントどおりに書いたのに PERMISSION_DENIED」は、
-   だいたいこれか、audience の指定ミスです
+★ 「書いたのに PERMISSION_DENIED」は、
+   だいたいこれか、audience の指定ミスか、反映待ちです
 ★ 困ったら、トークンの中身を実際に出して確かめるのが一番早いです
 ```
 
 **[話す]** ここは実際にハマったところ。
-最初は公式の書き方で組んだが動かず、トークンをデコードして初めて分かった。
+最初は sub の完全一致(principal://)で組んだが動かず、トークンをデコードして初めて分かった。
 「ドキュメントと実物が違うことがある」「調べ方を知っていれば10分で分かる」
 という話として扱う。
+
+> **事実確認の注記(2026-11-19)**
+> - 数値ID入りの sub は、GitHub のドキュメントにある「不変の subject クレーム」の形式。
+>   2026-07-15 以降に作ったリポジトリは既定でこの形式、それ以前は設定で選べる。
+>   Google 側のドキュメントも、`google.subject=assertion.sub` の例を示したうえで、
+>   名前ではなく `repository_id` / `repository_owner_id` を使うことを勧めている。
+> - このアプリ用リポジトリがなぜ不変ID形式だったのか(作成日による既定か、org の設定か)は、
+>   リポジトリ側の設定を見ていないので**未確認**。
+> - 以前この原稿に書いていた「公式ドキュメントには `principal://…/subject/repo:OWNER/REPO:…` と書いてある」は、
+>   公式の記述として確認できなかったので書き換えた。公式が示すのは `principal://…/subject/SUBJECT` の一般形。
 
 > **トークンの中身の出し方**(講師のメモ):
 > ワークフロー内で `$ACTIONS_ID_TOKEN_REQUEST_URL` に `audience` を付けて
@@ -1540,6 +1596,8 @@ IAMの反映は、実測では数分では足りず、約10分後の再実行で
 ---
 
 ### S34f | ワークフローを書いて push する
+
+<!-- slide-id: x0734fslide -->
 
 **[本文]**
 
@@ -1579,6 +1637,8 @@ jobs:
 ---
 
 ### S34f2 | ワークフローを書いて push する(続き)
+
+<!-- slide-id: x0734f2slide -->
 
 **[本文]**
 
@@ -1620,6 +1680,8 @@ push したらビルドが始まる(約5分)。待っている間に次の S34g�
 
 ### S34g | Terragrunt ★
 
+<!-- slide-id: x0734gslide -->
+
 **[図版]** **新規作成**。左が「素のTerraform(環境ごとにコピー)」、
 右が「Terragrunt(共通モジュール + 環境ごとの差分だけ)」。
 左は同じファイルが並んでいて、赤字で「全部直す」。
@@ -1652,6 +1714,9 @@ push したらビルドが始まる(約5分)。待っている間に次の S34g�
 
 ◼Terragrunt (社内では nishiki で使っています)
 
+  Terraform を包んで、共通の中身と環境ごとの値を分けて使い回すための道具
+  設定ファイル(terragrunt.hcl)の HCL は、Terraform と同じ設定言語
+
   terragrunt/platform/gcp/
     modules/              共通の中身(cloud_run / db / network / lb ...)
     app/dev/db/
@@ -1666,6 +1731,7 @@ push したらビルドが始まる(約5分)。待っている間に次の S34g�
   backend の設定は root.hcl から自動生成
   dependency で順序も書ける(SAができてから Cloud Run を作る、など)
 
+★ tfenv / tgenv は、Terraform / Terragrunt のバージョンを固定する道具です
 ★ Terraform を素で理解したうえで使う道具です
    だから今日まで出しませんでした
 ★ 今日やった ignore_changes などは、Terragrunt でもそのまま使えます
@@ -1683,6 +1749,8 @@ push したらビルドが始まる(約5分)。待っている間に次の S34g�
 ---
 
 ### S34h | SOPS — 秘密情報をリポジトリに置く ★
+
+<!-- slide-id: x0734hslide -->
 
 **[図版]** **新規作成**。左が「そのまま置く(✕)」、右が「SOPSで暗号化(○)」。
 右は Cloud KMS の鍵で暗号化されたYAMLがGitに入っていて、
@@ -1711,6 +1779,7 @@ push したらビルドが始まる(約5分)。待っている間に次の S34g�
 ◼SOPS (Secrets OPerationS)
 
   設定ファイルの **値だけ** を暗号化するツール。nishiki で使っています
+  KMS = Key Management Service。暗号鍵を預かる GCP のサービス(Cloud KMS)
 
   キーは平文のまま、値だけ ENC[...] になる
   → 差分が読める。どのキーが増えたか分かる
@@ -1721,13 +1790,15 @@ push したらビルドが始まる(約5分)。待っている間に次の S34g�
 
     creation_rules:
       - path_regex: dev          → 開発プロジェクトのKMS鍵
-      - path_regex: stg          → 同上
+      - path_regex: stg / cer / lod / pmt も同じ(同じ開発プロジェクトの鍵)
       - path_regex: production   → 本番プロジェクトのKMS鍵
 
   暗号化したファイルは secret.enc.yaml として Git に入れる
 
   ★ 本番と開発で鍵が分かれている
      開発の鍵しか持っていない人は、本番の値を復号できない
+     (nishiki の .sops.yaml を確認: dev / stg / cer / lod / pmt の5つが同じプロジェクトの鍵、
+      production だけ別のプロジェクトの鍵)
   ★ 鍵は Cloud KMS。復号できるかは IAM で決まる
      人の入れ替わりに強い(鍵を配り直さなくてよい)
 
@@ -1786,7 +1857,7 @@ apply の直後に push すると、これで落ちる。実測では 1〜2分�
 
 ---
 
-### S34j | Cloud Build と GitHub Actions、どちらを使うか
+### S34j | Cloud Build と GitHub Actions の使い分け
 
 **[図版]** **新規作成**。表。左に判断軸、右2列。
 
@@ -1933,6 +2004,8 @@ VPCへの繋ぎ方              ◯
 
 ### S38 | ロールバックの手段を整理する
 
+<!-- slide-id: g038slide -->
+
 **[本文]**
 
 ```
@@ -1950,7 +2023,7 @@ VPCへの繋ぎ方              ◯
 ◼段階的に出せば、そもそも全員には当たらない
 
   → Cloud Deploy のカナリアデプロイ
-  → 今日の宿題1・2
+  → 今日の実装課題 ①・②
 ```
 
 ---
@@ -1959,52 +2032,59 @@ VPCへの繋ぎ方              ◯
 
 ---
 
-### S39 | 本日のまとめ ①
+### S39 | 本日のまとめ ①(今日のポイント)
+
+<!-- slide-id: g039slide -->
+
+**[図版]** 第4回 S45 と同じ形式。丸数字(青い円に白抜きの 1〜4)+ 太字の結論1行 + 補足1行 を4段に並べる。
+ラベルや灰色の枠は使わない。図形は l7sm1_ 始まりの ID。宿題・片付けは載せない(宿題のページで説明する)。
+AWS のリソース数・サービス数の比較は載せない。
 
 **[本文]**
 
 ```
-◼CI/CD の構成
-GCPは Cloud Build 1つでビルドもデプロイもやる
-  AWS: CodeCommit + CodeBuild + CodeDeploy + CodePipeline
-設定ファイルも cloudbuild.yaml 1つ
-  AWS: buildspec.yml + appspec.yml
+1  権限は、リソース単位で小さく付ける
+   リポジトリ・サービス・SA 単位で付ける。プロジェクト単位は最後の手段
 
-◼ソースコード
-Cloud Source Repositories は2024年6月に新規提供終了
-GitHub 連携が前提。GitHub App と トークンの登録が要る
-  → ここだけコードにできない
+2  デプロイには、権限が2つ要る
+   更新する権限と、実行SAを指定する権限。1つ目だけでは通らない
 
-◼トリガー
-リポジトリとブランチで、どのビルドを動かすか決める
-branch は ^ と $ で囲む
-cloudbuild.yaml は共有し、違いは substitutions で渡す
+3  GitHub Actions は、鍵ファイルを配らない
+   Workload Identity 連携で、GitHub の身元を GCP の権限に換える
+
+4  Terraform と CI/CD で、持ち分を分ける
+   形は Terraform、動かすバージョンは CI/CD。境界は ignore_changes
 ```
+
+**[話す]** 今日の話を4つに絞ると、この4点。
 
 ---
 
-### S40 | 本日のまとめ ②
+### S40 | 本日のまとめ ②(付けた権限の一覧)
+
+<!-- slide-id: g040slide -->
+
+**[図版]** 第4回 S46 と同じ形式。5行×3列の表(l7sm2_tbl)。見出し行は青、左の列は灰色。下に黄色の ※(l7sm2_y)。
 
 **[本文]**
 
 ```
-◼デプロイに要る権限は2つ
-  roles/run.developer          デプロイ先を更新する
-  roles/iam.serviceAccountUser 実行SAになりすます
+ロール                           付ける先            できること
+roles/artifactregistry.writer    リポジトリ          イメージを push する
+roles/run.developer              Cloud Run サービス  デプロイ先を更新する
+roles/iam.serviceAccountUser     実行SA              実行SAとして指定する
+roles/iam.workloadIdentityUser   ビルド用SA          GitHub Actions が SA を使える
 
-  1つ目だけでは通らない
-  AWSの iam:PassRole と同じ考え方
-
-◼権限は必要な範囲に
-  サービス単位・リポジトリ単位で付けられるものは、そうする
-  プロジェクト単位は最後の手段
-
-◼Terraform と CI/CD の責務
-  インフラの形は Terraform
-  動かすバージョンは CI/CD
-  境界は lifecycle { ignore_changes } で宣言する
-  乱用しない。属性単位で、CI/CDが触るものだけ
+※ Cloud Build と GitHub Actions の選び方
+   アプリのCIが既に GitHub Actions にある → GitHub Actions
+   VPC内のDBに繋ぐ・Cloud Deploy を使う → Cloud Build
 ```
+
+**[話す]** 今日付けた権限は、どれも「付ける先」がリソースだった。
+最後の ※ が、実務でどちらを使うかの目安(S34j の使い分けの要約)。
+
+※ 旧 S39・S40(CI/CD の構成・ソースコード・トリガー / 権限2つ・責務)は、
+AWS のサービス名との対比が多く、本当のまとめになっていなかったので、第4回の形に作り直した(2026-11-19)。
 
 ---
 
@@ -2032,7 +2112,11 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
 ---
 
-### S43 | 宿題2 実装課題
+### S43 | 宿題2 実装課題 ①②
+
+<!-- slide-id: g043slide -->
+
+**[図版]** 第3回 S52 と同じ形式(◼見出し + 説明 + ・の補足 + 回答例)。1ページに入りきらないので、①② と ③ の2ページに分ける。
 
 **[本文]**
 
@@ -2040,10 +2124,10 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 ◼1. Cloud Deploy でカナリアデプロイをやってみよう
 
   10% → 50% → 100% と段階的に切り替える
+  デプロイ先は <自分の名前>-canary という別サービス
 
-  ★ デプロイ先は <自分の名前>-canary という別サービスにします
-     講義で作った <自分の名前>-app は Terraform が
-     環境変数まで管理しているので、Cloud Deploy を当てると壊れます
+  ・講義の <自分の名前>-app は Terraform が環境変数まで管理しているので、
+    Cloud Deploy を当てると壊れる
 
   回答例: gcp/lesson7/syukudai1/
 
@@ -2054,36 +2138,77 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
   そのあと、前のリリースに戻す
 
   回答例: gcp/lesson7/syukudai2/
+```
 
+---
 
+### S43b | 宿題2 実装課題 ③
+
+<!-- slide-id: l7hw3_slide -->
+
+**[本文]**
+
+```
 ◼3. ブランチによってやることを変えよう
 
   <自分の名前>-dev  → ビルドと push だけ
   <自分の名前>      → ビルドしてデプロイ
 
+  ・<自分の名前>-dev に push して、デプロイされないことを確かめる
+
   回答例: gcp/lesson7/syukudai3/
 ```
+
+> ディレクトリは累積している(`syukudai1/` = ①、`syukudai2/` = ①+②、`syukudai3/` = ①+②+③)。
 
 ---
 
 ### S44 | 宿題3 ドキュメント
+
+<!-- slide-id: g044slide -->
+
+**[図版]** 第3回 S54 と同じ形式(◼見出し + リンク)。調べ物の課題ではなく、眺めるだけ。リンクは各リソース名(google_xxx など)に貼る。
 
 **[本文]**
 
 ```
 ◼Cloud Build のドキュメントを眺めてみよう
   https://cloud.google.com/build/docs
-  ビルド構成ファイル / トリガー / サービスアカウント
 
 ◼Cloud Deploy のドキュメントを眺めてみよう
   https://cloud.google.com/deploy/docs
-  デリバリーパイプライン / ターゲット / デプロイ戦略
+
+◼Workload Identity 連携のドキュメントを眺めてみよう
+  https://cloud.google.com/iam/docs/workload-identity-federation
 
 ◼Terraform google provider の各ドキュメントを眺めてみよう
+  google_artifact_registry_repository
   google_cloudbuild_trigger
-  google_cloudbuildv2_connection / google_cloudbuildv2_repository
-  google_clouddeploy_delivery_pipeline / google_clouddeploy_target
+  google_cloudbuildv2_connection
+  google_cloudbuildv2_repository
+  google_service_account_iam_member
+  google_clouddeploy_delivery_pipeline
+  google_clouddeploy_target
 ```
+
+**[リンク]**
+
+- [https://cloud.google.com/build/docs](https://cloud.google.com/build/docs)
+- [https://cloud.google.com/deploy/docs](https://cloud.google.com/deploy/docs)
+- [https://cloud.google.com/iam/docs/workload-identity-federation](https://cloud.google.com/iam/docs/workload-identity-federation)
+- [google_artifact_registry_repository](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository)
+- [google_cloudbuild_trigger](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudbuild_trigger)
+- [google_cloudbuildv2_connection](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudbuildv2_connection)
+- [google_cloudbuildv2_repository](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudbuildv2_repository)
+- [google_service_account_iam_member](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/google_service_account_iam)
+- [google_clouddeploy_delivery_pipeline](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/clouddeploy_delivery_pipeline)
+- [google_clouddeploy_target](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/clouddeploy_target)
+
+> 旧 S44 の「ビルド構成ファイル / トリガー / サービスアカウント」などの補足と、
+> `google_cloudbuild_trigger` 等のリソース名の羅列を、第3回・第4回の形(◼見出し + リンク)にそろえた。
+> Workload Identity 連携(Step4)のドキュメントと、今日使ったリソース(`google_artifact_registry_repository` /
+> `google_service_account_iam_member`)を足した(2026-11-19)。調べ物の課題は新設していない。
+> S45「参考」は、S44 と一部重なるが、ビルド構成ファイルのスキーマなど深掘り用のリンクなので残した。
 
 ---
 
@@ -2112,29 +2237,40 @@ Cloud Run のロールアウトとロールバック
 
 ### S46 | 注意事項
 
+<!-- slide-id: g046slide -->
+
+**[図版]** 第3回 S56 / 第4回 S52 と同じ形式(cd 行を灰色の枠で囲み、右に「←」の注釈。`terraform destroy` は別の小さな枠。注意は ※ で並べる)。
+図形は l7nt_ 始まりの ID。
+
 **[本文]**
 
 ```
-宿題などで作成したリソースは
-必ず削除してください！
+宿題などで作成したリソースは必ず削除してください！
 
-★★ この場で terraform destroy を1回打つだけでOKです ★★
+◼リソースの削除(最後に apply したディレクトリで実行)
+  cd ~/works/lesson7/"4. github_actions"   ← 講義 Step4 まで
+  cd ~/works/lesson7/syukudai[N]           ← 実装課題(最後に apply した番号)
 
-   → private サブネットだけ失敗します。それで終わりです
-     Direct VPC egress が確保したIPの解放待ち(1〜2時間)のためで、
-     手動では消せません
+  terraform destroy   → 確認で yes と入力
 
-★★ 残りは講師がまとめて片付けます ★★
-   翌日にもう1回打つ必要はありません
+※ destroy は1回打つだけでOKです
+   private サブネットだけ失敗します。それで終わりです
+   Direct VPC egress が確保したIPの解放待ち(1〜2時間)のためで、手動では消せません
+   残りは講師が翌日にまとめて片付けます(もう1回打つ必要はありません)
 
-★ 残るのは VPC とサブネットだけで、課金はありません
+※ destroy には約6〜7分かかります(実測)
 
-★ 確認したい人は  gcp/tools/check-leftover.sh [自分の名前]
+※ 全員で1つのプロジェクトを共有しています
+   消し忘れはQuotaを圧迫して、他の人のapplyを止めます
 
-★ アプリのリポジトリのブランチは消さなくて大丈夫です
-
-★ 次回(第8回)は3月1日、監視・運用編です
+※ 確認したい人は gcp/tools/check-leftover.sh [自分の名前]
+※ アプリのリポジトリのブランチは消さなくて大丈夫です
 ```
+
+> **所要時間の根拠**: 付録B の実測(destroy 1回目 6分32秒、宿題込みで6分35秒)。
+> それ以外の所要時間は書いていない。`syukudai[N]` の N は 1〜3
+> (①だけなら 1、①②なら 2、①②③まで apply したなら 3)。
+> 旧版にあった「★★ …」の強調と「次回(第8回)は3月1日」は、S47「おしまい」と重複するため外した。
 
 > **★ 講師メモ: 2回目は講師がやる ★**
 >
@@ -2166,16 +2302,12 @@ Cloud Run のロールアウトとロールバック
 **[本文]**
 
 ```
-次回は 監視・運用 編 です(3月1日)
-
-Cloud Logging / Cloud Monitoring / アラート
-「動かなくなったとき、どこを見るか」をやります
-
-第5回で「Cloud Run にはインスタンスに入る概念が無い」
-と言った話の続きです
-
-お楽しみに！！
+次回 監視・運用編 もお楽しみに!
 ```
+
+**[話す]** 次回は 監視・運用 編です(3月1日)。Cloud Logging / Cloud Monitoring / アラートで
+「動かなくなったとき、どこを見るか」をやります。第5回で「Cloud Run にはインスタンスに入る概念が無い」と
+言った話の続きです。(旧本文。デッキは1行なので、デッキに合わせた)
 
 ---
 
@@ -2240,12 +2372,12 @@ Error: Error applying IAM policy for artifactregistry repository:
 
 | 項目 | 結果 |
 |---|---|
-| 宿題1 apply | OK(7リソース)。カナリア用サービスも Terraform で作る |
+| 実装課題① apply | OK(7リソース)。カナリア用サービスも Terraform で作る |
 | 1回目のリリース | **カナリアは必ず SKIPPED**。`stable` の手前で人待ちになる |
 | 2回目のリリース | **10% → 50% → 100%** が実際に動いた |
-| 宿題2 承認 | `The rollout is pending approval.` で停止 |
-| 宿題2 ロールバック | **承認不要**。`stable` のみで100%切り戻し |
-| 宿題3 dev ブランチ | **CIだけ起動、Cloud Run のリビジョンは増えず** |
+| 実装課題② 承認 | `The rollout is pending approval.` で停止 |
+| 実装課題② ロールバック | **承認不要**。`stable` のみで100%切り戻し |
+| 実装課題③ dev ブランチ | **CIだけ起動、Cloud Run のリビジョンは増えず** |
 
 ### 宿題で見つけて直したもの
 
@@ -2272,8 +2404,8 @@ Error: Error applying IAM policy for artifactregistry repository:
 | `iam.serviceAccounts.actAs` | `roles/editor` |
 | `run.services.setIamPolicy` | `roles/run.admin`(第5回で追加済み) |
 | `iam.serviceAccounts.setIamPolicy` | `roles/iam.serviceAccountAdmin`(第1回) |
-| `storage.buckets.setIamPolicy`(宿題1) | `roles/storage.admin`(第1回) |
-| `clouddeploy.*`(宿題1-3) | `roles/editor` |
+| `storage.buckets.setIamPolicy`(実装課題①) | `roles/storage.admin`(第1回) |
+| `clouddeploy.*`(実装課題①〜③) | `roles/editor` |
 | **`artifactregistry.repositories.setIamPolicy`** | **どのロールにも無い → `roles/artifactregistry.admin` を追加** |
 | **`resourcemanager.projects.setIamPolicy`** | **どのロールにも無い → 配らない。講師がSAを作る(事前準備5)** |
 
@@ -2304,7 +2436,53 @@ Error: Error applying IAM policy for artifactregistry repository:
 - **Cloud Deploy をハンズオンから宿題に移した**。
   GitHub連携 + Cloud Build だけで2時間が埋まるため。
   設計書のアジェンダにある「カナリアデプロイ / ロールバック」は
-  スライド解説(S38)+ 宿題1・2 で扱う
+  スライド解説(S38)+ 実装課題①・② で扱う
 - **Cloud Source Repositories は使わない**。2024年6月に新規提供終了
 - 宿題を2つ→3つにした(設計書の「ブランチ指定デプロイ / 承認ステップ」に
   Cloud Deploy のカナリアが加わったため)
+
+## 2026-11-19 の見直し(第1〜4回のレビュー指摘を先回りで反映)
+
+第1〜4回でユーザーから受けた指摘のパターンを、第7回に当てはめて直した。
+デッキ(Google スライド)は再生成せず、既存ページの文言差し替え・図形の追加・ページ追加だけで直している。
+
+- **まとめ(S39・S40)**: 第4回 S45・S46 の形(丸数字1〜4 + 太字の結論 + 補足 / 表 + 黄色の ※)に作り直した。
+  旧版は AWS のサービス名との対比が中心で「本当のまとめ」になっていなかった。AWS との数の比較は載せない。
+- **宿題2 実装課題**: 第3回の形(◼ + 説明 + ・ + 回答例)にして、①② と ③(S43b、デッキは新規ページ)に分けた。
+- **宿題3 ドキュメント(S44)**: ◼ 見出し + リンクの形に変更。リンクは各リソース名に貼った([リンク] 一覧は原稿に記載)。
+  Workload Identity 連携のドキュメントと、今日使ったリソース(`google_artifact_registry_repository` /
+  `google_service_account_iam_member`)を足した。S45「参考」は深掘り用として残した。
+- **注意事項(S46)**: 第3回 S56 / 第4回 S52 の形に変更(灰色の枠の cd 行 + 小さな destroy の枠 + ※)。
+  destroy は「1回打つだけ」「private サブネットだけ失敗」「約6〜7分(実測)」と具体的に書いた。
+  実測していない所要時間は書いていない。
+- **Step ページ**: cp ブロックを灰色の枠にし、terraform の実行は「terraform init / terraform plan, terraform apply」に統一した。
+  S15 の「terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定」は、cp 後の書き換えを書かない方針に合わせて削除した。
+- **S17(既定のSA)**: 「2024年以降は自動では作られない」は不正確だったので修正した。
+  公式ドキュメントでは、2024年5〜6月以降の新しいプロジェクトの Cloud Build 既定SAは Compute Engine の既定SAに変わった。
+- **S31(今度は成功する)**: アプリの表示を、実際の出力(PostgreSQL / Cache / Spanner の3行)に合わせた。
+  第7回の `0. before` には Cloud SQL が無く `DB_HOST` を渡さないため、コードの上では PostgreSQL は「未設定」と表示される
+  (Cache と Spanner は環境変数があるので、接続できれば「成功」)。実機では未確認。
+- **S34b**: 「実務ではこちらのほうが多い」は根拠が示せないため、「社内の nishiki ではこちら」に変更した
+  (nishiki のワークフローに lint・test・デプロイがあることを確認)。図の重なりも直した。
+- **S34c・事前準備7(略語)**: WIF・OIDC・sub の初出説明を追加した。
+- **S34e2(事実確認)**: 「公式ドキュメントには `principal://…/subject/repo:OWNER/REPO:…` と書いてある」を修正した。
+  公式が示すのは `principal://…/subject/SUBJECT` の一般形。数値ID入りの sub は、GitHub の不変 subject クレーム
+  (2026-07-15 以降に作ったリポジトリは既定でこの形式、それ以前は設定で選べる)。
+  アプリ用リポジトリがなぜこの形式だったのか(作成日による既定か、org の設定か)は**未確認**。
+  Google は名前でなく ID(`repository_owner_id` など)を条件に使うことを勧めている(事前準備7に注記)。
+- **S34f・S34f2(アクションのバージョン)**: 原稿は `checkout@v7` / `auth@v3` / `setup-gcloud@v3` で正しく、
+  デッキだけ `@v4` / `@v2` / `@v2` と古かったので、デッキを原稿とコード(`app/.github/workflows/deploy.yml`)に合わせた。
+- **S34g・S34h(略語・事実確認)**: HCL・tfenv/tgenv・KMS の説明を追加した。
+  `.sops.yaml` の `path_regex` は、nishiki の実ファイルで確認した(dev / stg / cer / lod / pmt の5つが同じプロジェクトの鍵、
+  production だけ別のプロジェクトの鍵)。原稿の S34h は stg の1つだけに省略していたので、デッキと同じ書き方に直した。
+- **S38**: 「今日の宿題1・2」は宿題1(アンケート)と紛らわしいので「今日の実装課題 ①・②」に変更した。
+- **コード**: 第5回のアプリを元に、バージョンと revision の表示を足し、`DB_KIND` の切り替えを廃止した
+  (第4回で「アプリが3接続すべてを表示する」形に変えたのに合わせた)。
+  `gcp/lesson7/app/{main.go,go.mod,go.sum}` と、`before.tf` 8か所(Cloud Run の環境変数から `DB_KIND` を削除)。
+  影響範囲は第7回の `app/` と、そこから作られる `0. before`〜`syukudai3` の Cloud Run。
+  実機の apply・Cloud Run 上での新しい表示の確認は**していない**(`terraform fmt` / `validate` と `go vet` のみ)。
+- **タイトルの同期**: 原稿の `### Sxx |` をデッキのページタイトルに合わせた
+  (S04「今日のアジェンダ」/ S13「休憩(5分)」/ S14「ハンズオンの準備」/ S34e「Step4 自分のSAに許可を足す」/ S34j「…の使い分け」)。
+  `tools/check-slide-sync.py` は Google 認証が必要で実行できなかったため、デッキを MCP で読み出して
+  原稿の見出しと突き合わせる簡易照合で代えた。S01(デッキは長いタイトル)・S41 は照合で不一致のまま(今回の変更範囲外、未調整)。
+- **slide-id**: 今回変更したページに `<!-- slide-id: … -->` を付けた(第7回の原稿にはこれまで1つも無かった)。

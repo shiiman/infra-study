@@ -1,14 +1,13 @@
 /**
  * バケットを公開する
  *
- * ★ AWS版の「Access Denied → バケットポリシー」と同じ場面 ★
+ * ★ 「Access Denied → 公開設定」の場面 ★
  *
  * AWSでは CloudFront の OAI(オリジンアクセスアイデンティティ)を作り、
- * その principal に GetObject を許可するバケットポリシーを書いた。
+ * その principal に GetObject を許可するバケットポリシーを書く。
  *
- * GCPのバックエンドバケットには OAI に相当する仕組みが無い。
- * Cloud CDN は「公開されたオブジェクト」を読みに行くので、
- * allUsers に閲覧権限を与える必要がある。
+ * GCP の Cloud CDN は、既定では「公開されたオブジェクト」を読みに行く。
+ * そのため、allUsers に閲覧権限を与える必要がある。
  *
  * ★ 第1回 S25 で「allUsers は事故の元」と言ったやつ ★
  * ここでは意図的に公開するので正しい使い方。
@@ -19,7 +18,7 @@
  * ★ 非公開のまま配信したい場合 ★
  *   署名付きURL / 署名付きCookie を使う
  *   Cloud CDN の署名付きリクエスト機能を使う
- *   → 宿題で扱います
+ *   → 講義の「非公開のまま配信したい場合」で説明します
  *
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_iam
  */

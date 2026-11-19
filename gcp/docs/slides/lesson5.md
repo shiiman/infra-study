@@ -25,7 +25,7 @@
 | まとめ・宿題 | 10分 | S43〜S51 |
 
 > **待ち時間**
-> - S14 `0. before` の apply: 約20分(Spanner/Memorystore/証明書を含む)
+> - S14b `0. before` の apply: 約20分(Spanner/Memorystore/証明書を含む)
 > - S19 イメージのビルドとpush: 約2分(Cloud Shellでビルドする。実測112秒+push 4秒)
 > - S41 ロードバランサの伝播: **約7分30秒**(実測)
 >
@@ -34,12 +34,12 @@
 > 講義の最後に各自で確認してもらう構成にすること。
 >
 > **`0. before` が今までで一番重い。** 第4回までの全リソースが入っている。
-> S14 の最初に apply を流してから、GKEの話とコンテナの歴史に入る構成にしてある。
+> S14b の最初に apply を流してから、GKEの話とコンテナの歴史に入る構成にしてある。
 >
 > 押した場合の削り所: S05〜S07(コンテナの歴史)は口頭のみで圧縮できる。
 > S11〜S13(GKE)も概説なので短縮可。
 >
-> **削ってはいけないのは S24〜S25**(ECSとCloud Runのリソース比較)と
+> **削ってはいけないのは S22〜S23**(ECSとCloud Runのリソース比較)と
 > **S32〜S34**(Direct VPC egress)。この回の核心。
 
 ## 事前準備(講師)
@@ -98,6 +98,8 @@
 - **[本文]** — スライドに載せるテキスト
 - **[図版]** — 図の作り方。AWS版デッキからの流用指示を含む
 - **[話す]** — ナレーション。スライドには載せない
+- **[リンク]** — スライドのリンク先の一覧。デッキでは、URL またはリソース名にリンクを貼る
+- `terraform plan, terraform apply` — 順番に実行する2コマンドの表記(plan のあとに apply)
 
 ---
 
@@ -131,6 +133,8 @@
 
 ### S03 | 前回の振り返り
 
+<!-- slide-id: g002slide -->
+
 **[図版]** AWS版 第6回「前回」2枚を流用。中身を差し替え。
 
 **[本文]**
@@ -145,8 +149,7 @@ GCPのマネージドDBは接続方式が4種類ある
   Auth Proxy         Cloud SQL(別解)
 
 Spanner: 主キーの設計が全て。IAMで認証。パスワードが無い
-Memorystore for Valkey: ElastiCacheの4リソースが1リソースに
-PSCで、自分のVPCの中にエンドポイントIPを1つ立てた
+Memorystore for Valkey: PSCで、自分のVPCの中にエンドポイントIPを1つ立てた
 
 ★ 今日この「接続方式」がもう一度出てきます
 ```
@@ -337,6 +340,8 @@ Cloud Armor も付けられるし LB の後ろにも置ける。そこが違う�
 
 ### S10 | Cloud Run とは
 
+<!-- slide-id: g009slide -->
+
 **[本文]**
 
 ```
@@ -355,7 +360,7 @@ Cloud Armor も付けられるし LB の後ろにも置ける。そこが違う�
 ◼制約
   実行時間の上限(既定5分、最大60分)
   常駐プロセスは置けない
-  コンテナに入れない  ← あとで詳しくやります
+  ふだんは入らない  ← あとで詳しくやります
 ```
 
 ---
@@ -449,33 +454,60 @@ GKEは「Standardか Autopilotか」を選ぶ
 
 ### S14 | 準備
 
-**[図版]** AWS版 第6回「準備」を流用。コマンドを差し替え。
+<!-- slide-id: g013slide -->
+
+**[図版]** 第4回 S11「準備」と同じ形式。第4回のデッキの「準備」を複製し、回の番号だけ差し替える。
+デッキの本文には、実際のプロジェクトIDを入れている(デッキは Git に入らないため)。原稿では `[プロジェクトID]` と書く。
 
 **[本文]**
 
 ```
-cd ~/infra-study && git pull
-mkdir -p ~/works/lesson5 && cd ~/works/lesson5 && \
-cp -rf ~/infra-study/gcp/lesson5/"0. before" ./
+◼Cloud Shell を立ち上げる
+  プロジェクトが [プロジェクトID] になっていることを確認
+  gcloud config get-value project
+  (違うなら) gcloud config set project [プロジェクトID]
+
+◼作業ディレクトリを作る
+  mkdir -p ~/works/lesson5
+
+◼サンプルコードを更新
+  cd ~/infra-study && git pull
+
+※ 第4回のリソースは destroy しておいてください
+   同じ名前のVPCを作るので、残っていると衝突します
+```
+
+**[話す]** 第4回の片付けが終わっていないと、`0. before` が同名リソースの衝突で落ちる。冒頭で必ず確認する。
+
+---
+
+### S14b | 前回までの構成を作成する
+
+<!-- slide-id: g013b_slide -->
+
+**[図版]** 第4回 S12「前回までの構成を作成する」と同じ形式(cp 行 + 説明 + terraform init / plan, apply)。第4回のデッキの同じページを複製して中身を差し替える。
+
+**[本文]**
+
+```
+cd ~/works/lesson5 && cp -rf ~/infra-study/gcp/lesson5/"0. before" ./
 cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 
-第4回のリソースが削除済みであることを確認してください。
-ネットワーク / VM / DNS / SSL証明書 / Memorystore / Spanner を再作成します。
+第2〜4回の構成を再作成します。
+ネットワーク / VM / DNS / SSL証明書 / Memorystore / Spanner
 LBのフロント側は今回の後半で作ります。
 
-configure.py：project_id・user_name・backendのbucketだけを反映
-terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
-
 terraform init
-terraform plan
-terraform apply
+terraform plan, terraform apply
 
 作成には時間がかかります。待っている間に「コンテナの歴史」へ進みます。
-各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
 ```
 
-**[話す]** `0. before` は開始時点の完成コードです。後続ステップはそれぞれのディレクトリに移動し、コピー後に `configure.py` で3項目を再反映します。各回固有の値はコピー後に確認・設定します。stateはそのまま使います。
+**[話す]** `0. before` は開始時点の完成コードです。後続ステップはそれぞれのディレクトリに移動し、コピー後に `configure.py` で3項目(project_id・user_name・backendのbucket)を再反映します。各回固有の値(DNSなど)はコピー後に確認・設定します。stateはそのまま使います。
+
+> **注**: 第4回の形式に揃えるため、コピー後の `terraform.tfvars` / `common.tf` の書き換え手順はスライドに載せていない(講師が口頭で説明する)。
+> 第2〜4回の構成の「再作成」にかかる時間(時間配分の表の「約20分」)は、PSC 版の `0. before` では実測していない。
 
 ---
 
@@ -543,12 +575,13 @@ resource "google_artifact_registry_repository" "app" {
 
 ### S17 | Step1 実行
 
+<!-- slide-id: g016slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ◼確認
   terraform output repository_url
@@ -561,6 +594,8 @@ resource "google_artifact_registry_repository" "app" {
 
 ### S18 | イメージをビルドして push する
 
+<!-- slide-id: g017slide -->
+
 **[図版]** AWS版 第6回「ECR」のビルド&プッシュのコマンドスライドを流用。
 コマンドを差し替え。**AWSの認証コマンドが1行になることを強調する**。
 
@@ -572,12 +607,12 @@ resource "google_artifact_registry_repository" "app" {
   VMに入る必要はありません
   Cloud Shell に docker が入っています
 
-  cd "~/infra-study/gcp/lesson5/1. artifact_registry/web_app"
+  cd ~/infra-study/gcp/lesson5/"1. artifact_registry"/web_app
 
 ◼Artifact Registry にログイン
   gcloud auth configure-docker asia-northeast1-docker.pkg.dev
 
-★ AWSではこうだった
+★ AWS(ECR)の場合
    AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
    aws ecr get-login-password --region $REGION | \
      docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr...
@@ -613,7 +648,7 @@ resource "google_artifact_registry_repository" "app" {
   (第4回で e2-micro ではビルドできなかったのと同じ理由)
 
 ◼待っている間に
-  Cloud Run の説明に進みます(S22へ)
+  Cloud Run の説明に進みます(「Cloud Run の構成」へ)
 
 ★ 実務ではビルドをCI/CDに任せます
    第7回(CI/CD)で Cloud Build を使って自動化します
@@ -768,10 +803,12 @@ resource "google_cloud_run_v2_service" "app" {
 
 ### S25b | Terraform コード(Cloud Run 続き 2)
 
+<!-- slide-id: g024bslide -->
+
 **[本文]**
 
 ```
-      env { name = "SPANNER_DATABASE" value = google_spanner_database.app.id }
+      env { name = "SPANNER_DATABASE" value = "projects/…/databases/…" }
       env { name = "CACHE_HOST"       value = local.cache_host }
     }
   }
@@ -783,9 +820,11 @@ resource "google_cloud_run_v2_service" "app" {
 }
 
 ★ 第4回でアプリを環境変数化しておいたので、そのまま使えます
-★ DB_HOST は渡していません(Cloud SQL は使わない)。アプリの「DB接続(PostgreSQL)」は「未設定」と出ます
-★ min_instance_count = 0 が Fargate との一番の違い
-   ECSは desired_count で固定。0にするとサービスが止まる
+★ DB_HOST は渡していません(Cloud SQL は使いません)
+   アプリの「DB接続(PostgreSQL)」は「未設定」と出ます
+★ SPANNER_DATABASE は projects/…/databases/… の形のパスです
+★ min_instance_count = 0 にできるのが Cloud Run の特徴
+   ECSサービスの desired_count は台数の指定(0にすると止まる)
 ```
 
 ---
@@ -806,7 +845,7 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 
   Webサイトとして公開するには allUsers に invoker を与える
 
-★ 第1回 S51 で「allUsers は事故の元」と言ったやつ
+★ 第1回の IAM で説明した allUsers の公開設定
    ここでは意図的に公開するので正しい使い方
 
 ★ 社内向けなら allUsers ではなく
@@ -820,12 +859,13 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 
 ### S27 | Step2 実行
 
+<!-- slide-id: g026slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ★ Cloud Run の作成は1分程度です
 
@@ -839,6 +879,8 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 ---
 
 ### S28 | アクセスしてみる → 半分だけ動く
+
+<!-- slide-id: g027slide -->
 
 **[図版]** ブラウザの表示。**開催前に実物のスクリーンショットを撮ること**。
 
@@ -1028,12 +1070,13 @@ resource "google_cloud_run_v2_service" "app" {
 
 ### S34 | Step3 実行 → 繋がる
 
+<!-- slide-id: g033slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ★ 追加したのは vpc_access ブロックだけです
 
@@ -1089,27 +1132,28 @@ resource "google_cloud_run_v2_service" "app" {
 
 ---
 
-### S36 | コンテナに入れない ★
+### S36 | コンテナに入らず、外から見る ★
 
-**[図版]** AWS版 第6回「ECS Execによるアクセス確認」のスライドを流用し、
-**「GCPには相当する機能が無い」と大きく書く**。比較として残す価値がある。
+<!-- slide-id: g035slide -->
+
+**[図版]** AWS版 第6回「ECS Execによるアクセス確認」のスライドを流用し、AWS と Cloud Run を並べる。
+Cloud Run にも SSH 機能(Preview)はあるが、ふだんは使わない、と添える。
 
 **[本文]**
 
 ```
-◼AWSでは ECS Exec でコンテナに入れた
+◼AWSの ECS Exec ではコンテナに入れる
 
   aws ecs execute-command --cluster xxx --task xxx \
     --container app --interactive --command "/bin/sh"
 
-  ps aux / env が打てた
+  ps aux / env が打てる
 
-◼Cloud Run には相当する機能がありません
-
+◼Cloud Run は、ふだんはコンテナに入りません
+  SSH 機能(Preview)はあるが、IAP と専用ロールの設定が要る
   インスタンスは使い捨て。いつ消えてもよいものとして扱う
 
 ◼代わりに「外から観測する」
-
   ログ      gcloud run services logs read [サービス名] --region=...
   メトリクス コンソール → Cloud Run → 指標
              リクエスト数 / レイテンシ / インスタンス数 /
@@ -1123,9 +1167,16 @@ resource "google_cloud_run_v2_service" "app" {
 ```
 
 **[話す]** AWSでは ECS Exec でコンテナに入れる。
-GCPにはこれが無い、というのは移行時に必ず話題になる。
-ただ「入れない」のは制約というより設計思想の違い。
+Cloud Run にも SSH 機能はあるが、Preview の機能で、IAP と専用のロールの設定が要る。
+実務では、インスタンスが使い捨てなので、入って直すのではなく、ログとメトリクスで外から見るのが基本。
 第8回(監視・運用)でログの読み方を詳しくやる。
+
+> **事実確認(2026-11-19、公式ドキュメント)**: 旧版は「Cloud Run には ECS Exec に相当する機能が無い」と書いていたが、誤りだった。
+> Cloud Run の SSH は Preview 機能で、`gcloud beta run services ssh [サービス名] --region=[リージョン]` で入る。
+> サービス側で `gcloud beta run services update [サービス名] --ssh --region=[リージョン]` が必要。
+> 第2世代の実行環境、IAP と OS Login の API、`roles/run.sshRoot` と `roles/iap.tunnelResourceAccessor` などのロールが要る。
+> 出典: https://cloud.google.com/run/docs/troubleshooting/ssh
+> **ドキュメントでの確認のみ。実機では試していない。** 事前準備(講師)のロールの一覧にこれらは含めていないので、講義では実演しない。
 
 ---
 
@@ -1282,14 +1333,15 @@ resource "google_compute_global_forwarding_rule" "https" {
 
 ### S41 | Step4 実行 → 完成
 
+<!-- slide-id: g040slide -->
+
 **[図版]** ブラウザの表示。**新規スクリーンショット**。
 
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ◼カスタムドメインでアクセス
 
@@ -1343,53 +1395,61 @@ resource "google_compute_global_forwarding_rule" "https" {
 
 ### S43 | 本日のまとめ ①
 
-**[図版]** AWS版 第6回「本日のまとめ」のレイアウトを流用。
+<!-- slide-id: g042slide -->
+
+**[図版]** 第4回 S45 と同じ形式。丸数字(青い円に白抜きの 1〜4)+ 太字の結論1行 + 補足1行 を4段に並べる。ラベルや灰色の枠は使わない。図形は g042_ 始まりの ID。
+宿題・片付けは載せない(宿題のページで説明する)。AWS のリソース数の比較も載せない。
 
 **[本文]**
 
 ```
-◼コンテナ
-Kubernetes は Google の社内基盤を作り直したもの
-GCPのコンテナサービス
-  Artifact Registry / Cloud Run / GKE / Cloud Run functions / Jobs
-「まずCloud Run。無理なところだけGKE」
+1  Cloud Run は、コンテナを置くだけで動く
+   クラスターは要らない。アクセスが無い間は 0 台にできる
 
-◼Artifact Registry
-ECRに相当。format で Docker 以外も扱える
-ログインは gcloud auth configure-docker の1行
+2  Cloud Run は VPC の外にいる
+   VPC 内の Memorystore へは Direct VPC egress で繋ぐ
 
-◼Cloud Run
-ECS + Fargate の10リソースが3リソースになる
-クラスターもタスク実行ロールも要らない
-min_instance_count = 0 にできる(Fargateとの一番の違い)
-既定は非公開。allUsers に invoker を与えて公開する
+3  ロードバランサは、サーバレスNEGで繋ぐ
+   ヘルスチェックも Firewall Rule も要らない。向き先を戻せばロールバックできる
+
+4  コンテナには入らず、外から観測する
+   SSH 機能(Preview)はあるが、基本はログとメトリクスで見る
 ```
+
+**[話す]** 今日の話を4つに絞ると、この4点。
+2 は第4回の「4種類の接続方式」がそのまま効いてくる話。
+3 は、ドメインも証明書もそのまま、URLマップの向き先だけを差し替えた。
 
 ---
 
 ### S44 | 本日のまとめ ②
 
+<!-- slide-id: g043slide -->
+
+**[図版]** 第4回 S46 と同じ形式。5行×3列の表(g043_tbl)。見出し行は青、左の列は灰色。下に黄色の ※(g043_y)。
+
 **[本文]**
 
 ```
-◼Cloud Run は VPC の外にいる
+              VM(第3回・第4回)            Cloud Run
+動かすもの    VM の上で docker run         コンテナイメージ(Artifact Registry)
+台数          常に起動している             アクセスに応じて増減。0台にもできる
+LB への繋ぎ方 インスタンスグループ +       サーバレスNEG
+              ヘルスチェック + Firewall Rule
+VPC との関係  VPC の中にいる               VPC の外。繋ぐなら Direct VPC egress
+コンテナに入る VM に SSH で入れる          基本は入らない(SSH は Preview)。
+                                          ログとメトリクスで観測
 
-  Spanner      Google API経由      → そのまま繋がる
-  Memorystore  PSC(VPC内のIP)    → Direct VPC egress が必要
-
-  第4回の「4種類の接続方式」がそのまま効いてくる
-
-◼コンテナに入れない
-ECS Exec に相当する機能が無い
-ログとメトリクスで外から観測する
-hostname が localhost になる
-
-◼ロードバランサの切り替え
-サーバレスNEGでバックエンドに繋ぐ
-ヘルスチェックもFirewall Ruleも不要
-グローバルIP / 証明書 / DNSはそのまま使える
-URLマップの向き先を戻せばロールバックできる
+※ 選び方
+   HTTP に応えるだけ・アクセスに波がある → Cloud Run
+   OS の設定や常駐プロセスが要る → VM。Kubernetes が要る → GKE
 ```
+
+**[話す]** VM と Cloud Run を並べると、こう変わる。
+最後の ※ が、実務でどちらを選ぶかの目安。GKE は今日は作っていないが、Kubernetes が要る場合の選択肢。
+
+> 旧 S43/S44(AWS のリソース数の比較、「コンテナに入れない」「ECS Exec に相当する機能が無い」を含む)は、
+> 第4回の形式に作り直した(2026-11-19)。
 
 ---
 
@@ -1419,66 +1479,108 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
 ---
 
-### S47 | 宿題2 実装課題
+### S47 | 宿題2 実装課題 ①②
 
-**[図版]** AWS版 第6回「宿題2」のレイアウトを流用。
+<!-- slide-id: g046slide -->
+
+**[図版]** 第3回 S52 と同じ形式(◼見出し + 説明 + ・の補足 + 回答例)。1ページに入りきらないので、①② と ③④ の2ページに分ける。
 
 **[本文]**
 
 ```
 ◼1. 最小インスタンス数を1にして、コールドスタートの差を測ろう
+  min_instance_count = 0 のとき、放置後の最初の1回だけ遅い
+  min_instance_count = 1 のとき、常に1台起動しているので速い
 
-  min_instance_count = 0 のとき
-    しばらく放置してからアクセスすると最初の1回だけ遅い
-
-  min_instance_count = 1 にすると
-    常に1台起動しているので速い。ただし課金され続ける
-
-  curl -s -o /dev/null -w "%{time_total}\n" https://...
+  ・curl -s -o /dev/null -w "%{time_total}\n" https://... で測る
+  ・測り終わったら 0 に戻す(1のままだと課金され続ける)
 
   回答例: gcp/lesson5/syukudai1/
-
 
 ◼2. 同時リクエスト数を変えてオートスケールを見よう
-
   max_instance_request_concurrency の既定は80
-  10にすると同じ負荷でもインスタンスが増える
+  10にすると、同じ負荷でもインスタンスが増える
 
-  負荷をかけてインスタンス数の推移を見てください
+  ・負荷をかけて、インスタンス数の推移を見る
 
-  回答例: gcp/lesson5/syukudai1/
-
-★ 年末年始をまたぐので、無理のない範囲で
-★ 特に min_instance_count = 1 のまま放置しないでください(課金されます)
+  回答例 (①と同じ): gcp/lesson5/syukudai1/
 ```
 
 ---
 
-### S48 | 宿題3 調べ物
+### S47b | 宿題2 実装課題 ③④
+
+<!-- slide-id: g046b_slide -->
 
 **[本文]**
 
 ```
-◼1. Cloud Run のログとメトリクスを見てみよう
-
-  コンテナに入れない代わりに何が見えるか
-  gcloud run services logs read [自分の名前]-app --region=asia-northeast1
-
-◼2. VM と Cloud Run のどちらを選ぶか考えよう
-
-  第3回・第4回でやっていたことのうち、
-  何が要らなくなったかを整理してみてください
-
-  自分が担当しているサービスは、どれに載せるのが妥当か
+◼3. ログとメトリクスで、外から観測しよう
+  コンテナに入らずに、何が見えるかを確かめる
+  ・ログ: gcloud run services logs read
+    [自分の名前]-app --region=asia-northeast1
+  ・メトリクス: コンソールの Cloud Run → 指標
 
   回答例: gcp/lesson5/syukudai2/
 
-◼ドキュメントを眺めてみよう
-  Cloud Run          https://cloud.google.com/run/docs
-  Artifact Registry  https://cloud.google.com/artifact-registry/docs
-  Direct VPC egress  https://cloud.google.com/run/docs/configuring/vpc-direct-vpc
-  GKE Autopilot      https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview
+◼4. VM と Cloud Run のどちらを選ぶか考えよう
+  第3回・第4回でやっていたことのうち、
+  何が要らなくなったかを整理する
+
+  ・自分が担当しているサービスは、どれに載せるのが妥当か
+
+  回答例 (③と同じ): gcp/lesson5/syukudai2/
+
+※ 年末年始をまたぐので、無理のない範囲で
 ```
+
+> ③④は、旧「宿題3 調べ物」の課題1・2を、内容はそのままに「実装課題」のページへ移したもの(2026-11-19)。
+> 旧 S48 は、調べ物とドキュメントが1ページに混ざっていたため、ドキュメントだけを S48 に残した。
+> 新しい調べ物の課題は足していない。③④を「調べ物」のまま別ページに残すか、削るかは、ユーザー判断。
+
+---
+
+### S48 | 宿題3 ドキュメント
+
+<!-- slide-id: g047slide -->
+
+**[図版]** 第3回 S54 と同じ形式(◼見出し + リンク)。調べ物の課題ではなく、眺めるだけ。
+
+**[本文]**
+
+```
+◼Cloud Run のドキュメントを眺めてみよう
+  https://cloud.google.com/run/docs
+
+◼Artifact Registry のドキュメントを眺めてみよう
+  https://cloud.google.com/artifact-registry/docs
+
+◼Direct VPC egress のドキュメントを眺めてみよう
+  https://cloud.google.com/run/docs/configuring/vpc-direct-vpc
+
+◼GKE Autopilot のドキュメントを眺めてみよう
+  https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview
+
+◼Terraform google provider の各ドキュメントを眺めてみよう
+  google_artifact_registry_repository
+  google_cloud_run_v2_service
+  google_cloud_run_v2_service_iam_member
+  google_compute_region_network_endpoint_group
+```
+
+**[リンク]**
+
+- [https://cloud.google.com/run/docs](https://cloud.google.com/run/docs)
+- [https://cloud.google.com/artifact-registry/docs](https://cloud.google.com/artifact-registry/docs)
+- [https://cloud.google.com/run/docs/configuring/vpc-direct-vpc](https://cloud.google.com/run/docs/configuring/vpc-direct-vpc)
+- [https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview](https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview)
+- [google_artifact_registry_repository](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository)
+- [google_cloud_run_v2_service](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service)
+- [google_cloud_run_v2_service_iam_member](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service_iam)
+- [google_compute_region_network_endpoint_group](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_region_network_endpoint_group)
+
+> 各リンクは 2026-11-19 に取得できること(HTTP 200)を確認した。
+> `google_cloud_run_v2_service_iam_member` のドキュメントは、リソース名とは別の `cloud_run_v2_service_iam` のページにまとまっている。
 
 ---
 
@@ -1507,77 +1609,61 @@ Cloud Run のインスタンス自動スケーリング
 
 ### S50 | 注意事項
 
-**[図版]** AWS版「注意事項」スライドを流用。
+<!-- slide-id: g049slide -->
+
+**[図版]** 第3回 S56 と同じ形式(cd 行を灰色の枠で囲み、右に「←」の注釈。`terraform destroy` は別の小さな枠。注意は ※ で並べる)。枠の図形は g049_ 始まりの ID。
 
 **[本文]**
 
 ```
-宿題などで作成したリソースは
-必ず削除してください！
+宿題などで作成したリソースは必ず削除してください！
 
-★★ destroy は1回では終わりません ★★
+◼リソースの削除(最後に apply したディレクトリで実行)
+  cd ~/works/lesson5/syukudai1           ← 実装課題①②まで
+  cd ~/works/lesson5/"4. loadbalancer"   ← 講義 Step4 まで(実装課題③④もここ)
 
-   Direct VPC egress が確保したIPアドレス(今回から)が
-   サブネットに残るため
+  terraform destroy   → 確認で yes と入力
 
-   1. terraform destroy
-        → サブネットとVPCの削除で失敗する
-        ★ 第4回のようなピアリングの手作業は要りません
-          (PSC なのでエンドポイントも自動で消えます)
+※ destroy は1回だけで大丈夫です
+   サブネットとVPCの削除でエラーになりますが、そのままでOK
+   Direct VPC egress のIP解放に1〜2時間かかるため、講師が翌日に削除します
 
-   2. SERVERLESS のアドレスが解放されるのを待つ
-        ★ 公式ドキュメントに「1〜2時間待て」と書かれています
-        ★ 手動では削除できません
+※ この回は課金が大きいです(Spanner / Memorystore / VM / LB / 外部IP)
 
-   3. terraform destroy
+※ 全員で1つのプロジェクトを共有しています
+   消し忘れはQuotaを圧迫して、他の人のapplyを止めます
+
+※ min_instance_count = 1 のまま放置しないでください
+※ tfstate用のバケットは残しておいてください
 ```
 
-**[話す]** 年末年始を挟む回なので、片付けを特に強く言う。
+**[話す]** 年末年始を挟む回なので、片付けを特に強く言う。消し忘れると3週間分課金される。
+destroy は受講者が1回打つだけ。最後にサブネットとVPCの削除でエラーになるが、想定どおり。
+Direct VPC egress が確保したIPが解放されるまで、サブネットを消せないため(公式ドキュメントに「1〜2時間待て」と書かれている。手動では削除できない。付録A-2)。
+2回目は、翌日に講師が `gcp/tools/cleanup-lesson.sh 5` でまとめて流す(受講者は打たなくてよい)。
+第4回のようなピアリングの手作業は要らない(PSC なので、エンドポイントも自動で消える)。
+気になる人は `gcp/tools/check-leftover.sh [自分の名前]` で残骸を確認できる。
 
----
-
-### S50b | 注意事項(続き)
-
-**[本文]**
-
-```
-★★ 皆さんは 1 まででOKです ★★
-
-   2 の解放待ちがあるので、この場では終わりません。
-   3 は講師がまとめてやります。翌日に打つ必要はありません。
-
-★ 1 のあと残るのは VPC とサブネットだけで、課金はありません
-   当日の夜に見張らなくて大丈夫です
-
-★ 気になる人は自分で確認できます
-     gcp/tools/check-leftover.sh [自分の名前]
-
-★ 年末年始を挟むので、消し忘れると長期間課金されます
-   Spanner / Memorystore / VM / ロードバランサ / 外部IP
-
-★ min_instance_count = 1 のまま放置しないこと(宿題2)
-
-★ tfstate用のバケットは残しておいてください
-```
-
-**[話す]** 消し忘れると3週間分課金される。
+> **事実確認の状況**: 「1〜2時間」は公式ドキュメントの記述(付録A-2)。実測では 2026-08-28 に32分待っても解放されなかった。
+> 「1回目のあとに残るのは VPC とサブネットだけで、課金されるものは消えている」は、同じ 2026-08-28 の確認に基づく。
+> **PSC 版の `destroy` は、所要時間・残るリソースとも、まだ実機で確認していない。**
+> 旧 S50b(注意事項の続き)は、内容を S50 に統合して欠番にした(2026-11-19)。
 
 ---
 
 ### S51 | おしまい
+
+<!-- slide-id: g050slide -->
 
 **[図版]** AWS版「おしまい」スライドを流用。
 
 **[本文]**
 
 ```
-次回は ストレージ + CDN 編 です(1月18日)
-
-Cloud Storage / Cloud CDN
-静的ファイルの配信とキャッシュをやります
-
-よいお年を！！
+次回 ストレージ + CDN 編 もお楽しみに！
 ```
+
+**[話す]** 次回は年明けの1月18日(月)。Cloud Storage と Cloud CDN で、静的ファイルの配信とキャッシュをやる。よいお年を。
 
 ---
 
@@ -1671,7 +1757,7 @@ terraform destroy
   → Cloud Run / Spanner / Memorystore / サービス接続ポリシーなどは消える
   → サブネットとVPCの削除で失敗する
 
-# 翌日
+# 翌日(講師。gcp/tools/cleanup-lesson.sh 5 を使う)
 gcloud compute addresses list --filter="purpose=SERVERLESS"
   → 消えていることを確認
 
@@ -1690,11 +1776,11 @@ Cloud Run / Spanner / Memorystore / VM / ロードバランサ / 外部IP は
 
 **受講者への案内**
 
-「destroyでエラーが出ます。慌てないでください。
+「destroyの最後でエラーが出ますが、慌てないでください。
 課金されるものは全部消えています。
-翌日にもう一度 destroy してください」
+残りは講師が翌日に消します」
 
-と先に言っておくこと。
+と先に言っておくこと。受講者は1回打つだけで、翌日に打ち直す必要はない。
 **当日中に完全に消そうとすると1〜2時間待つことになる。**
 
 ---
@@ -1778,6 +1864,33 @@ roles/run.admin        run.services.setIamPolicy
 | S15 | ゴール構成図 | 高 |
 | S07 | GKE / Cloud Run の位置づけ | 中 |
 | S12 | 使い分けの判断フロー | 中 |
+
+## 第1〜4回のレビューを反映した変更(2026-11-19)
+
+第1〜4回のスライドレビューでユーザーから受けた指摘を、この回に先回りで反映した。
+コード(`gcp/lesson5/`)は変更していない。
+
+| ページ | 変更 |
+|---|---|
+| S03 | AWS の ElastiCache のリソース数の比較を削除 |
+| S10 | 「コンテナに入れない」を「ふだんは入らない」に修正(SSH 機能があるため) |
+| S14 / S14b | 「準備」と「前回までの構成を作成する」の2ページに分割(第4回 S11 / S12 の形)。cp 後の tfvars / common.tf の書き換えは載せない |
+| S17 / S27 / S34 / S41 | Step の実行ページを `terraform init` + `terraform plan, terraform apply` に統一 |
+| S18 | `cd` 行の引用符の位置を修正。「AWSではこうだった」を「AWS(ECR)の場合」に |
+| S25b | `SPANNER_DATABASE` の値を実際のコードどおり `projects/…/databases/…` に修正。DB_HOST を渡さない理由と、パス形式の補足を追加。「Fargate との一番の違い」を事実に合う書き方に修正 |
+| S26 | 「第1回 S51」を「第1回の IAM で説明した」に(スライド番号に依存しない) |
+| S36 | 「Cloud Run には ECS Exec に相当する機能が無い」は誤りだった(SSH は Preview 機能として存在)。タイトルを「コンテナに入らず、外から見る ★」に変更 |
+| S43 / S44 | 第4回 S45 / S46 の形(①ポイント4つ、②比較表)に作り直し。AWS のリソース数の比較と「ECS Exec に相当する機能が無い」を削除 |
+| S47 / S47b | 宿題2 を ①② と ③④ の2ページに分割(第3回 S52 の形) |
+| S48 | 宿題3 調べ物 を「宿題3 ドキュメント」に(第3回 S54 の形)。リンクはリソース名・URLに貼る |
+| S50 / S50b | 注意事項を1ページに統合(第3回 S56 の形)。cd 行・destroy を灰色の枠で囲む。destroy の回数と待ち時間を具体的に書く |
+| S51 | デッキの文言(「次回 ストレージ + CDN 編 もお楽しみに！」)に揃えた |
+
+残してあるもの(ユーザー判断が要る):
+
+- S08 の AWS との対応表、S22 / S23 の ECS + Fargate との比較(「10リソース以上」と「3リソース」を含む)。AWS 比較のページ自体は、ユーザー未回答のため削除していない
+- S20 は本文が無い区切りのページ(「Artifact Registry 完了」。新規スクリーンショットの予定)
+- S47b ③④(旧「宿題3 調べ物」の課題)は、新しい調べ物を足さないため内容を変えずに残した
 
 ## 設計書からの変更点
 

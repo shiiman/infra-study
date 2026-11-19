@@ -22,7 +22,7 @@
 | **試験2(Terraform実技)** | **60分** | S07〜S11 |
 | 休憩 | 5分 | S12 |
 | 総まとめ | 15分 | S13〜S20 |
-| 資格取得状況の共有 + アンケート | 10分 | S21〜S24 |
+| 資格取得状況の共有 + アンケート | 10分 | S21〜S24(S23-2 を含む) |
 
 > **試験の85分は動かせない。押したら総まとめを削る。**
 >
@@ -202,6 +202,8 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 
 ### S04 | 出題範囲
 
+<!-- slide-id: g003slide -->
+
 **[本文]**
 
 ```
@@ -214,7 +216,7 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
   組織・フォルダ・Cloud Identity
 
   → この勉強会で扱っていないので出しません
-    (第9回 S19 で話したとおりです)
+    (第9回「足りない3つ」で話した内容です)
 
 ★ 資格試験には出ますが、今日は出しません
 ```
@@ -296,11 +298,13 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 
 ### S08 | 何を作るのか
 
+<!-- slide-id: g007slide -->
+
 **[図版]** **新規作成**。4問で組み上がる構成図。
 
 ```
    [ブラウザ]
-       │  http://<LBのIP>/
+       │  http://<ロードバランサのIP>/
        ▼
    [ロードバランサ]        ← 問3
        │
@@ -323,7 +327,7 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
   問3  ロードバランサ(HTTP)
   問4  ロードバランサからVMへの通信を通す
 
-★ 問4は第3回 S32 でやった「503が返る」やつです
+★ 問4は第3回の「なぜ繋がらないのか」(503が返る)の復習です
 ```
 
 ---
@@ -355,7 +359,9 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 
 ---
 
-### S10 | 注意事項
+### S10 | 試験2 の注意事項
+
+<!-- slide-id: g009slide -->
 
 **[本文]**
 
@@ -471,6 +477,8 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 
 ### S15 | 10回で作ったもの ★
 
+<!-- slide-id: g014slide -->
+
 **[図版]** **新規作成**。この回の最重要図その1。
 全10回で積み上げた構成の全体像。
 
@@ -501,9 +509,9 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 ◼10回でここまで作りました
 
   第1回  IAM / Terraform / tfstate
-  第2回  VPC / サブネット / Firewall / NAT / IAP
+  第2回  VPC / サブネット / Firewall / NAT / IAP(Identity-Aware Proxy)
   第3回  VM / インスタンスグループ / ロードバランサ / DNS / 証明書
-  第4回  Spanner / Memorystore / Private Service Connect
+  第4回  Cloud SQL / Spanner / Memorystore / Private Service Connect
   第5回  Artifact Registry / Cloud Run / サーバレスNEG
   第6回  Cloud Storage / Cloud CDN / URLマップのパスルール
   第7回  Cloud Build / トリガー / デプロイ権限
@@ -512,9 +520,16 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 ★ 1回目に「VPCとは」から始めて、ここまで来ました
 ```
 
+> **図に Cloud SQL が無い理由**: 第4回で Cloud SQL(PostgreSQL)は作ったが、
+> 第5回以降の Cloud Run のアプリは Cloud SQL を使わない(Spanner と Memorystore だけに繋ぐ)。
+> 図は「最後に残った構成」なので Cloud SQL は描かない。デッキの下の「第4回」の行にだけ Cloud SQL を足した。
+> 図の「Cloud Build ← GitHub」は、Cloud Build が Cloud Run へデプロイする向きの矢印にした(2026-11-19)。
+
 ---
 
 ### S16 | AWSとの違いで効いたところ ★
+
+<!-- slide-id: g015slide -->
 
 **[図版]** **新規作成**。この回の最重要図その2。
 
@@ -526,7 +541,7 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
   VPCがグローバル、サブネットがリージョン
     → AWSより1段ずつ広い
 
-  Firewall Rules はタグ/サービスアカウントで対象を指定
+  Firewall はタグ/サービスアカウントで指定
     → SGからSGへの参照ができない
 
   public / private サブネットという区別が無い
@@ -534,7 +549,7 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 
 ◼楽になったところ
 
-  IAP で踏み台が要らない
+  IAP は VM に Agent も IAM ロールも不要
   証明書に us-east-1 の罠が無い
   Cloud CDN はロードバランサの機能(独立サービスではない)
   CI/CD が Cloud Build 1つで済む(AWSは4サービス)
@@ -542,12 +557,19 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 ◼増えたところ
 
   ロードバランサの部品が6つ
-  マネージドDBへの接続方式が3種類
+  マネージドDBへの接続方式が4種類
 ```
+
+> **S16 の事実確認(2026-11-19)**: 旧原稿の「IAP で踏み台が要らない」は、AWS の SSM Session Manager も
+> 踏み台が要らないので、GCP だけの利点ではなかった。第2回の整理に合わせて、違いを
+> 「IAP は VM 側に Agent も IAM ロールも要らない(SSM は SSM Agent と VM の IAM ロールが要る)」に直した。
+> 「接続方式が4種類」は第4回の ① VPCピアリング ② Google API ③ Private Service Connect ④ Auth Proxy(旧原稿は3種類)。
 
 ---
 
 ### S17 | 何度も出てきた考え方 ★
+
+<!-- slide-id: g016slide -->
 
 **[図版]** **新規作成**。この回の最重要図その3。
 
@@ -556,7 +578,7 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 ```
 ◼1. 権限は「付けられる一番狭い場所」に付ける
 
-  第1回  バケット単位 / SA単位
+  第1回  バケット単位 / サービスアカウント単位
   第6回  リポジトリ単位
   第7回  Cloud Run サービス単位
   第8回  ログバケット単位
@@ -575,7 +597,7 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 ◼3. 作る → 繋がらない → 理由を知る → 通す
 
   第2回  IAPの3つのゲート
-  第3回  LBはVPCの外にいる(503)
+  第3回  ロードバランサはVPCの外にいる(503)
   第5回  Cloud RunはVPCの外にいる
   第6回  バケットを公開しないとCDNも読めない
   第7回  デプロイには権限が2つ要る
@@ -718,42 +740,74 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 
 ### S23 | このあと
 
+<!-- slide-id: g022slide -->
+
 **[本文]**
 
 ```
-◼1. terraform destroy してください
+◼1. 採点結果は後日共有します
 
-  ★ 採点が終わってからで大丈夫です
-  ★ VMが2台動いたままなので、忘れると課金が続きます
-
-  ★ この試験の構成には Cloud Run が無いので、
-    第6回以降のような解放待ちはありません
-    terraform destroy 1回で全部消えます
-
-◼2. 採点結果は後日共有します
-
-◼3. 資格はまだ受けられます
+◼2. 資格はまだ受けられます
 
   第9回の資料に申し込み手順があります
+
+◼3. 作ったリソースは、採点後に削除してください
+
+  手順は次のページです
 ```
+
+---
+
+### S23-2 | 注意事項
+
+<!-- slide-id: g022cau -->
+
+**[図版]** 第3回 S56「注意事項」(デッキ g054slide)と同じ形。cd の行を灰色の枠で囲み、右に「←」の注釈を付ける。
+`terraform destroy` は別の小さな枠で囲む。2026-11-19 に S23 から分けた(旧 S23 は destroy・採点結果・資格の3項目が1枚に入っていた)。
+
+**[本文]**
+
+```
+試験で作成したリソースは、採点後に必ず削除してください！
+
+◼リソースの削除(試験2 で apply したディレクトリで実行)
+  cd [提出用リポジトリ]       ← 試験2 を apply した場所
+
+  terraform destroy   → 確認で yes と入力
+
+※ 採点が終わってから消してください
+   結果発表の前に消すと、実物を確認できません
+
+※ この回は課金されるものが多いです
+   Compute Engine / ロードバランサ / 外部IP / Cloud NAT
+   使い終わったらリソースを削除してください
+
+※ 全員で1つのプロジェクトを共有しています
+   消し忘れはQuotaを圧迫して、他の人のapplyを止めます
+
+※ Cloud Run が無いので、第6回以降のような解放待ちはありません
+   destroy は1回で全部消えます
+```
+
+**[話す]** 試験2は作業ディレクトリが1つで、4問が続き物なので、destroy は1回で終わる(Cloud Run が無い構成)。
+`cd [提出用リポジトリ]` は、受講者が `git clone` したディレクトリ(試験2の S09)。
+**destroy の所要時間は実機で測っていない**ため、スライドには書いていない
+(apply は問1〜問4の合計で約6分。付録B)。
 
 ---
 
 ### S24 | おしまい
 
+<!-- slide-id: g023slide -->
+
 **[本文]**
 
 ```
-10回、おつかれさまでした
-
-第1回で「VPCとは」から始めて、
-今日は自分でロードバランサまで組めるようになりました
-
-★ 一番の成果は
-   「なぜ繋がらないか」を説明できるようになったことです
-
-ありがとうございました！！
+全10回 ありがとうございました!
 ```
+
+**[話す]** 第1回で「VPCとは」から始めて、今日は自分でロードバランサまで組めるようになりました。
+一番の成果は「なぜ繋がらないか」を説明できるようになったことです。(2026-11-19: スライドは一言だけなので、旧原稿の文面は話す内容に移した)
 
 ---
 
@@ -840,3 +894,43 @@ gcloud compute regions describe asia-northeast1 --project=[プロジェクトID]
 - 問2の「指定イメージ」は、**カスタムイメージを作らず
   startup-script を問題文に載せる**方式にした。
   講師の事前準備が減り、受講者はコピペで済む
+
+## 2026-11-19 の見直し(第1〜4回のレビューを先回りで反映)
+
+### Google スライド(デッキ)の変更
+
+| ページ | 変更 |
+|---|---|
+| `g022slide` S23「このあと」 | destroy の説明を次のページへ分け、「採点結果は後日」「資格はまだ受けられる」「資源は採点後に削除」の3項目だけにした |
+| `g022cau` S23-2「注意事項」(新規) | `g022slide` を複製して追加。第3回 S56 の形(冒頭の一文 / cd 行を灰色の枠 + 「←」の注釈 / `terraform destroy` を別の小さな枠 / ※ の並び / 全員で1つのプロジェクトを共有 → Quota を圧迫) |
+| `g009slide` S10 | タイトルを「注意事項」から「試験2 の注意事項」に変更(新しい「注意事項」と同名にならないように)。本文は変えていない |
+| `g015slide` S16 | 「IAP で踏み台が要らない」を「IAP は VM に Agent も IAM ロールも不要」に直した(SSM Session Manager も踏み台は不要なので、GCP だけの利点ではなかった)。「SA」を「サービスアカウント」に直した(SG の行はそのまま) |
+| `g014slide` S15 | 下の「第4回」の行に Cloud SQL を追加(第4回の構成変更に合わせる)。IAP に「(Identity-Aware Proxy)」、LB を「ロードバランサ」に。「Cloud Build ← GitHub」の線を Cloud Run へ向かう矢印にして、ラベルに接するように動かした |
+| `g016slide` S17 / `g007slide` S08 | 「SA単位」「LB」をそれぞれ「サービスアカウント単位」「ロードバランサ」に直した |
+
+### 原稿の変更
+
+- S04: 「第9回 S19」の参照を「第9回「足りない3つ」」に直した(デッキの文面に合わせた)
+- S08・S15・S16・S17: 上のデッキの変更に合わせた。S16 に事実確認のメモを足した
+- S10: タイトルを「試験2 の注意事項」にした。S23: 3項目に絞った。S23-2「注意事項」を追加した
+- S24: デッキの「全10回 ありがとうございました!」に本文を揃え、旧文面は [話す] に移した
+- 変更したページに `<!-- slide-id: ... -->` を付けた(S04・S08・S10・S15〜S17・S23・S23-2・S24)。他のページにはまだ無い
+- `check-slide-sync.py` は S23-2 のような枝番のページを比較しない(タイトルは目で確認した)
+
+### 直さなかったもの
+
+- **本日のまとめ(第4回の形)にはしていない。** 第10回は S15〜S18 の「総まとめ」がまとめの役を果たしていて、
+  S17「何度も出てきた考え方」が丸数字1〜3 + 結論の形になっている。1回ぶんの要点を並べ直すと S15〜S18 と重複するため、そのままにした
+- **宿題2・宿題3 ドキュメントは作っていない。** 第10回に宿題は無い
+- **cp のページは無い。** 試験2は受講者が自分で書くため、第2回の形に直す対象が無い
+- **S16 は AWS 比較のページなので消していない。** 内容は事実確認のうえ一部だけ直した
+- S16 の「Firewall はタグ/サービスアカウントで指定 → SGからSGへの参照ができない」は、タグ・サービスアカウントを送信元に指定できるため、
+  SG 同士の参照に近いことは実際にはできる(AWS の SG 参照そのものは無い、という意味)。言い回しが強いので、ユーザーの判断で直してよい
+- S10 の「証明書の発行に10分近くかかります」は、第6回で実測した7〜10分に基づく(第10回では未測定)
+- README の当日の流れ(`gcp/lesson10/README.md`)は「資格共有+アンケート 15分」、この原稿は10分で食い違っている(今回は触っていない)
+
+### 実機で未確認
+
+- `terraform destroy` の所要時間(試験2の構成を destroy して測っていない。スライドには書いていない)
+- S16 の「IAP は VM に Agent も IAM ロールも不要」「SSM は両方要る」は、第2回の整理と公式ドキュメントの記載に基づく。実機では試していない
+- S15 の図で、Cloud Run から Cloud SQL に繋いでいない点は、第5回の原稿(`DB_HOST` を渡さない)に基づく

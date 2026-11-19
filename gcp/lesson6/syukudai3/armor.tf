@@ -1,7 +1,7 @@
 variable "company_ip" { type = list(string) }
 
 /**
- * 宿題3: Cloud Armor で静的ファイルにも社内IP制限
+ * 宿題2の③: Cloud Armor で静的ファイルにも社内IP制限
  *
  * Cloud Armor は AWS の WAF に相当する。
  * ロードバランサの手前でリクエストを検査して、通す/落とすを決める。
@@ -16,7 +16,7 @@ variable "company_ip" { type = list(string) }
  * Cloud Armor のポリシーには2種類ある。
  *
  *   type = "CLOUD_ARMOR"       バックエンドサービスに security_policy で付ける
- *                              オリジンへ行く手前で評価される(第3回 宿題3 はこれ)
+ *                              オリジンへ行く手前で評価される(第3回 宿題2 ③ はこれ)
  *
  *   type = "CLOUD_ARMOR_EDGE"  バックエンドバケット / CDN有効なバックエンドに
  *                              edge_security_policy で付ける

@@ -8,15 +8,15 @@
 | 第1回 | GCP基礎 / IAM / Terraform | 94 | https://docs.google.com/presentation/d/1LGC9jpgPpKj1ObDw7JFDw1x_OG3sMO_ZdxkUQ4mqU6k/edit |
 | 第2回 | ネットワーク | 66 | https://docs.google.com/presentation/d/1p0NGtqsvkGYxFewE8AjoPYqh8kgkvTjyVEjLA6Fmkvs/edit |
 | 第3回 | コンピューティング | 57 | https://docs.google.com/presentation/d/1cxkYA6EAxoyUp-iMQILfCvJ_CjR8SuccNb7cRbhMc0s/edit |
-| 第4回 | データベース | 56 | https://docs.google.com/presentation/d/1Cn3LTns2BdgXLAwhyPbr-LbEZU1Je_4m3NZLSRkLufM/edit |
-| 第5回 | コンテナ | 54 | https://docs.google.com/presentation/d/1ow1DPEjkCakiMKhQ-TknYS3u_9yezEQYnRvaovz_sqs/edit |
-| 第6回 | ストレージ + CDN | 49 | https://docs.google.com/presentation/d/1kuYTeNuWkzd8-_Mj1u2RNBKO4-xh8ycWsvlxO0hbXYo/edit |
-| 第7回 | CI/CD | 59 | https://docs.google.com/presentation/d/1gRqC2I-lme3uUlA2DX2L3aRYAkpB0DQokDFzI2yKI3I/edit |
-| 第8回 | 監視・運用 + その他リソース | 56 | https://docs.google.com/presentation/d/1T5uKWZNngdzsw9JepsK4pJiwgir7dz3mwUgFueaoiDc/edit |
-| 第9回 | 試験対策 | 46 | https://docs.google.com/presentation/d/18HRSIFBcPvDAH5Gg19AFevZtYdSj1R2hUVhX-U0vzLg/edit |
-| 第10回 | 実践テスト + 総まとめ | 24 | https://docs.google.com/presentation/d/1P4OApYaqHR4UPyu6Se5YiW0lZAORxva7wqCikm1-C_E/edit |
+| 第4回 | データベース | 59 | https://docs.google.com/presentation/d/1Cn3LTns2BdgXLAwhyPbr-LbEZU1Je_4m3NZLSRkLufM/edit |
+| 第5回 | コンテナ | 62 | https://docs.google.com/presentation/d/1ow1DPEjkCakiMKhQ-TknYS3u_9yezEQYnRvaovz_sqs/edit |
+| 第6回 | ストレージ + CDN | 60 | https://docs.google.com/presentation/d/1kuYTeNuWkzd8-_Mj1u2RNBKO4-xh8ycWsvlxO0hbXYo/edit |
+| 第7回 | CI/CD | 69 | https://docs.google.com/presentation/d/1gRqC2I-lme3uUlA2DX2L3aRYAkpB0DQokDFzI2yKI3I/edit |
+| 第8回 | 監視・運用 + その他リソース | 74 | https://docs.google.com/presentation/d/1T5uKWZNngdzsw9JepsK4pJiwgir7dz3mwUgFueaoiDc/edit |
+| 第9回 | 試験対策 | 54 | https://docs.google.com/presentation/d/18HRSIFBcPvDAH5Gg19AFevZtYdSj1R2hUVhX-U0vzLg/edit |
+| 第10回 | 実践テスト + 総まとめ | 28 | https://docs.google.com/presentation/d/1P4OApYaqHR4UPyu6Se5YiW0lZAORxva7wqCikm1-C_E/edit |
 
-計 562枚(2026-10-16 時点。文字が小さいページの分割で第3〜8回が増え、第2回は S33 の削除で1枚減った)。
+計 623枚(2026-11-19 時点。第4〜10回は 2026-11-19 の見直しで増えた。2026-10-16 時点は562枚。文字が小さいページの分割で第3〜8回が増え、第2回は S33 の削除で1枚減った)。
 
 > 第1回は 2026-09-11 に大幅改訂(導入・インフラ基礎の増補、ハンズオンの gcloud 化)。
 > ハンズオンの gcloud 化でデッキから3枚(Step1実行 / backend切り替え / state移行)を削除した。

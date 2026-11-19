@@ -25,7 +25,7 @@
 
 > **待ち時間**
 > - S16 `0. before` の apply: 約9分(実測8分34秒)
-> - S24 証明書発行 + LBの伝播: 7〜10分(実測7分23秒)
+> - S19b〜S24 証明書発行 + LBの伝播: 7〜10分(実測7分23秒)
 >
 > **`0. before` を最初に流してから Cloud Storage の話に入る構成にしてある。**
 >
@@ -103,6 +103,8 @@
 - **[本文]** — スライドに載せるテキスト
 - **[図版]** — 図の作り方。AWS版デッキからの流用指示を含む
 - **[話す]** — ナレーション。スライドには載せない
+- `terraform plan, terraform apply` は、順番に実行する2コマンドの表記
+- ページタイトルの `(1/2)` などは、デッキでは全角のかっこ
 
 ---
 
@@ -111,6 +113,8 @@
 ---
 
 ### S01 | タイトル
+
+<!-- slide-id: g000slide -->
 
 **[図版]** AWS版 第7回 表紙を複製。タイトルのみ差し替え。
 
@@ -131,11 +135,15 @@
 
 ### S02 | インフラ勉強会 スケジュール
 
+<!-- slide-id: g001slide -->
+
 **[図版]** 第2回 S02 と同じスライドを複製。今日の行のマーカーは付けない。
 
 ---
 
 ### S03 | 前回の振り返り
+
+<!-- slide-id: g002slide -->
 
 **[図版]** AWS版 第7回「前回」2枚を流用。中身を差し替え。
 
@@ -145,7 +153,7 @@
 ◼前回やったこと
 
 Artifact Registry にイメージを push した
-Cloud Run で動かした(ECSの10リソースが3リソースに)
+Cloud Run で動かした
 Cloud Run は VPC の外にいる
   → Spanner には繋がるが Memorystore には繋がらない
   → Direct VPC egress で解決
@@ -157,7 +165,9 @@ Cloud Run は VPC の外にいる
 
 ---
 
-### S04 | 今日やること
+### S04 | 今日のゴール
+
+<!-- slide-id: g003slide -->
 
 **[図版]** **新規作成**。1つのドメインで2つの配信先に振り分ける図。
 
@@ -196,6 +206,8 @@ Cloud Run は VPC の外にいる
 
 ### S05 | Cloud Storage
 
+<!-- slide-id: g004slide -->
+
 **[図版]** AWS版 第7回「S3」のスライドを流用。用語を差し替え。
 
 **[本文]**
@@ -216,6 +228,8 @@ Cloud Run は VPC の外にいる
 ---
 
 ### S06 | S3 との違い
+
+<!-- slide-id: g005slide -->
 
 **[図版]** **新規作成**。用語と概念の対応表。
 
@@ -245,6 +259,8 @@ GCPは force_destroy = true でそれが要らなくなる。
 
 ### S07 | location の選び方
 
+<!-- slide-id: g006slide -->
+
 **[本文]**
 
 ```
@@ -272,29 +288,20 @@ GCPは force_destroy = true でそれが要らなくなる。
 
 ### S08 | ストレージクラス
 
-**[図版]** AWS版 第7回「S3 - ストレージクラス」の表を流用。中身を差し替え。
+<!-- slide-id: g007slide -->
+
+**[図版]** 4行×4列の表(見出し行付き)。AWS版 第7回「S3 - ストレージクラス」の表を流用。中身を差し替え。
+補足(保存料金・AWSとの対応)は、次の S08b に分ける。
 
 **[本文]**
 
 ```
-クラス       想定アクセス頻度   最低保存期間   用途
+クラス       アクセス頻度       最低保存期間   用途
 ──────────────────────────────────────────────────
 STANDARD     頻繁              なし          通常のファイル
 NEARLINE     月1回程度          30日          バックアップ
 COLDLINE     四半期に1回程度    90日          長期保管
 ARCHIVE      年1回程度          365日         法定保存
-
-★ 保存料金は下がるが、取り出し料金が上がる
-★ 最低保存期間より早く消すと、残り期間分の料金がかかる
-
-◼AWSとの対応
-  STANDARD    → S3 Standard
-  NEARLINE    → S3 Standard-IA
-  COLDLINE    → S3 Glacier Instant Retrieval
-  ARCHIVE     → S3 Glacier Deep Archive
-
-★ GCPは全クラスでミリ秒アクセスできる
-   S3 Glacier のように「取り出しに数時間」がない
 ```
 
 **[話す]** ここはGCPの方が分かりやすい。
@@ -304,7 +311,31 @@ GCPはどのクラスも即座に読める。料金だけが違う。
 
 ---
 
+### S08b | ストレージクラス(補足)
+
+<!-- slide-id: p2_6_g007bdy_notes -->
+
+**[本文]**
+
+```
+★ 保存料金は下がるが、取り出し料金が上がる
+★ 最低保存期間より早く消すと、残り期間分の料金がかかる
+
+◼AWSとの、おおよその対応
+  STANDARD    → S3 Standard
+  NEARLINE    → S3 Standard-IA
+  COLDLINE    → S3 Glacier Instant Retrieval
+  ARCHIVE     → S3 Glacier Deep Archive
+
+★ GCPは全クラスでミリ秒アクセスできる
+   S3 Glacier のように「取り出しに数時間」がない
+```
+
+---
+
 ### S09 | アクセス制御
+
+<!-- slide-id: g008slide -->
 
 **[図版]** AWS版 第7回「S3 - アクセス制御」を流用。中身を差し替え。
 
@@ -312,7 +343,7 @@ GCPはどのクラスも即座に読める。料金だけが違う。
 
 ```
 ◼S3は2系統あって分かりにくかった
-  ACL(オブジェクト単位)
+  ACL(オブジェクト単位。今は新規バケットで既定では無効)
   バケットポリシー(バケット単位)
   → どちらが効くのか、組み合わせでどうなるのか
 
@@ -337,6 +368,8 @@ GCPはどのクラスも即座に読める。料金だけが違う。
 ---
 
 ### S10 | 署名付きURL
+
+<!-- slide-id: g009slide -->
 
 **[本文]**
 
@@ -364,12 +397,14 @@ GCPはどのクラスも即座に読める。料金だけが違う。
   ブラウザから直接アップロードさせる(PUT用の署名付きURL)
 
 ★ AWSのS3署名付きURLと同じ考え方
-★ 今日は使いませんが、宿題3で関連する話が出てきます
+★ 今日は使いませんが、宿題2の③で関連する話が出てきます
 ```
 
 ---
 
-### S11 | バージョニングとライフサイクル
+### S11 | バージョニングとライフサイクル(1/2)
+
+<!-- slide-id: g010slide -->
 
 **[図版]** AWS版 第7回「S3 - バージョン管理」「S3 - ライフサイクル」を流用。
 
@@ -401,7 +436,9 @@ GCPはどのクラスも即座に読める。料金だけが違う。
 
 ---
 
-### S11b | バージョニングとライフサイクル(続き)
+### S11b | バージョニングとライフサイクル(2/2)
+
+<!-- slide-id: g010bslide -->
 
 **[本文]**
 
@@ -426,38 +463,37 @@ GCPはどのクラスも即座に読める。料金だけが違う。
 
 ### S12 | Cloud CDN の前に: なぜCDNを挟むのか
 
+<!-- slide-id: g011slide -->
+
 **[図版]** AWS版 第7回「S3 だけでもホスティングできるのに
 なんで前段にCloudFrontを配置することが多いの？」を流用。
 
 **[本文]**
 
 ```
-◼Cloud Storage だけでも公開できる
+◼CDN(Content Delivery Network)とは
+  世界中にある「エッジ」(ユーザに近い配信拠点)に
+  コンテンツのコピー(キャッシュ)を置いて配信する仕組み
 
+◼Cloud Storage だけでも公開できる
   https://storage.googleapis.com/[バケット]/index.html
 
 ◼それでもCDNを挟む理由
-
   キャッシュによる高速化
     ユーザに近いエッジから返せる
-
   独自ドメイン + 証明書
     storage.googleapis.com ではなく自分のドメインで出せる
-
   アクセス制御
     Cloud Armor をエッジで効かせられる
-
   オリジンの保護
     バケットへのリクエストが減る
-
-★ S3では「スロットリング」も理由の1つになります
-   (1プレフィックスあたり 5,500 GET/秒 で 503 が返る)
-   GCPにも同様の上限があるので、考え方は同じ
 ```
 
 ---
 
 ### S13 | Cloud CDN とは ★
+
+<!-- slide-id: g012slide -->
 
 **[図版]** **新規作成**。この回の最重要図その1。AWS版との構成比較。
 
@@ -507,13 +543,13 @@ GCPにはこれが無い。
 
 ---
 
-### S14 | 休憩
+### S14 | 休憩(5分)
+
+<!-- slide-id: g013slide -->
 
 **[本文]**
 
 ```
-5分休憩
-
 後半はハンズオンです
 ```
 
@@ -523,7 +559,9 @@ GCPにはこれが無い。
 
 ---
 
-### S15 | 準備
+### S15 | ハンズオンの準備
+
+<!-- slide-id: g014slide -->
 
 **[図版]** AWS版 第7回「準備」を流用。コマンドを差し替え。
 
@@ -531,6 +569,9 @@ GCPにはこれが無い。
 
 ```
 ◼Cloud Shell を立ち上げる
+  プロジェクトが [プロジェクトID] になっていることを確認
+  gcloud config get-value project
+  (違うなら) gcloud config set project [プロジェクトID]
 
 ◼作業ディレクトリを作る
   mkdir -p ~/works/lesson6
@@ -539,22 +580,38 @@ GCPにはこれが無い。
 ◼サンプルコードを更新
   cd ~/infra-study && git pull
   cd ~/works/lesson6
+```
 
-★★ 第5回のリソースは destroy 済みですか ★★
+---
 
-   第5回は SERVERLESS アドレスの解放に1〜2時間かかりました
-   まだ残っている人は、先に確認してください
+### S15b | 前回のリソースの確認
 
-     gcloud compute networks list
-     gcloud compute addresses list --filter="purpose=SERVERLESS"
+<!-- slide-id: g014bslide -->
+
+**[本文]**
+
+```
+◼第5回のリソースは destroy 済みですか
+
+  第5回は SERVERLESS アドレスの解放に2時間以上かかりました
+  まだ残っている人は、先に確認してください
+
+  gcloud compute networks list
+  gcloud compute addresses list --filter="purpose=SERVERLESS"
 ```
 
 **[話す]** 年末年始を挟んでいるので、第5回の片付けが終わっていない人がいるはず。
 最初に確認する時間を取る。
 
+※ 「2時間以上」の根拠: 公式ドキュメントは「1〜2時間」、第6回の destroy では
+Cloud Run の削除から約2時間20分を実測した(付録B)。第5回の destroy そのものを
+計測した値ではない。
+
 ---
 
 ### S16 | 前回までの構成を作成する
+
+<!-- slide-id: g015slide -->
 
 **[本文]**
 
@@ -563,25 +620,23 @@ cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"0. before" ./
 cd "0. before"
 python3 ~/infra-study/gcp/tools/configure.py
 
-第2〜5回の構成を再作成します。
-ネットワーク / Memorystore / Spanner / Cloud Run /
-サーバレスNEG / グローバルIP / SSL証明書 / DNS
+第2〜5回の構成を再作成します
+  ネットワーク / Memorystore / Spanner / Cloud Run /
+  サーバレスNEG / グローバルIP / SSL証明書 / DNS
 
-configure.py：project_id・user_name・backendのbucketだけを反映
-terraform.tfvars：DNSなど各回固有の値はコピー後に確認・設定
+  terraform init
+  terraform plan, terraform apply
 
-terraform init
-terraform plan
-terraform apply
-
-LBのフロント側は、今回パスルール付きで作ります。
-Cloud Run は講師の共通リポジトリのイメージを使います。
-各ステップの中で個人設定を反映します。GCSの同じstateを引き継ぎます。
+※ ロードバランサのフロント側は、今回パスルール付きで作ります
+※ Cloud Run は講師の共通リポジトリのイメージを使います
+※ 各ステップの中で設定を反映します。同じGCSのstateを引き継ぎます
 ```
 
 ---
 
 ### S16b | 自分のリポジトリを作り直さない理由
+
+<!-- slide-id: g016slide -->
 
 **[本文]**
 
@@ -617,7 +672,11 @@ Cloud Run は講師の共通リポジトリのイメージを使います。
 
 ### S17 | バケットを作る
 
-**[本文]**
+<!-- slide-id: g017slide -->
+
+**[図版]** cp 行(灰色の枠 bx0)と、コード(灰色の枠 bx1)は、本文とは別の図形。
+
+**[コード]**
 
 ```
 cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"1. storage" ./
@@ -636,14 +695,20 @@ resource "google_storage_bucket" "static" {
   // 中身が残っていても destroy できる
   force_destroy = true
 }
+```
 
-★ バケット名はGCP全体で一意
-   第1回のtfstateバケットと同じく、プロジェクトIDと名前を含めている
+**[本文]**
+
+```
+※ バケット名は GCP 全体で一意
+第1回のtfstateバケットと同じく、プロジェクトIDと名前を含めている
 ```
 
 ---
 
-### S18 | ファイルを置く
+### S18 | ファイルを置く(1/3)
+
+<!-- slide-id: g018slide -->
 
 **[本文]**
 
@@ -658,8 +723,18 @@ resource "google_storage_bucket_object" "index" {
   // ★ キャッシュ制御。Cloud CDN はこれを見る
   cache_control = "public, max-age=60, s-maxage=300"
 }
+```
 
-★★ name に "static/" を付けているのは偶然ではありません ★★
+---
+
+### S18b | ファイルを置く(2/3)
+
+<!-- slide-id: p2_6_g018bdy_1 -->
+
+**[本文]**
+
+```
+★ name に "static/" を付けているのは偶然ではありません
 
    バックエンドバケットは、URLのパスをそのままオブジェクト名にして
    バケットに取りに行きます
@@ -670,7 +745,17 @@ resource "google_storage_bucket_object" "index" {
    オブジェクト名の階層を合わせておく必要があります
 
    ★ 合っていないと 404 になります。ハマりどころ
+```
 
+---
+
+### S18c | ファイルを置く(3/3)
+
+<!-- slide-id: p2_6_g018bdy_2 -->
+
+**[本文]**
+
+```
 ◼Cache-Control の読み方
 
   public      CDNにキャッシュしてよい
@@ -687,27 +772,25 @@ resource "google_storage_bucket_object" "index" {
 
 ### S19 | Step1 実行
 
+<!-- slide-id: g019slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform plan
-  terraform apply
+  terraform plan, terraform apply
 
 ◼確認
   terraform output bucket_name
-
   gcloud storage ls "gs://[バケット名]/**"
-  → gs://[バケット名]/static/index.html
-    gs://[バケット名]/static/style.css
+  → static/index.html と static/style.css が見える
 
 ◼ブラウザで直接アクセスしてみる
   https://storage.googleapis.com/[バケット名]/static/index.html
-
   → 403 になります
 
-★ バケットを公開していないので読めません
-★ この状態でCDNを付けるとどうなるか、次でやります
+※ バケットを公開していないので読めません
+※ この状態でCDNを付けるとどうなるか、次でやります
 ```
 
 ---
@@ -717,6 +800,8 @@ resource "google_storage_bucket_object" "index" {
 ---
 
 ### S19b | 先に Step2 を流します ★
+
+<!-- slide-id: g020slide -->
 
 **[本文]**
 
@@ -728,16 +813,16 @@ cd "2. cdn"
 python3 ~/infra-study/gcp/tools/configure.py
 
   terraform init
-  terraform apply
+  terraform plan, terraform apply
 
-★ 証明書の発行とLBの伝播に7〜10分かかります
-   待っている間に、何を作っているかを解説します
+※ 証明書の発行とロードバランサの伝播に7〜10分かかります
+※ 待っている間に、何を作っているかを解説します
 
 ◼待っている間に確認するコマンド
   gcloud compute ssl-certificates describe [自分の名前]-web-cert \
     --global --format="value(managed.status)"
 
-  PROVISIONING → ACTIVE になったら S24 へ
+  PROVISIONING → ACTIVE になったら「Step2 の確認 → 繋がらない」へ
 ```
 
 **[話す]** 第3回で作った証明書は、転送ルールが無いと発行が始まらない。
@@ -748,6 +833,8 @@ Step2 で転送ルールを作った瞬間から発行が走る。
 ---
 
 ### S20 | バックエンドバケット ★
+
+<!-- slide-id: g021slide -->
 
 **[図版]** **新規作成**。この回の最重要図その2。
 第3回・第5回のバックエンドとの比較。
@@ -774,14 +861,17 @@ Step2 で転送ルールを作った瞬間から発行が走る。
 ★ バックエンドサービスではなく「バックエンドバケット」
    別のリソースタイプです
 
-★ ヘルスチェックは要らない
-   第3回でハマった 130.211.0.0/22 の Firewall Rule も要らない
+★ ヘルスチェックも 130.211.0.0/22 の Firewall Rule も要らない
    (Cloud Storage はVPCの外にあるため)
 ```
 
 ---
 
-### S21 | CDNポリシー
+### S21 | CDNポリシー(1/2)
+
+<!-- slide-id: g022slide -->
+
+**[図版]** コード部分(cdn_policy)を灰色の枠で囲む。
 
 **[本文]**
 
@@ -802,9 +892,19 @@ Step2 で転送ルールを作った瞬間から発行が走る。
    便利だが「なぜキャッシュされているか」がコードから読めない
 
 ★ 今回は USE_ORIGIN_HEADERS を明示している
-   S18で付けた Cache-Control が効く形にして、
+   「ファイルを置く」で付けた Cache-Control が効く形にして、
    キャッシュの寿命をアプリ側で決められるようにするため
+```
 
+---
+
+### S21b | CDNポリシー(2/2)
+
+<!-- slide-id: p2_6_g022bdy_1 -->
+
+**[本文]**
+
+```
 ◼serve_while_stale
   オリジンが落ちている間、期限切れのキャッシュを返し続ける秒数
   → オリジン障害時もページが出る
@@ -820,6 +920,8 @@ Step2 で転送ルールを作った瞬間から発行が走る。
 ---
 
 ### S22 | URLマップにパスルールを足す ★
+
+<!-- slide-id: g023slide -->
 
 **[図版]** **新規作成**。この回の最重要図その3。
 第3回のURLマップ(defaultだけ)と今日のURLマップ(パスルール付き)を比較。
@@ -865,46 +967,36 @@ AWSでCloudFrontとALBを併用すると、
 
 ### S23 | 3つのバックエンドを比べる
 
+<!-- slide-id: g024slide -->
+
+**[図版]** 5行×4列の表(見出し行は青、左の列は灰色)。下に黄色の ※(g024slide_n0)。
+
 **[本文]**
 
 ```
-                    第3回          第5回           今日
-────────────────────────────────────────────────────────
-リソース            バックエンド    バックエンド     バックエンド
-                    サービス        サービス         バケット
-中継                インスタンス    サーバレスNEG    なし
-                    グループ
-ヘルスチェック      必要            不要             不要
-Firewall Rule       必要            不要             不要
-                    (130.211/22)
-CDN                 なし            なし             enable_cdn
+比較項目         第3回                  第5回              今回
+リソース         バックエンドサービス    バックエンドサービス  バックエンドバケット
+中継             インスタンスグループ    サーバレスNEG       なし
+ヘルスチェック   必要                   不要               不要
+Firewall Rule    必要(130.211/22)      不要               不要
+CDN              なし                   なし               enable_cdn
 
-★ 第3回が一番手間がかかっていた
+※ 第3回が一番手間がかかっていた
    VMを使わなくなると、周辺の設定も要らなくなる
 ```
 
 ---
 
-### S24 | Step2 実行 → 繋がらない
+### S24 | Step2 の確認 → 繋がらない(1/2)
+
+<!-- slide-id: g025slide -->
 
 **[図版]** ブラウザの表示。**開催前に実物のスクリーンショットを撮ること**。
 
 **[本文]**
 
 ```
-  terraform plan
-  terraform apply
-
-★ SSL証明書の発行とロードバランサの伝播に7〜10分かかります
-   (実測: 転送ルール作成から証明書ACTIVEまで7分23秒)
-   第5回のときと同じです
-
-   gcloud compute ssl-certificates describe [自分の名前]-web-cert \
-     --global --format="value(managed.status)"
-
-   → PROVISIONING が ACTIVE になるまで待つ
-
-◼アクセスしてみる
+◼Step2 の apply が終わったら、アクセスしてみる
   https://[自分の名前].infra-study-gcp.sumsp.jp/static/index.html
 
   → 403 Forbidden
@@ -912,13 +1004,18 @@ CDN                 なし            なし             enable_cdn
   <?xml version='1.0' encoding='UTF-8'?>
   <Error><Code>AccessDenied</Code><Message>Access denied.</Message></Error>
 
-  ★ Cloud Storage が返したXMLがそのまま出てきます
-     AWSのS3でも出る「Access Denied」と同じ文字列
+※ Cloud Storage が返した XML がそのまま出てきます
+※ バケットを公開していないので、CDN も読めません
 ```
+
+**[話す]** 証明書の待ち時間は S19b で済ませてある(実測: 転送ルール作成から
+証明書ACTIVEまで7分23秒)。まだ PROVISIONING の人がいたら、ここで待つ。
 
 ---
 
-### S24b | Step2 実行 → 繋がらない(続き)
+### S24b | Step2 の確認 → 繋がらない(2/2)
+
+<!-- slide-id: g025bslide -->
 
 **[本文]**
 
@@ -931,8 +1028,8 @@ CDN                 なし            なし             enable_cdn
   DB接続(Spanner): 成功
   Cache接続: 成功
 
-★ パスルールは効いている(振り分けはできている)
-★ でも静的ファイルが読めない
+※ パスルールは効いている(振り分けはできている)
+※ でも静的ファイルが読めない
 
 なぜだと思いますか？
 ```
@@ -944,6 +1041,8 @@ S3バケットポリシーを追加して解決する。
 ---
 
 ### S25 | なぜ 403 になるのか
+
+<!-- slide-id: g026slide -->
 
 **[図版]** 新規。バケットが非公開でCDNが読めない図。
 
@@ -957,19 +1056,19 @@ S3バケットポリシーを追加して解決する。
 
   Cloud CDN も読めない
 
-◼AWSではどうしていたか
+◼AWSの CloudFront には OAI / OAC がある
 
-  CloudFront の OAI(オリジンアクセスアイデンティティ)を作り、
-  その principal に GetObject を許可するバケットポリシーを書いた
+  S3 を非公開にして、CloudFront だけに読ませる仕組み
+  (OAI が古い方式で、今は OAC が推奨)
 
-  → 「CloudFrontだけが読める」状態にできた
+  → バケットは非公開のまま配信できる
 
-◼GCPのバックエンドバケットには OAI に相当する仕組みがない
+◼Cloud CDN は、既定では「公開されたオブジェクト」を読みに行く
 
-  Cloud CDN は「公開されたオブジェクト」を読みに行く
   → allUsers に読み取り権限を与える必要がある
+  非公開のまま配信するには、署名付きURL / 署名付きCookie を使う
 
-★ ここはAWSの方が細かく制御できます
+★ 署名付きURL / Cookie は、この後の「非公開のまま配信したい場合」で説明します
 ```
 
 ---
@@ -980,7 +1079,11 @@ S3バケットポリシーを追加して解決する。
 
 ### S26 | バケットを公開する
 
-**[本文]**
+<!-- slide-id: g027slide -->
+
+**[図版]** cp 行(灰色の枠 bx0)と、コード(灰色の枠 bx1)は、本文とは別の図形。
+
+**[コード]**
 
 ```
 cd ~/works/lesson6 && cp -rf ~/infra-study/gcp/lesson6/"3. public" ./
@@ -992,26 +1095,32 @@ resource "google_storage_bucket_iam_member" "public" {
   role   = "roles/storage.objectViewer"
   member = "allUsers"
 }
+```
 
-★ 第1回 S51 で「allUsers は事故の元」と言ったやつ
-   ここでは意図的に公開するので正しい使い方
+**[本文]**
 
-★ ただし理解しておくこと
+```
+※ 第1回の IAM で説明した allUsers の公開設定
+   ここでは意図的に公開するので、正しい使い方です
+
+※ ただし、理解しておくこと
    バケット全体が「誰でも直接読める」状態になります
-   CDNを経由しなくても読めてしまう
+   CDN を経由しなくても読めてしまいます
 
-     https://storage.googleapis.com/[バケット名]/static/index.html
+   https://storage.googleapis.com/[バケット名]/static/index.html
 ```
 
 ---
 
 ### S27 | Step3 実行 → 繋がる
 
+<!-- slide-id: g028slide -->
+
 **[本文]**
 
 ```
   terraform init
-  terraform apply
+  terraform plan, terraform apply
 
 ◼もう一度アクセス
   https://[自分の名前].infra-study-gcp.sumsp.jp/static/index.html
@@ -1020,13 +1129,15 @@ resource "google_storage_bucket_iam_member" "public" {
   このページは Cloud Storage から Cloud CDN 経由で配信されています。
   version: 1
 
-★ 繋がりました
-★ CSSも効いています(/static/style.css も配信されている)
+※ 繋がりました
+※ CSSも効いています(/static/style.css も配信されている)
 ```
 
 ---
 
 ### S28 | 非公開のまま配信したい場合
+
+<!-- slide-id: g029slide -->
 
 **[本文]**
 
@@ -1035,7 +1146,7 @@ resource "google_storage_bucket_iam_member" "public" {
 
   署名付きURL
     有効期限付きのURLを発行する
-    バケットは非公開のまま
+    バケットは非公開のまま(Cloud CDN のサービスアカウントに読ませる)
 
   署名付きCookie(Cloud CDN の機能)
     CDN配信用。1回の認証で配下のファイル全部にアクセスできる
@@ -1044,16 +1155,22 @@ resource "google_storage_bucket_iam_member" "public" {
     Cloud Run から配信する(アプリ側で認可)
 
 ★ 「静的ファイルだから公開でよい」かどうかは、中身次第
-★ 宿題3で、この落とし穴を扱います
+★ 宿題2の③で、この落とし穴を扱います
 ```
 
 **[話す]** 「CDNにIP制限をかけたから安全」と思っていると、
 バケットに直接アクセスされて素通し、ということが起きる。
 宿題で実際に確認してもらう。
 
+署名付きURL・署名付きCookie でも非公開のバケットを配信できる点は、
+公式ドキュメントで確認した(Cloud CDN のサービスアカウントに
+`roles/storage.objectViewer` を付ける)。今日は実機では試していない。
+
 ---
 
 ### S29 | ここまでの到達点
+
+<!-- slide-id: g030slide -->
 
 **[図版]** S04の構成図を再掲し、全要素にチェックを付ける。
 
@@ -1076,6 +1193,8 @@ URLマップのパスルールで /static/* を振り分けた
 ---
 
 ### S30 | キャッシュされているか確認する
+
+<!-- slide-id: g031slide -->
 
 **[本文]**
 
@@ -1100,7 +1219,9 @@ URLマップのパスルールで /static/* を振り分けた
 
 ---
 
-### S31 | ログでは見られない(という話)
+### S31 | ログでも確認できる
+
+<!-- slide-id: g032slide -->
 
 **[本文]**
 
@@ -1111,31 +1232,32 @@ URLマップのパスルールで /static/* を振り分けた
     'resource.type="http_load_balancer"' \
     --format="value(httpRequest.cacheHit,httpRequest.requestUrl)"
 
-◼ただし今日は見られません
+◼バックエンドバケットとバックエンドサービスの違い
 
-  1. LBのアクセスログは既定で無効
-       バックエンドサービスの log_config { enable = true } で有効にする
+  1. バックエンドバケットのログは、自動で有効
+       設定項目は無く、無効にもできない
 
-  2. バックエンドバケットにはその設定項目が無い
-       google_compute_backend_bucket に log_config ブロックが無い
-       gcloud compute backend-buckets update にも相当するフラグが無い
-       → /static/* のリクエストはログに出せない
+  2. バックエンドサービスのログは、既定で無効
+       log_config { enable = true } で有効にする
+       サンプリング率も、ここで決める
+       → /static/* のリクエストも、ログに残る
 
-★ なので今日は S30 のレスポンスヘッダ(age)で確認します
+★ 今日はレスポンスヘッダ(age)で確認しました。ログでも同じことが分かります
 
-★ ログを有効にできるのはバックエンド「サービス」の方
+★ ログの設定を変えられるのはバックエンド「サービス」の方
    第8回(監視・運用)でそちらを扱います
 ```
 
-**[話す]** これは「調べたが出来なかった」という話をそのまま出す。
-ドキュメントに機能があっても、Terraform や gcloud から
-触れるとは限らない。プロバイダーのスキーマを直接見る癖をつけると早い。
-
-  terraform providers schema -json
+**[話す]** 以前の原稿は「バックエンドバケットのログは有効化できない(だから今日は見られない)」
+としていたが、公式ドキュメントでは、バックエンドバケットを使う外部アプリケーションLBの
+ログは自動で記録され、無効化も設定もできない。事実に合わせて直した(2026-11-19)。
+`gcloud logging read` の実行は、今回の見直しでは実機で確認していない。
 
 ---
 
 ### S32 | ファイルを更新してみる
+
+<!-- slide-id: g033slide -->
 
 **[図版]** AWS版 第7回「アプリ更新」のコマンドスライドを流用。
 
@@ -1159,6 +1281,8 @@ URLマップのパスルールで /static/* を振り分けた
 
 ### S33 | キャッシュを無効化する
 
+<!-- slide-id: g034slide -->
+
 **[本文]**
 
 ```
@@ -1174,14 +1298,16 @@ URLマップのパスルールで /static/* を振り分けた
 
   ほぼ同じ。対象がディストリビューションではなくURLマップなのが違い
 
-★ 実測3秒で反映されました(CloudFrontより速い)
+★ 実測3秒で反映されました(公式ドキュメントでは約10秒)
    ただし常にこの速さとは限りません
-★ 頻繁にやるものではありません(回数に上限と課金がある)
+★ 頻繁にやるものではありません(毎分500リクエストまでの上限がある)
 ```
 
 ---
 
 ### S34 | 実務でのキャッシュ戦略
+
+<!-- slide-id: g035slide -->
 
 **[本文]**
 
@@ -1218,21 +1344,34 @@ invalidation でしのぐのではなく、URLを変える設計にする。
 
 ### S35 | Cloud CDN と CloudFront の違いまとめ
 
+<!-- slide-id: g036slide -->
+
+**[図版]** 8行×3列の表。AWS比較のページなので残している(削除はユーザー判断)。
+
 **[本文]**
 
 ```
-                    CloudFront            Cloud CDN
-────────────────────────────────────────────────────────
-位置づけ            独立したサービス       ロードバランサの機能
-作るもの            ディストリビューション  enable_cdn = true
-証明書              ACM(us-east-1限定)   LBの証明書をそのまま
-ドメイン            ディストリビューションに設定  LBに設定済み
-オリジン制御        OAI / OAC             なし(公開が必要)
-無効化              create-invalidation    invalidate-cdn-cache
-エッジで動く処理    Lambda@Edge /          Service Extensions
-                    CloudFront Functions   (Cloud Armor もエッジ)
+比較項目       CloudFront                     Cloud CDN
+位置づけ       独立したサービス               ロードバランサの機能
+作るもの       ディストリビューション         enable_cdn = true
+証明書         ACM(us-east-1限定)           LBの証明書をそのまま
+ドメイン       ディストリビューションに設定   LBに設定済み
+オリジン制御   OAI / OAC                      署名付きURL / Cookie(既定は公開が必要)
+無効化         create-invalidation            invalidate-cdn-cache
+エッジの処理   Lambda@Edge /                  Service Extensions /
+               CloudFront Functions           Cloud Armor もエッジ
+```
 
-★ GCPの方がシンプル。ただしオリジンのアクセス制御は弱い
+---
+
+### S35b | Cloud CDN と CloudFront(補足)
+
+<!-- slide-id: p2_6_g036bdy_notes -->
+
+**[本文]**
+
+```
+★ GCPの方がシンプル。ただしオリジンのアクセス制御は、既定では公開が必要
 ★ エッジでコードを動かす仕組みは GCP にもある
    Service Extensions(WASMプラグイン / コールアウト)
    ただし Lambda@Edge ほど手軽ではない。今日は扱いません
@@ -1246,59 +1385,69 @@ invalidation でしのぐのではなく、URLを変える設計にする。
 
 ### S36 | 本日のまとめ ①
 
-**[図版]** AWS版 第7回「本日のまとめ」のレイアウトを流用。
+<!-- slide-id: g037slide -->
+
+**[図版]** 丸数字(青い円に白抜きの 1〜4)+ 太字の結論1行 + 補足1行 を4段に並べる。ラベルや灰色の枠は使わない。
+図形は g037slide_ 始まりの ID(円 n0〜n3、文字 t0〜t3)。宿題・片付け・AWSとのリソース数比較は載せない。
 
 **[本文]**
 
 ```
-◼Cloud Storage
-S3とほぼ同じ。location でリージョン/デュアル/マルチを選ぶ
-ストレージクラスは4種類。全クラスでミリ秒アクセスできる
-uniform_bucket_level_access でIAMに一本化
-force_destroy = true で中身ごと消せる
-バージョニングとライフサイクルはセットで使う
-ソフト削除が既定でON(7日)。バージョニングとは別物
-オブジェクト名の階層 = URLのパス
+1  バージョニングとライフサイクルは、セットで使う
+   古い版を残し、ライフサイクルで自動削除や NEARLINE への移動をする
+
+2  Cloud CDN は、ロードバランサの機能の1つ
+   enable_cdn = true で有効になる。第3回の証明書とドメインをそのまま使える
+
+3  配信先は、URLマップのパスルールで出し分ける
+   /static/* はバックエンドバケット、それ以外は Cloud Run
+
+4  キャッシュの寿命は、Cache-Control で決める
+   更新したいときは URL にハッシュを入れる。invalidation は最後の手段
 ```
+
+**[話す]** 今日の話を4つに絞ると、この4点。
 
 ---
 
 ### S37 | 本日のまとめ ②
 
+<!-- slide-id: g038slide -->
+
+**[図版]** 5行×4列の表(g038slide_tbl)。見出し行は青、左の列は灰色。下に黄色の ※(g038slide_y)。
+
 **[本文]**
 
 ```
-◼Cloud CDN
-独立したサービスではない。ロードバランサの機能
-enable_cdn = true だけで有効になる
-第3回の証明書とドメインをそのまま使える
-  (AWSの「ACMはus-east-1」という罠がない)
+              allUsers に公開          署名付きURL                署名付きCookie
+読める人      誰でも                   期限付きURLを持つ人         期限付きCookieを持つ人
+バケット      公開する(allUsers)      非公開のまま               非公開のまま
+対象          バケット内の全ファイル   1つのURL(1ファイル)       パスの範囲(複数ファイル)
+気をつける点  公開してよいものだけ置く 署名鍵と、Cloud CDN に     署名鍵と、Cloud CDN に
+                                      objectViewer を付ける      objectViewer を付ける
 
-◼URLマップのパスルール
-1つのドメインで配信先を出し分けられる
-  /static/*  → バックエンドバケット
-  それ以外    → バックエンドサービス(Cloud Run)
-
-◼オリジンのアクセス制御
-バックエンドバケットには OAI に相当する仕組みが無い
-allUsers に公開する必要がある
-非公開のまま配信したいなら署名付きURL / 署名付きCookie
-
-◼キャッシュ
-Cache-Control(s-maxage)で寿命を決める
-age ヘッダでヒットしているか分かる
-invalidation は最後の手段。URLにハッシュを入れる設計が基本
+※ 選び方
+   誰に見せてもよいファイル(公開サイトの画像・CSS) → allUsers に公開
+   特定の人だけ → 署名付きURL(1ファイル) / 署名付きCookie(複数ファイル)
 ```
+
+**[話す]** 今日は allUsers に公開する形でやった。署名付きURL・Cookie は、公式ドキュメントで
+確認した内容を表にしている(Cloud CDN のサービスアカウントに `roles/storage.objectViewer`
+を付ければ、非公開のバケットを配信できる)。今回の見直しでは実機で試していない。
 
 ---
 
 ### S38 | 本日はここまで
+
+<!-- slide-id: g039slide -->
 
 **[図版]** AWS版の同スライドを流用。
 
 ---
 
 ### S39 | 宿題1 アンケート
+
+<!-- slide-id: g040slide -->
 
 **[図版]** AWS版 第7回「宿題1」を流用。URLを差し替え。
 
@@ -1318,9 +1467,11 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
 ---
 
-### S40 | 宿題2 実装課題
+### S40 | 宿題2 実装課題 ①②
 
-**[図版]** AWS版 第7回「宿題2」のレイアウトを流用。
+<!-- slide-id: g041slide -->
+
+**[図版]** 第3回 S52 と同じ形式(◼見出し + 説明 + ・の補足 + 回答例)。1ページに入りきらないので、①② と ③ の2ページに分ける。
 
 **[本文]**
 
@@ -1339,36 +1490,52 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
   7日より古い版を削除
   30日経った現行版を NEARLINE に移す
 
-  ★ with_state の指定を間違えると現行版が消えます
+  ・with_state の指定を間違えると現行版が消えます
 
   回答例: gcp/lesson6/syukudai2/
+```
 
+---
 
+### S40b | 宿題2 実装課題 ③
+
+<!-- slide-id: p2_6_g041bdy_1 -->
+
+**[本文]**
+
+```
 ◼3. Cloud Armor で静的ファイルにもIP制限をかけよう
 
   バックエンドバケットには edge_security_policy を使います
   (security_policy という属性はありません)
 
-  ★ 第3回 宿題3 のポリシーはそのままでは使えません
-     こんなエラーが出ます
+  ・第3回 宿題2 ③ のポリシーはそのままでは使えません
+    こんなエラーが出ます
 
-       Error 400: Security policy ... is not an edge security policy
+      Error 400: Security policy ... is not an edge security policy
 
-     google_compute_security_policy 側にも
-     設定を1つ足す必要があります。ドキュメントを見てください
+    google_compute_security_policy 側にも設定を1つ足す必要があります
+    ドキュメントを見てください
 
-  ★ そのあと、バケットに直接アクセスしてみてください
-     何が起きるか確認して、なぜそうなるか考えてみてください
+  ・そのあと、バケットに直接アクセスしてみてください
+    何が起きるか確認して、なぜそうなるか考えてみてください
 
   回答例: gcp/lesson6/syukudai3/
 ```
 
 **[話す]** 3つ目の「バケットに直接アクセス」は落とし穴の体験。
 答えは言わない。
+(旧「宿題3」の Cloud Armor は、宿題の番号を整理して「宿題2 実装課題 ③」になった。
+宿題1 = アンケート、宿題2 = 実装課題、宿題3 = ドキュメント)
 
 ---
 
 ### S41 | 宿題3 ドキュメント
+
+<!-- slide-id: g042slide -->
+
+**[図版]** 第3回 S54 と同じ形式(◼見出し + リンク)。調べ物の課題ではなく、眺めるだけ。
+リソース名(google_xxx)にリンクを貼る。URL はそのまま表示する(下の [リンク] 参照)。
 
 **[本文]**
 
@@ -1382,15 +1549,33 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
   キャッシュモード / キャッシュキー / 無効化
 
 ◼Terraform google provider の各ドキュメントを眺めてみよう
-  google_storage_bucket / google_storage_bucket_object
+  google_storage_bucket
+  google_storage_bucket_object
   google_storage_bucket_iam_member
   google_compute_backend_bucket
   google_compute_url_map(path_matcher / path_rule)
+  google_compute_security_policy
 ```
+
+**[リンク]**
+
+- [https://cloud.google.com/storage/docs](https://cloud.google.com/storage/docs)
+- [https://cloud.google.com/cdn/docs](https://cloud.google.com/cdn/docs)
+- [google_storage_bucket](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket)
+- [google_storage_bucket_object](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_object)
+- [google_storage_bucket_iam_member](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_iam)
+- [google_compute_backend_bucket](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_backend_bucket)
+- [google_compute_url_map](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_url_map)
+- [google_compute_security_policy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_security_policy)
+
+> 旧「宿題3」(Cloud Armor)は「宿題2 実装課題 ③」に移した。
+> google_compute_security_policy は、③で使うので追加した(2026-11-19)。
 
 ---
 
 ### S42 | 参考
+
+<!-- slide-id: g043slide -->
 
 **[本文]**
 
@@ -1415,66 +1600,49 @@ Cloud CDN ドキュメント
 
 ### S43 | 注意事項
 
-**[図版]** AWS版「注意事項」スライドを流用。
+<!-- slide-id: g044slide -->
+
+**[図版]** 第3回 S56 と同じ形式(cd 行を灰色の枠で囲み、右に「←」の注釈。`terraform destroy` は別の小さな枠。注意は ※ で並べる)。
+cd 行の枠は g044slide_f0、destroy の枠は g044slide_f1。1ページに収める(旧「注意事項(続き)」は削除)。
 
 **[本文]**
 
 ```
-宿題などで作成したリソースは
-必ず削除してください！
+宿題などで作成したリソースは必ず削除してください！
 
-★★ destroy は2回必要ですが、皆さんは1回だけでOKです ★★
+◼リソースの削除(最後に apply したディレクトリで実行)
+  cd ~/works/lesson6/"3. public"   ← 講義 Step3 まで
+  cd ~/works/lesson6/syukudai1     ← 実装課題①まで
+  cd ~/works/lesson6/syukudai2     ← 実装課題②まで
+  cd ~/works/lesson6/syukudai3     ← 実装課題③まで
 
-   1. terraform destroy          (実測 6分35秒) ← ここまでやってください
+  terraform destroy   → 確認で yes と入力
 
-        → 1リソースだけ失敗します
+※ destroy は1回だけです
+   1リソースだけ失敗しますが、そのままで大丈夫です
+   Cloud Run が確保した IP アドレスがすぐ解放されず、サブネットを消せないため
+   残りは講師がまとめて消します
 
-          Error 400: The subnetwork resource '...-private-subnet'
-          is already being used by 'addresses/serverless-ipv4-...'
+※ 全員で1つのプロジェクトを共有しています
+   消し忘れはQuotaを圧迫して、他の人のapplyを止めます
 
-        Cloud Run の Direct VPC egress が確保したIPアドレスが
-        すぐには解放されないため。手で消すこともできません
-
-   2. IPの解放を待つ(実測: Cloud Run の削除から約2時間20分)
-
-        ★ 公式ドキュメントは「1〜2時間」と書いていますが、
-          実測ではそれより長くかかりました。
-          つまり、この場では終わりません
-
-   3. terraform destroy          ← ★ これは講師がまとめてやります
-
-★★ 皆さんは 1 を打つだけで大丈夫です ★★
-   翌日にもう1回打つ必要はありません
+※ tfstate用のバケットは残しておいてください
+※ バケットは force_destroy = true なので、古い版ごと消えます
 ```
 
----
+**[話す]** 失敗するのは private サブネット1件だけ。
+`Error 400: The subnetwork resource '...-private-subnet' is already being used by 'addresses/serverless-ipv4-...'`
+と出るが、そのままでよい。手で消すこともできない。
 
-### S43b | 注意事項(続き)
+※ 旧 S43 / S43b にあった次の記述は、実測できていない・不要なため載せなくした(2026-11-19)。
+- 「約2時間20分」の待ち時間の説明(講師メモに残す)
+- destroy の所要時間「実測 6分35秒」(付録B のとおり限定公開サービスアクセス版での値。PSC 版は Memorystore の削除に約8分かかるため、現行構成では実測できていない)
+- 「課金されるリソースは1回目で全部消える」(実機で確認していない)
+- `gcp/tools/check-leftover.sh` の案内、PSC・ピアリングの説明、次回の日付(おしまいのページにある)
 
-**[本文]**
-
-```
-★ 課金されるリソースは1回目で全部消えています
-   VMもSpannerもMemorystoreもCloud Runもロードバランサも消えます
-   残るのはVPCとサブネットだけ(どちらも無料)
-
-★ 気になる人は自分で確認できます
-     gcp/tools/check-leftover.sh [自分の名前]
-
-★ 第4回から PSC に切り替えたので、ピアリングの手作業はありません
-   Memorystore のエンドポイントとサービス接続ポリシーも、
-   1回目の destroy の中でまとめて消えます
-
-★ バケットは force_destroy = true にしてあるので、
-   バージョニングで残った古い版ごと消えます
-   S3のような「手動で空にする」作業は不要です
-
-★ 次回(第7回)は2月8日です
-```
-
-> **★ 講師メモ: 3回目(=2回目の destroy)は講師がやる ★**
+> **★ 講師メモ: 2回目の destroy は講師がやる ★**
 >
-> **受講者は 1 だけ。残りは翌朝まとめて流す。**
+> **受講者は destroy を1回打つだけ。残りは翌朝まとめて流す。**
 >
 > ```
 > # まず dry-run(既定)
@@ -1486,30 +1654,29 @@ Cloud CDN ドキュメント
 >   --project=[プロジェクトID] --var-file=cleanup.tfvars --apply
 > ```
 >
-> **実測で約2時間20分かかっている**(このスライドの数字)。
+> **実測で約2時間20分かかっている**(Cloud Run の削除から、IP の解放まで)。
 > 公式の「1〜2時間」より長いので、**当日の夜ではまだ解放されていない。
 > 翌朝に流すこと。**
 >
 > この回は年末年始明けで、第5回の片付けが終わっていない人も混ざる。
-> 冒頭の確認(S15)と合わせて二重に構えておく。
+> 冒頭の確認(S15b)と合わせて二重に構えておく。
+>
+> 課金されるリソース(VM・Spanner・Memorystore・Cloud Run・ロードバランサ)が
+> 1回目の destroy で消えるかどうかは、今回の見直しでは実機で確認していない。
+> 気になる場合は `gcp/tools/check-leftover.sh [自分の名前]` で確認できる。
 
 ---
 
 ### S44 | おしまい
+
+<!-- slide-id: g045slide -->
 
 **[図版]** AWS版「おしまい」スライドを流用。
 
 **[本文]**
 
 ```
-次回は CI/CD 編 です(2月8日)
-
-GitHub に push すると自動でビルドされ、
-Cloud Run へデプロイされるところまで作ります
-
-今日まで手で docker build していたものが自動になります
-
-お楽しみに！！
+次回 CI/CD 編 もお楽しみに！
 ```
 
 ---
@@ -1553,11 +1720,11 @@ AWS版 第7回との対応:
 | `age` ヘッダ | **8 → 11 → 14**(S30の主張どおり) |
 | ファイル更新 → 古いまま | **再現**(S32の主張どおり) |
 | invalidation | **3秒**で反映(S33を訂正済み) |
-| 宿題1 バージョニング | OK。世代番号で旧版を取得できた |
-| 宿題2 ライフサイクル | OK |
-| 宿題3 Cloud Armor | **`type = "CLOUD_ARMOR_EDGE"` が必要**。修正済み |
-| 宿題3 許可IP / 非許可IP | **200 / 403**。反映まで約1分30秒 |
-| 宿題3 バケット直アクセス | **200**。LB経由が403でも読めてしまう(狙いどおりの落とし穴) |
+| 宿題2の① バージョニング | OK。世代番号で旧版を取得できた |
+| 宿題2の② ライフサイクル | OK |
+| 宿題2の③ Cloud Armor | **`type = "CLOUD_ARMOR_EDGE"` が必要**。修正済み |
+| 宿題2の③ 許可IP / 非許可IP | **200 / 403**。反映まで約1分30秒 |
+| 宿題2の③ バケット直アクセス | **200**。LB経由が403でも読めてしまう(狙いどおりの落とし穴) |
 | destroy 1回目 | **6分35秒**。失敗は private サブネット1件のみ(限定公開サービスアクセス版での実測。PSC 版は Memorystore の削除が約8分かかる) |
 | ピアリングの手動削除 | **PSC に切り替えたので不要**(限定公開サービスアクセス版でも1回目の destroy 内で消えていた) |
 
@@ -1571,9 +1738,29 @@ AWS版 第7回との対応:
    `/static/index.html` はオブジェクト `static/index.html` を取りに行く。
    バケット直下に置くと404になる(S18で明示)
 3. **`cache_mode` の既定は `CACHE_ALL_STATIC`**(`USE_ORIGIN_HEADERS` ではない)
-4. **LBのアクセスログはバックエンドバケットでは有効化できない**(S31を書き換え)
+4. **LBのアクセスログ**: バックエンドバケットは自動で有効(無効化も設定もできない)、バックエンドサービスは既定で無効(S31を書き換え。初稿の「有効化できない」は誤り)
 5. **`edge_security_policy` には `type = "CLOUD_ARMOR_EDGE"` のポリシーが必要**
-   第3回 宿題3 のポリシーは使い回せない
+   第3回 宿題2 ③ のポリシーは使い回せない
+
+## スライド見直しの反映(2026-11-19)
+
+第1〜4回のレビュー指摘を、第6回に先回りで反映した。
+デッキは再生成せず、既存ページの文言差し替え・複製・削除だけで直している。
+
+| 項目 | 内容 |
+|---|---|
+| まとめ | 第4回の形に作り直した(S36 = 丸数字1〜4、S37 = 公開の仕方の比較表)。AWSとのリソース数比較・宿題・片付けは載せない |
+| 宿題2 | S40(①②)と S40b(③)に分割。旧「宿題3」の Cloud Armor は「宿題2の③」に移した。S10・S28 の参照も直した |
+| 宿題3 ドキュメント | S41 に [リンク] 一覧を追加。google_compute_security_policy を追加した |
+| 注意事項 | S43 の1ページにまとめた(S43b は削除)。cd 行と destroy を枠で囲み、実測していない所要時間は載せない |
+| Step ページ | S16 / S19 / S19b / S24 / S27 を `terraform init` / `terraform plan, terraform apply` の形に統一 |
+| 前回のリソースの確認 | S15 から分けて S15b にした |
+| ページ分割 | S08b(ストレージクラス補足)・S18〜S18c(ファイルを置く 1/3〜3/3)・S21 / S21b(CDNポリシー)・S35b(CloudFront補足) |
+| S31 | 「ログでは見られない」を「ログでも確認できる」に訂正(バックエンドバケットのLBログは自動で有効) |
+| S33 | invalidation の反映時間(公式は約10秒)と上限(毎分500リクエスト)を公式ドキュメントに合わせた |
+| S12 | CDN の用語説明(エッジ・キャッシュ)を足し、S3 のスロットリングの話は削除 |
+| AWSとの切り離し | 本文の「AWSでは〜した」を一般的な比較に直した。S35(AWS比較表)は残している |
+| slide-id | 変更したページに付けた |
 
 ## 受講者ロールの追加: **不要**(確認済み)
 
@@ -1607,6 +1794,6 @@ AWS版 第7回との対応:
 ## 設計書からの変更点
 
 - 設計書のアジェンダにある「署名付きURL」は概説(S10)のみにした。
-  ハンズオンに入れると尺が足りないため。宿題3で関連する落とし穴を扱う
+  ハンズオンに入れると尺が足りないため。宿題2の③で関連する落とし穴を扱う
 - AWS版にあった「S3の中身は手動で削除」という注意は不要になった
   (`force_destroy = true`)
