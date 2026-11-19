@@ -1,0 +1,15 @@
+FROM postgres:18-alpine
+
+# OS の修正を取り込む。
+RUN apk --no-cache upgrade
+
+# 公式 entrypoint の root からの権限切替を使わず、最初から postgres で起動する。
+USER postgres
+
+ENV POSTGRES_PASSWORD=infra-study
+ENV POSTGRES_DB=test_db
+ENV TZ='Asia/Tokyo'
+
+COPY ./postgres/init.sql /docker-entrypoint-initdb.d/init.sql
+
+EXPOSE 5432

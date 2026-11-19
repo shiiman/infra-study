@@ -2,146 +2,28 @@
 
 ## 課題
 
-講義では概説だけだった Cloud SQL を実際に作り、アプリから繋ぐ。
-そのあとフェイルオーバーを起こして復旧時間を測る。
+講義で作った Cloud SQL(REGIONAL)で、フェイルオーバーを起こして復旧時間を測る。
 
-## 回答
+Cloud SQL を作るコード(`db.tf`)は、講義の `3. cloudsql` と同じ。
+この回答例では、講義の状態にそのまま計測の手順を足す。
+コードの変更は無いので、講義の続きで作ったリソースをそのまま使える。
 
-`db.tf` を参照。`syukudai1` の内容に Cloud SQL を足したもの。
+★ 講義のあと destroy してしまった場合は、次のコマンドで作り直す。
 
 ```
 read -rs TF_VAR_db_password      # パスワードを入力(画面には出ない)
 export TF_VAR_db_password
-terraform plan
 terraform apply
 unset TF_VAR_db_password
 ```
 
-`db_password` は **ephemeral な変数**(値が plan にも tfstate にも残らない)。
-渡し忘れると `db_password が空です` で apply の前に止まる。
-
-★ 作成に **約7〜10分** かかる(PSC での実測は7分)。
-
-## ポイント1: PSC で繋ぐ(サービス接続ポリシーを足す)
-
-講義の Step2(Memorystore)で作ったポリシーは `gcp-memorystore` 用。
-Cloud SQL は別のサービスクラス(`google-cloud-sql`)なので、**ポリシーをもう1つ**作る。
-ポリシーは、ネットワーク・リージョン・サービスクラスごとに1つ。
-
-```hcl
-resource "google_network_connectivity_service_connection_policy" "sql" {
-  name          = "${var.user_name}-sql"
-  location      = "asia-northeast1"
-  service_class = "google-cloud-sql"
-  network       = google_compute_network.vpc.id
-  psc_config { subnetworks = [google_compute_subnetwork.private.id] }
-}
-
-resource "google_sql_database_instance" "db" {
-  settings {
-    ip_configuration {
-      ipv4_enabled = false               # パブリックIPを持たせない
-      psc_config {
-        psc_enabled               = true
-        allowed_consumer_projects = [var.project_id]
-        psc_auto_connections {           # エンドポイントを自分のVPCに自動で作る
-          consumer_network            = google_compute_network.vpc.id
-          consumer_service_project_id = var.project_id
-        }
-      }
-    }
-  }
-  depends_on = [google_network_connectivity_service_connection_policy.sql]
-}
-```
-
-`private_network` は書かない(それは限定公開サービスアクセス用の設定)。
-Firewall Rules は書かない。エンドポイント宛の通信は、既定の egress 許可で通る。
-
-★ アプリに渡すホストは `private_ip_address` ではなく、PSC のエンドポイントのIP。
-  `terraform output db_host` で出る。
-
-## ポイント2: password_wo が本当に tfstate に残らないか
-
-apply したあと、tfstate を確認する。
-
-```
-grep -c '任意のパスワード' terraform.tfstate
-```
-
-```
-0
-```
-
-`google_sql_user` の中身も見てみる。
-
-```
-terraform show -json | python3 -c "
-import sys,json
-d=json.load(sys.stdin)
-for r in d['values']['root_module']['resources']:
-    if r['type']=='google_sql_user':
-        print(r['values'])
-"
-```
-
-```
-{'name': 'app', 'password': None, 'password_wo': None, 'password_wo_version': 1, ...}
-```
-
-**パスワードは保存されていない。** バージョン番号だけが残る。
-
-> パスワードを変えたいときは `password_wo_version` を 2 に上げる。
-> 値だけ変えても Terraform は差分を検知できない(値を持っていないため)。
-
-### なぜ `default = ""` と `precondition` があるのか
-
-変数に default が無いと、`terraform destroy` でも値を聞かれる。
-消すだけなのにパスワードを打たせたくないので `default = ""` にしてある。
-
-ただし空のままだと、渡し忘れたときに **パスワード無し・接続元 `%` のユーザー**ができる
-(Cloud SQL は空のパスワードを受け付ける)。
-そこで `google_sql_user` に `precondition` を置き、**apply の前に止めている**。
-destroy のときは評価されないので、値なしで消せる。
-
-> Secret Manager の `secret_data_wo`(第1回の宿題2)は、空の値を API が弾くので
-> `precondition` が無くても事故にならない。**弾いてくれるかどうかがこの差の理由。**
-
-## ポイント3: アプリを Cloud SQL に向ける
-
-```
-# 初期データを入れる
-mysql -u app -p -h [db_host] test_db
-
-CREATE TABLE users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255));
-INSERT INTO users (name) VALUES ('infra'), ('study');
-```
-
-```
-docker rm -f app
-docker run -d -p 80:8080 --network app-nw --name app \
-  -e DB_KIND=mysql \
-  -e DB_HOST=[db_host] -e DB_USER=app -e DB_PASS='任意のパスワード' \
-  -e CACHE_HOST=[cache_host] \
-  app:0.1
-
-curl -X GET "http://localhost"
-```
-
-```
-Hello, Infra Study
-hostname: xxxx
-DB接続(MySQL): 成功
-Cache接続: 成功
-```
-
-**1つのイメージで Spanner にも MySQL にも繋がる。** 環境変数を変えただけ。
-
-## ポイント4: フェイルオーバーの計測
+## 計測の手順
 
 ターミナルを2つ開く。
 
 **1つ目: アプリを叩き続ける**
+
+講義で起動したアプリのコンテナ(`DB_HOST` に Cloud SQL のエンドポイントIPを渡したもの)を使う。
 
 ```
 while true; do
@@ -161,13 +43,17 @@ gcloud sql instances failover [自分の名前]-db
 `DB接続` が `失敗` になってから `成功` に戻るまでの秒数を数える。
 
 ```
-14:20:31 ... DB接続(MySQL): 成功
-14:20:32 ... DB接続(MySQL): 失敗   ← ここから
+14:20:31 ... DB接続(PostgreSQL): 成功
+14:20:32 ... DB接続(PostgreSQL): 失敗   ← ここから
 ...
-14:21:35 ... DB接続(MySQL): 成功   ← ここまで
+14:2x:xx ... DB接続(PostgreSQL): 成功   ← ここまで
 ```
 
-**60秒程度かかる。「HA構成なら無停止」ではない。**
+(時刻は例。実際の秒数を自分で測る)
+
+★ 参考: 作った側の計測では、`gcloud sql instances failover` が35秒で終わり、「失敗」だった時間は約12秒だった(1回のみ。ゾーンは b から c に変わった)。
+
+**「HA構成なら無停止」ではない。** 切り替えの間は接続が切れる。
 
 切り替わったことを確認する。
 
@@ -179,7 +65,7 @@ gcloud sql instances describe [自分の名前]-db --format="value(gceZone)"
 
 ## 考えてみてほしいこと
 
-**60秒落ちてもアプリを落とさないには?**
+**切り替えの間もアプリを落とさないには?**
 
 - コネクションプールのリトライ設定
 - 読み取りだけでもキャッシュで返す
@@ -193,16 +79,20 @@ gcloud sql instances describe [自分の名前]-db --format="value(gceZone)"
 
 これは良いのか悪いのか。第8回(監視・運用)で扱います。
 
+**Spanner で同じことをしたら?**
+
+Spanner には `gcloud sql instances failover` に当たるコマンドが無い。
+切り替えという操作が無い理由は、講義のまとめ(Cloud SQL と Spanner の違い)を見直してみてください。
+
 ## 後片付け
 
 ```
 terraform destroy
 ```
 
-★ 作成に約7分かかる。destroy にも時間がかかるので、余裕を持って実行する。
+★ destroy にも時間がかかるので、余裕を持って実行する。
 
 ## 参考
 
-- [Cloud SQL の高可用性](https://cloud.google.com/sql/docs/mysql/high-availability)
-- [Private Service Connect で Cloud SQL に接続する](https://cloud.google.com/sql/docs/mysql/configure-private-service-connect)
-- [書き込み専用引数(write-only arguments)](https://developer.hashicorp.com/terraform/language/resources/ephemeral/write-only)
+- [Cloud SQL の高可用性](https://cloud.google.com/sql/docs/postgres/high-availability)
+- [Cloud SQL のフェイルオーバーを手動で起こす](https://cloud.google.com/sql/docs/postgres/high-availability#failover)

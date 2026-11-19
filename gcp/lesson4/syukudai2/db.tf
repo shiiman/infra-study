@@ -3,7 +3,7 @@
  *
  * Memorystore で作ったポリシー(private_service_connect.tf)とは別に、
  * Cloud SQL のサービスクラス google-cloud-sql 用のポリシーが要る。
- * ポリシーは、サービスクラスごとに1つ作る。
+ * ポリシーは、ネットワーク・リージョン・サービスクラスごとに1つ作る。
  *
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/network_connectivity_service_connection_policy
  */
@@ -19,38 +19,30 @@ resource "google_network_connectivity_service_connection_policy" "sql" {
 }
 
 /**
- * Cloud SQL for MySQL
+ * Cloud SQL for PostgreSQL
  *
- * AWSのRDS / Auroraに相当する。
- *
- * ★ AWSとの違い ★
- * RDSでは以下を作っていた。
- *   サブネットグループ / パラメータグループ /
- *   クラスターパラメータグループ / セキュリティグループ /
- *   RDSクラスター / RDSクラスターインスタンス
- *
- * Cloud SQLはインスタンス1つ + データベース + ユーザーで済む。
+ * Terraform で作るのは、インスタンス1つ + データベース + ユーザーの3リソース。
  *   サブネットグループ   → 不要(PSCのエンドポイントが自動で作られる)
- *   パラメータグループ   → database_flags で直接指定
- *   セキュリティグループ → 不要
- *   クラスター/インスタンスの2階層 → 1つにまとまっている
+ *   パラメータグループ   → 必要なときは database_flags で直接指定
+ *   セキュリティグループ → 不要(エンドポイント宛の通信になるのでFirewall Rulesも要らない)
  *
  * https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/sql_database_instance
  */
 resource "google_sql_database_instance" "db" {
   name             = "${var.user_name}-db"
-  database_version = "MYSQL_8_4"
+  database_version = "POSTGRES_18"
   region           = "asia-northeast1"
 
   settings {
-    // MySQL 8.4 の既定は Enterprise Plus。勉強会では共有 CPU を使う。
+    // PostgreSQL 17 以降の既定は Enterprise Plus。勉強会では Enterprise を使う
     edition = "ENTERPRISE"
 
-    // db-f1-micro は共有CPU。本番では db-custom-2-7680 のように指定する
-    tier = "db-g1-small"
+    // 共有CPU(db-g1-small など)は HA にできないので、専用の 1vCPU を使う
+    // 本番では db-custom-2-7680 のように、負荷に合わせて指定する
+    tier = "db-custom-1-3840"
 
     // ZONAL    : 1ゾーン。フェイルオーバーなし
-    // REGIONAL : 別ゾーンにスタンバイを持ち、自動フェイルオーバーする
+    // REGIONAL : 別ゾーンにスタンバイを持ち、自動フェイルオーバーする(HA)
     availability_type = "REGIONAL"
 
     disk_size = 10
@@ -75,16 +67,13 @@ resource "google_sql_database_instance" "db" {
       }
     }
 
-    // AWSのパラメータグループに相当
-    database_flags {
-      name  = "character_set_server"
-      value = "utf8mb4"
-    }
-
     backup_configuration {
-      enabled            = true
-      binary_log_enabled = true
-      start_time         = "18:00" // UTC。JSTの午前3時
+      enabled = true
+
+      // PostgreSQL の HA には、ポイントインタイムリカバリ(WALの保管)が要る
+      point_in_time_recovery_enabled = true
+
+      start_time = "18:00" // UTC。JSTの午前3時
     }
   }
 
@@ -140,15 +129,14 @@ variable "db_password" {
 resource "google_sql_user" "app" {
   name     = "app"
   instance = google_sql_database_instance.db.name
-  host     = "%"
 
   // password ではなく password_wo を使う(tfstateに残らない)
   password_wo         = var.db_password
   password_wo_version = 1
 
   lifecycle {
-    // 渡し忘れると host="%" のパスワード無しユーザーができてしまうので、apply の前に止める
-    // (Secret Manager と違い、Cloud SQL は空のパスワードを受け付ける)
+    // 渡し忘れるとパスワード無しのユーザーができてしまうので、apply の前に止める
+    // (Cloud SQL は空のパスワードを受け付ける)
     // destroy のときは評価されないので、値なしで消せる
     precondition {
       condition     = var.db_password != ""
