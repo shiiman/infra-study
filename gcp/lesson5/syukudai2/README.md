@@ -71,7 +71,7 @@ gcloud logging read \
 
 ```
 docker run -p 8080:8080 \
-  -e DB_KIND=spanner -e SPANNER_DATABASE=... \
+  -e SPANNER_DATABASE=... -e CACHE_HOST=... \
   [イメージ]
 ```
 

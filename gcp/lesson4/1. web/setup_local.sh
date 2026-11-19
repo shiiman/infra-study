@@ -89,6 +89,8 @@ step "[6/6] app: アプリのコンテナをビルドして起動する(約5分�
 run docker build --pull --no-cache -t app:0.1 .
 run docker run -d -p 80:8080 --network "$NETWORK" --name app \
   -e DB_HOST=db -e DB_PASS=infra-study -e CACHE_HOST=cache \
+  -e SPANNER_EMULATOR_HOST=spanner:9010 \
+  -e SPANNER_DATABASE=projects/test-project/instances/test-instance/databases/test-db \
   app:0.1
 
 echo

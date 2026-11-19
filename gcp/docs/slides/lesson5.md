@@ -771,7 +771,6 @@ resource "google_cloud_run_v2_service" "app" {
 **[本文]**
 
 ```
-      env { name = "DB_KIND"          value = "spanner" }
       env { name = "SPANNER_DATABASE" value = google_spanner_database.app.id }
       env { name = "CACHE_HOST"       value = local.cache_host }
     }
@@ -784,6 +783,7 @@ resource "google_cloud_run_v2_service" "app" {
 }
 
 ★ 第4回でアプリを環境変数化しておいたので、そのまま使えます
+★ DB_HOST は渡していません(Cloud SQL は使わない)。アプリの「DB接続(PostgreSQL)」は「未設定」と出ます
 ★ min_instance_count = 0 が Fargate との一番の違い
    ECSは desired_count で固定。0にするとサービスが止まる
 ```
@@ -851,8 +851,9 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 
   Hello, Infra Study
   hostname: localhost
-  DB接続(Spanner): 成功     ← 繋がる
+  DB接続(PostgreSQL): 未設定
   Cache接続: 失敗            ← 繋がらない
+  Spanner接続: 成功          ← 繋がる
 
 ★ Spanner には繋がるのに、Memorystore には繋がらない
 
@@ -863,8 +864,9 @@ resource "google_cloud_run_v2_service_iam_member" "public" {
 > Cloud Run のデプロイは 35秒。デプロイ直後からアクセスできる。
 >
 > **PSC 版でも検証済み(2026-11-17、Cloud Shell)**: 同じ出力になった(デプロイ 41秒)。
-> ただし `Cache接続: 失敗` は、接続のタイムアウトを待つため、**返ってくるまで約30秒**かかる。
-> curl が止まったように見えるので、受講者には先に伝えておく。
+> ただし、アプリを第4回の最初の版(待ち時間の上限なし)で動かしたときは、`Cache接続: 失敗` が接続のタイムアウトを待つため、**返ってくるまで約30秒**かかった。
+> 2026-11-19 にアプリを直し、接続の確認を5秒で打ち切るようにした(第4回と同じコード)ので、返ってくるまでは約5秒になるはず。
+> **Cloud Run での再計測はまだ**(上の表示も、新しいアプリでの実測ではなく、コードからの想定)。
 
 **[話す]** ここで受講者に聞く。第4回をやっていれば答えが出るはず。
 
@@ -1041,8 +1043,9 @@ resource "google_cloud_run_v2_service" "app" {
 
   Hello, Infra Study
   hostname: localhost
-  DB接続(Spanner): 成功
+  DB接続(PostgreSQL): 未設定
   Cache接続: 成功            ← 繋がった
+  Spanner接続: 成功
 
 ★ サブネットのIPが1つ消費されます
    Cloud Runのインスタンスが増えるとその分使われるので、
@@ -1294,8 +1297,9 @@ resource "google_compute_global_forwarding_rule" "https" {
 
   Hello, Infra Study
   hostname: localhost
-  DB接続(Spanner): 成功
+  DB接続(PostgreSQL): 未設定
   Cache接続: 成功
+  Spanner接続: 成功
 
 ★ 証明書はそのまま。ブラウザの鍵マークも変わりません
 ★ 中身だけ VM から Cloud Run に入れ替わりました

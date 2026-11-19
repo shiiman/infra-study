@@ -36,7 +36,7 @@
 | 休憩 | 5分 | S16 |
 | 4種類の接続方式 + Memorystore(Step2) | 24分 | S17〜S24 |
 | **Cloud SQL(Step3)** | **15分** | S41・S41-2・S43・S41-3・S25・S42・S41-4 |
-| **Spanner(Step4)** | **41分** | S26〜S42-2(S32-2 はエミュレータの確認) |
+| **Spanner(Step4)** | **39分** | S26〜S42-2 |
 | まとめ・宿題 | 6分 | S45〜S53 |
 
 > **この時間配分は机上の見積もりで、通しで測っていない。**
@@ -46,9 +46,6 @@
 > - Spanner 41 → 39分: S32(料金)・S38(データを入れてみる)を短くする
 > - まとめ・宿題 7 → 6分: 宿題3(調べ物)を無くした分
 > - Cloud SQL 18 → 15分: 待ち時間に S25・S42 を進めて詰める
->
-> - 2026-11-18 に S32-2(Spanner エミュレータに繋ぐ)を足したので、Spanner を 39 → 41分にした。表の合計は **122分**で、2分超えている。
->   S32(料金)・S38(データを入れてみる)・S39(まとめ)を、さらに短くして収める。
 >
 > 実際に通して測ってから、この表を直すこと。
 
@@ -214,8 +211,9 @@ Spanner
 ゴール：Memorystore・Cloud SQL・Spanner に接続できる
 
 Hello, Infra Study
-DB接続(Spanner): 成功
+DB接続(PostgreSQL): 成功
 Cache接続: 成功
+Spanner接続: 成功
 ```
 
 ---
@@ -447,15 +445,16 @@ curl http://localhost
   hostname: [CONTAINER ID]
   DB接続(PostgreSQL): 成功
   Cache接続: 成功
+  Spanner接続: 成功
 
 ◼設定は環境変数から読みます
 
-DB_KIND                             使うDBを切り替える(postgres / spanner)
 DB_HOST / DB_USER / DB_PASS / DB_NAME   PostgreSQL(ローカル・Cloud SQL)の接続先
+CACHE_HOST                          キャッシュ(Redis)の接続先
 SPANNER_DATABASE                    Spanner の接続先
 SPANNER_EMULATOR_HOST              Spanner エミュレータの場所(ローカルだけ。本物のときは渡さない)
-CACHE_HOST                          キャッシュ(Redis)の接続先
 
+※ DB_HOST・CACHE_HOST・SPANNER_DATABASE が空だと、確かめずに「未設定」と出る
 ※ 環境変数で渡すのは、接続先を変えるたびにビルドし直さなくて済むため
 ```
 
@@ -496,7 +495,7 @@ CACHE_HOST                          キャッシュ(Redis)の接続先
 SSHで入ったVMでは、複数行をまとめて貼ると行が欠けることがあるため、貼る行を減らしました。
 スクリプトは約10分かかります。終わったら、確認は手で `curl` を実行します。確認はスクリプトに含めていません。
 「失敗」と出たら少し待って、もう一度 `curl` を実行してもらいます。
-「DB接続」と「Cache接続」がどちらも「成功」と出れば完了です。待っても失敗が続くときは `docker logs db` / `docker logs app` を見ます。
+「DB接続」「Cache接続」「Spanner接続」の3つが「成功」と出れば完了です。待っても失敗が続くときは `docker logs db` / `docker logs app` を見ます。
 
 **★ 第4回からVMを e2-medium に上げています。**
 Spannerのクライアントライブラリ(Google Cloud Go SDK + gRPC)は依存が大きく、
@@ -555,7 +554,8 @@ Spannerのクライアントライブラリ(Google Cloud Go SDK + gRPC)は依存
 > docker build --pull --no-cache -t cache:0.1 -f ./dockerfile_redis . && docker run -d --network app-nw --name cache cache:0.1
 > docker run -d --network app-nw -p 127.0.0.1:9020:9020 --name spanner gcr.io/cloud-spanner-emulator/emulator
 > # 起動を待って、REST(9020)でインスタンス test-instance とデータベース test-db を作る(スクリプトの⑤を参照)
-> docker build --pull --no-cache -t app:0.1 . && docker run -d -p 80:8080 --network app-nw --name app -e DB_HOST=db -e DB_PASS=infra-study -e CACHE_HOST=cache app:0.1
+> docker build --pull --no-cache -t app:0.1 . && docker run -d -p 80:8080 --network app-nw --name app -e DB_HOST=db -e DB_PASS=infra-study -e CACHE_HOST=cache \
+>   -e SPANNER_EMULATOR_HOST=spanner:9010 -e SPANNER_DATABASE=projects/test-project/instances/test-instance/databases/test-db app:0.1
 > ```
 
 ---
@@ -1114,6 +1114,8 @@ Cloud Shell のタブをもう1つ開いて、そちらでVMに入る。Memoryst
   docker run -d -p 80:8080 --network app-nw --name app \
     -e DB_HOST=db -e DB_PASS=infra-study \
     -e CACHE_HOST=[cache_host] \
+    -e SPANNER_EMULATOR_HOST=spanner:9010 \
+    -e SPANNER_DATABASE='projects/test-project/instances/test-instance/databases/test-db' \
     app:0.1
 
   curl -X GET "http://localhost"     → Cache接続: 成功
@@ -1199,10 +1201,13 @@ docker stop app && docker rm app                 ← アプリを Cloud SQL に�
 docker run -d -p 80:8080 --network app-nw --name app \
   -e DB_HOST=[db_host] -e DB_USER=app -e DB_PASS='[パスワード]' \
   -e CACHE_HOST=[cache_host] \
+  -e SPANNER_EMULATOR_HOST=spanner:9010 \
+  -e SPANNER_DATABASE='projects/test-project/instances/test-instance/databases/test-db' \
   app:0.1
 
 curl -X GET "http://localhost"     → DB接続(PostgreSQL): 成功
                                      Cache接続: 成功
+                                     Spanner接続: 成功(エミュレータ)
 
 ★ Firewall Rules は書いていません(Memorystore と同じ。送信は既定で許可)
 ★ 渡すのは db_host(PSC のエンドポイントIP)。private_ip_address は空になる
@@ -1392,45 +1397,6 @@ Google 広告、Gmail、Photos などを支えている
 
 ---
 
-### S32-2 | まず Spanner エミュレータに繋ぐ
-
-<!-- slide-id: sp_emu -->
-
-**[図版]** S41-5(Cloud SQL への切り替え)と同じ形。灰色のコード枠(行内に「←」注釈)と、下に黄色の※枠。
-
-**[本文]**
-
-```
-◼VMの中で、アプリを Spanner エミュレータに向ける
-
-docker stop app && docker rm app                 ← アプリをエミュレータに向けて再起動
-docker run -d -p 80:8080 --network app-nw --name app \
-  -e DB_KIND=spanner -e SPANNER_EMULATOR_HOST=spanner:9010 \
-  -e SPANNER_DATABASE='projects/test-project/instances/test-instance/databases/test-db' \
-  -e CACHE_HOST=[cache_host] \
-  app:0.1
-
-curl -X GET "http://localhost"     → DB接続(Spanner): 成功
-                                     Cache接続: 成功
-
-※ SPANNER_EMULATOR_HOST があると、ドライバがエミュレータに繋ぐ(アプリのコードは同じ)
-※ 本物に置き換えるときは、この環境変数を外して SPANNER_DATABASE を本物の名前にする
-```
-
-**[話す]** Step1 のスクリプトで、Spanner のエミュレータも起動してあります。
-まず、アプリをエミュレータに向けて、Spanner のドライバで繋がることを確かめます。
-`DB_KIND=spanner` にして、`SPANNER_EMULATOR_HOST` でエミュレータの場所を教えるだけで、コードは変えていません。
-このあと、同じアプリを本物の Spanner に向けます。
-
-> **検証済み(2026-11-18、ローカルの Docker)**: エミュレータ(`gcr.io/cloud-spanner-emulator/emulator`)を起動し、
-> REST(9020)でインスタンスとデータベースを作り、アプリのコンテナを `DB_KIND=spanner` + `SPANNER_EMULATOR_HOST` で
-> 繋ぐと「DB接続(Spanner): 成功」になった。アプリのコードは変えていない。
-> **検証済み(2026-11-18、GCE の VM)**: `setup_local.sh` を通して実行し、エミュレータのインスタンス `test-instance` と
-> データベース `test-db` が作られ、アプリを `DB_KIND=spanner` に切り替えると `spanner:9010` で名前解決できて
-> 「DB接続(Spanner): 成功」になった。
-
----
-
 ### S33 | Terraform コード(Spanner インスタンス)
 
 **[本文]**
@@ -1603,23 +1569,24 @@ gcloud compute ssh [自分の名前]-web --zone=asia-northeast1-a --tunnel-throu
 sudo su -
 docker stop app && docker rm app                   ← アプリをSpannerに向けて再起動
 docker run -d -p 80:8080 --network app-nw --name app \
-  -e DB_KIND=spanner \
-  -e SPANNER_DATABASE='projects/xxx/instances/yyy-spanner/databases/test-db' \
+  -e DB_HOST=[db_host] -e DB_USER=app -e DB_PASS='[パスワード]' \
   -e CACHE_HOST=[cache_host] \
+  -e SPANNER_DATABASE='projects/xxx/instances/yyy-spanner/databases/test-db' \
   app:0.1
 
-curl -X GET "http://localhost"     → DB接続(Spanner): 成功
+curl -X GET "http://localhost"     → DB接続(PostgreSQL): 成功
                                      Cache接続: 成功
+                                     Spanner接続: 成功(本物)
 ```
 
 **[話す]**
 
-- エミュレータのときに渡していた `SPANNER_EMULATOR_HOST` を外しています。外すと、ドライバは本物の Spanner に繋ぎます。
+- エミュレータのときに渡していた `SPANNER_EMULATOR_HOST` を外し、`SPANNER_DATABASE` を本物の名前にしています。コードは同じで、外すとドライバは本物の Spanner に繋ぎます。
 - パスワードを渡していません。VMに付いているサービスアカウントの権限で繋がっています。
 - ホスト名もポート番号も指定していません。SPANNER_DATABASE に書いたのはデータベースの名前だけです。
 
 > **検証済み(2026-08-28)**: 外部IPを持たないVMから
-> `DB接続(Spanner): 成功` を確認。
+> `Spanner接続: 成功` を確認。
 > go-sql-spanner ドライバでのビルドと接続が通ることも確認済み。
 
 ---
@@ -1683,7 +1650,7 @@ AWS との比較と TrueTime は、S27 を削除したので載せない。
 ### S40 | Spanner 接続完了
 
 **[図版]** AWS版 第5回「Aurora 接続完了！」の構図を流用。
-**新規スクリーンショット**(`DB接続(Spanner): 成功` が見えるように)。
+**新規スクリーンショット**(`Spanner接続: 成功` が見えるように)。
 
 ---
 
@@ -2041,10 +2008,30 @@ Step1 のローカル構成に、db・cache のほかに **Spanner エミュレ�
 「ローカルの3コンテナを、Memorystore → Cloud SQL → 本物の Spanner の順に置き換える」という筋にそろえるため。
 
 - `setup_local.sh`: ⑤ spanner を追加(エミュレータを起動し、REST でインスタンス `test-instance` とデータベース `test-db` を作る。テーブルは作らない)
-- アプリのコードは変えていない(`SPANNER_EMULATOR_HOST` を渡すとドライバがエミュレータに繋ぐ)
-- 原稿: S13・S15-2 を直し、S32-2(エミュレータに繋ぐ)を足し、S37 の話す内容に1点足した
-- スライド: 13ページを作り直し(cache・db・spanner を縦に並べ、置き換え先を右に表示)、15-2ページを7行に、「まず Spanner エミュレータに繋ぐ」(`sp_emu`)を料金のページの後ろに足した
-- ローカルの Docker と、GCE の VM(Step1 の分だけ作って確認し、削除済み)の両方で確認した(「DB接続(Spanner): 成功」)。スクリプトの実行は約10分で、以前の約6分より長い(Spanner のライブラリの取得でアプリのビルドが約5分かかるため)
+- 原稿: S13・S15-2 を直し、S37 の話す内容に1点足した(S32-2「エミュレータに繋ぐ」は、いったん足したあと、下の2026-11-19の変更で外した)
+- スライド: 13ページを作り直し(cache・db・spanner を縦に並べ、置き換え先を右に表示)、15-2ページを7行にした
+- ローカルの Docker と、GCE の VM(Step1 の分だけ作って確認し、削除済み)の両方で確認した。スクリプトの実行は約10分で、以前の約6分より長い(Spanner のライブラリの取得でアプリのビルドが約5分かかるため)
+
+**アプリの表示に Spanner の行を追加(2026-11-19、ユーザーの指示)**
+
+アプリは「PostgreSQL・Cache・Spanner」の3つの接続を、切り替えではなく**毎回すべて確かめて**表示する。
+
+```text
+Hello, Infra Study
+hostname: [CONTAINER ID]
+DB接続(PostgreSQL): 成功
+Cache接続: 成功
+Spanner接続: 成功
+```
+
+- `DB_KIND` は廃止した(切り替えではないので不要)。第4回の6か所のアプリ(`1. web`〜`4. spanner`・`syukudai1`・`syukudai2`)の `main.go` は同じ内容。第5回のコードも同じ内容に揃えた(2026-11-19。`DB_KIND` を渡す設定も削除)
+- `DB_HOST`・`CACHE_HOST`・`SPANNER_DATABASE` が空のものは、確かめずに「未設定」と出る(失敗とは分ける)。第5回の Cloud Run は Cloud SQL を使わないので、`DB接続(PostgreSQL): 未設定` と出る
+- 接続の確認は 5 秒で打ち切る。Spanner のドライバは繋がらないとき PingContext の時間切れが効かず、約40秒かかったため、ゴルーチンと `time.After` で待つ時間を切った(エミュレータが落ちていても応答は約5秒)
+- `setup_local.sh` は app に `SPANNER_EMULATOR_HOST=spanner:9010` と `SPANNER_DATABASE`(エミュレータの `test-db`)を渡す。Step1 の時点から「Spanner接続: 成功」と出る
+- Step2(Memorystore)・Step3(Cloud SQL)の docker run でも、この2つを渡し続ける。Step4 で `SPANNER_EMULATOR_HOST` を外し、`SPANNER_DATABASE` を本物の名前にする
+- S32-2(エミュレータに繋ぐ)は不要になったので外した。時間配分は Spanner 41 → 39分、合計 120分に戻った
+- ローカルで確認: エミュレータあり=成功、`SPANNER_DATABASE` なし=未設定、エミュレータ停止=失敗(約5秒)
+- スライド(反映済み): ゴール(g004slide)・14ページ(環境変数の表から DB_KIND を削除、出力に Spanner接続を追加)・Memorystore(g024slide)・Cloud SQL(cs_sw2)・Spanner(u37_tf)の docker run と出力を直し、`sp_emu` のページを削除した。まだ実機のVMで通しては確認していない(新しい main.go のローカル確認のみ)
 
 **Googleスライドへの反映(実施済み。2026-11-18)**
 
@@ -2109,7 +2096,7 @@ Step0〜3 と Cloud SQL(宿題2相当)を通しで apply → destroy 済み。
 | Spanner(インターリーブDDL含む) | OK。**1分6秒**。Cloud SQLよりずっと速い |
 | **外部IPなしVMから Spanner へ到達** | **OK**。Private Google Access のみで届いた |
 | **Spanner の IAM** | **OK**。DB単位の `roles/spanner.databaseUser` だけで足りた |
-| **go-sql-spanner でのビルドと接続** | **OK**。`DB接続(Spanner): 成功` |
+| **go-sql-spanner でのビルドと接続** | **OK**。`DB接続(Spanner): 成功`(2026-11-19 から表示は `Spanner接続: 成功`) |
 | Spanner + Memorystore 同時接続 | OK |
 | Cloud SQL(REGIONAL) | OK。9分28秒。プライマリ 1-a / セカンダリ 1-c |
 | **`password_wo` が tfstate に残らない** | **OK**。`password: None` のみ。実値の grep は0件 |
@@ -2206,6 +2193,6 @@ roles/spanner.admin
 その他:
 
 - アプリの設定を環境変数化した。1つのイメージで PostgreSQL / Spanner の
-  両方に繋げるようにしてある(`DB_KIND` で切り替え)
+  両方に繋げるようにしてある(2026-11-19 から、切り替えではなく3行すべての結果を出す。下の「アプリの表示に Spanner の行を追加」)
 - 「4種類の接続方式」は設計書5章の「置換では済まない設計判断」に
   追加すべき項目。第5回(Cloud Run)でも接続方式の話が出てくる

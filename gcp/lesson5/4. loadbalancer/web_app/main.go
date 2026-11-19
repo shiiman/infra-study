@@ -1,14 +1,16 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/gomodule/redigo/redis"
+	_ "github.com/googleapis/go-sql-spanner"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // 設定は環境変数から読む
@@ -27,65 +29,87 @@ func main() {
 	http.ListenAndServe(":8080", nil)
 }
 
-// DB_KIND で接続先の種類を切り替える
+// 接続先は3つあり、それぞれ独立して確かめる(切り替えではなく、全部の結果を出す)
+// 接続先の環境変数(DB_HOST・CACHE_HOST・SPANNER_DATABASE)が空のものは、確かめずに「未設定」と出す
 //
-//	mysql   ローカルのMySQLコンテナ / Cloud SQL
-//	spanner Cloud Spanner
+//	PostgreSQL  ローカルのコンテナ / Cloud SQL
+//	Cache       ローカルの Redis コンテナ / Memorystore
+//	Spanner     ローカルのエミュレータ / 本物の Cloud Spanner
 //
 // Spannerはドライバが違うだけで database/sql の使い方は同じ。
 // 接続文字列に IP もポートも出てこないのがポイント。
-func openDB() (*sql.DB, string) {
-	switch env("DB_KIND", "mysql") {
-	case "spanner":
-		// projects/<project>/instances/<instance>/databases/<database>
-		return openSpanner(env("SPANNER_DATABASE", ""))
-	default:
-		return openMySQL()
+// SPANNER_EMULATOR_HOST があると、ドライバはエミュレータに繋ぐ(コードは変わらない)。
+
+// 接続を確かめるときに待つ時間
+const timeout = 5 * time.Second
+
+// 接続できるか確かめる。繋がらないときに、ブラウザを待たせ続けないようにする
+// (ドライバによっては、PingContext の時間切れが効かず、リトライし続けるため)
+func ping(driver, dsn string) string {
+	result := make(chan string, 1)
+	go func() {
+		db, err := sql.Open(driver, dsn)
+		if err != nil {
+			result <- "失敗"
+			return
+		}
+		defer db.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
+			result <- "失敗"
+			return
+		}
+		result <- "成功"
+	}()
+
+	select {
+	case r := <-result:
+		return r
+	case <-time.After(timeout):
+		return "失敗"
 	}
 }
 
-func openSpanner(dsn string) (*sql.DB, string) {
-	db, err := sql.Open("spanner", dsn)
-	if err != nil {
-		return nil, "Spanner"
+func checkPostgres() string {
+	host := env("DB_HOST", "")
+	if host == "" {
+		return "未設定"
 	}
-	return db, "Spanner"
+	// sslmode=prefer は、サーバが TLS に対応していれば TLS で、していなければ平文で繋ぐ
+	// (ローカルのコンテナは平文、Cloud SQL は TLS)
+	dsn := "host=" + host + " port=" + env("DB_PORT", "5432") +
+		" user=" + env("DB_USER", "postgres") + " password=" + env("DB_PASS", "") +
+		" dbname=" + env("DB_NAME", "test_db") + " sslmode=prefer connect_timeout=5"
+	return ping("pgx", dsn)
 }
 
-func openMySQL() (*sql.DB, string) {
-	dsn := env("DB_USER", "root") + ":" + env("DB_PASS", "") +
-		"@tcp(" + env("DB_HOST", "db") + ":" + env("DB_PORT", "3306") + ")/" +
-		env("DB_NAME", "test_db") + "?charset=utf8mb4"
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return nil, "MySQL"
+func checkCache() string {
+	host := env("CACHE_HOST", "")
+	if host == "" {
+		return "未設定"
 	}
-	return db, "MySQL"
+	cache, err := redis.Dial("tcp", host+":"+env("CACHE_PORT", "6379"),
+		redis.DialConnectTimeout(timeout))
+	if err != nil {
+		return "失敗"
+	}
+	cache.Close()
+	return "成功"
+}
+
+func checkSpanner() string {
+	// projects/<project>/instances/<instance>/databases/<database>
+	dsn := env("SPANNER_DATABASE", "")
+	if dsn == "" {
+		return "未設定"
+	}
+	return ping("spanner", dsn)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	hostname, _ := os.Hostname()
 
-	dbStat := "成功"
-	db, kind := openDB()
-	if db == nil {
-		dbStat = "失敗"
-	} else {
-		defer db.Close()
-		if err := db.Ping(); err != nil {
-			dbStat = "失敗"
-		}
-	}
-
-	cacheStat := "成功"
-	cache, err := redis.Dial("tcp",
-		env("CACHE_HOST", "cache")+":"+env("CACHE_PORT", "6379"))
-	if err != nil {
-		cacheStat = "失敗"
-	} else {
-		defer cache.Close()
-	}
-
-	fmt.Fprintf(w, "Hello, Infra Study\nhostname: %s\nDB接続(%s): %s\nCache接続: %s\n",
-		hostname, kind, dbStat, cacheStat)
+	fmt.Fprintf(w, "Hello, Infra Study\nhostname: %s\nDB接続(PostgreSQL): %s\nCache接続: %s\nSpanner接続: %s\n",
+		hostname, checkPostgres(), checkCache(), checkSpanner())
 }
