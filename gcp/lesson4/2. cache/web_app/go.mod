@@ -3,9 +3,9 @@ module web_app
 go 1.26.10
 
 require (
-	github.com/go-sql-driver/mysql v1.9.3
 	github.com/gomodule/redigo v1.9.2
 	github.com/googleapis/go-sql-spanner v1.16.0
+	github.com/jackc/pgx/v5 v5.13.0
 )
 
 require (
@@ -18,7 +18,6 @@ require (
 	cloud.google.com/go/longrunning v0.8.0 // indirect
 	cloud.google.com/go/monitoring v1.24.3 // indirect
 	cloud.google.com/go/spanner v1.87.0 // indirect
-	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.5.3 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -35,6 +34,9 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.11 // indirect
 	github.com/googleapis/gax-go/v2 v2.17.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.7.0 // indirect
 	go.opencensus.io v0.24.0 // indirect

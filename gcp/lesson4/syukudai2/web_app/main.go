@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/gomodule/redigo/redis"
+	_ "github.com/googleapis/go-sql-spanner"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // 設定は環境変数から読む
@@ -29,18 +29,18 @@ func main() {
 
 // DB_KIND で接続先の種類を切り替える
 //
-//	mysql   ローカルのMySQLコンテナ / Cloud SQL
-//	spanner Cloud Spanner
+//	postgres ローカルのPostgreSQLコンテナ / Cloud SQL
+//	spanner  Cloud Spanner
 //
 // Spannerはドライバが違うだけで database/sql の使い方は同じ。
 // 接続文字列に IP もポートも出てこないのがポイント。
 func openDB() (*sql.DB, string) {
-	switch env("DB_KIND", "mysql") {
+	switch env("DB_KIND", "postgres") {
 	case "spanner":
 		// projects/<project>/instances/<instance>/databases/<database>
 		return openSpanner(env("SPANNER_DATABASE", ""))
 	default:
-		return openMySQL()
+		return openPostgres()
 	}
 }
 
@@ -52,15 +52,17 @@ func openSpanner(dsn string) (*sql.DB, string) {
 	return db, "Spanner"
 }
 
-func openMySQL() (*sql.DB, string) {
-	dsn := env("DB_USER", "root") + ":" + env("DB_PASS", "") +
-		"@tcp(" + env("DB_HOST", "db") + ":" + env("DB_PORT", "3306") + ")/" +
-		env("DB_NAME", "test_db") + "?charset=utf8mb4"
-	db, err := sql.Open("mysql", dsn)
+func openPostgres() (*sql.DB, string) {
+	// sslmode=prefer は、サーバが TLS に対応していれば TLS で、していなければ平文で繋ぐ
+	// (ローカルのコンテナは平文、Cloud SQL は TLS)
+	dsn := "host=" + env("DB_HOST", "db") + " port=" + env("DB_PORT", "5432") +
+		" user=" + env("DB_USER", "postgres") + " password=" + env("DB_PASS", "") +
+		" dbname=" + env("DB_NAME", "test_db") + " sslmode=prefer connect_timeout=5"
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		return nil, "MySQL"
+		return nil, "PostgreSQL"
 	}
-	return db, "MySQL"
+	return db, "PostgreSQL"
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
