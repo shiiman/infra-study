@@ -15,7 +15,7 @@ resource "google_compute_security_policy" "edge" {
   // ★ これが無いと edge_security_policy に指定できない
   type = "CLOUD_ARMOR_EDGE"
 
-  // ルールの中身は第3回 宿題3 と同じ
+  // ルールの中身は第3回 宿題2 ③ と同じ
 }
 
 resource "google_compute_backend_bucket" "static" {
@@ -28,7 +28,7 @@ resource "google_compute_backend_bucket" "static" {
 
 ## ★ 最大のハマりどころ: ポリシーには2種類ある
 
-第3回 宿題3 のポリシーをそのまま使い回そうとすると失敗する。
+第3回 宿題2 ③ のポリシーをそのまま使い回そうとすると失敗する。
 
 ```
 Error: Error setting Backend Service security policy: googleapi: Error 400:
@@ -102,9 +102,12 @@ LBを経由しないアクセスには関与しない。
 
 | 方法 | 内容 |
 |---|---|
-| 署名付きURL | 有効期限付きのURLを発行する。バケットは非公開のまま |
-| 署名付きCookie | CDN配信用。Cloud CDNの機能 |
-| バケットを非公開にする | ただしバックエンドバケットからも読めなくなる |
+| 署名付きURL | 有効期限付きのURLを発行する。バケットは非公開のまま。Cloud CDN のサービスアカウントに `roles/storage.objectViewer` を付ける |
+| 署名付きCookie | CDN配信用。Cloud CDN の機能。複数ファイルをまとめて扱える。バケットは非公開のまま(同じく objectViewer が要る) |
+| バケットを非公開にするだけ | CDN からも読めなくなり、403 になる(講義の Step2 の状態) |
+
+署名付きURL・Cookie の「バケットは非公開のまま」は、公式ドキュメントで確認した内容。
+この回では実機で試していない。
 
 静的ファイルが「見られて困るもの」なら、
 公開バケット + Cloud Armor という構成自体を見直すべき。

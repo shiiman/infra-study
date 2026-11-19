@@ -28,11 +28,11 @@ resource "google_storage_bucket" "static" {
   uniform_bucket_level_access = true
 
   // 勉強会用: 中身が残っていても destroy できるようにする
-  // ★ AWS版では「S3の中身は手動で削除してください」という注意があった
+  // ★ S3 は中身があるとバケットを削除できず、手動で空にする必要がある
   //   GCPは force_destroy = true で自動的に消せる
   force_destroy = true
 
-  // 宿題1: バージョニングを有効化する
+  // 宿題2の①: バージョニングを有効化する
   // 上書きしても前の世代が残る。誤って消したときに戻せる
   versioning {
     enabled = true
@@ -43,7 +43,7 @@ resource "google_storage_bucket" "static" {
  * 静的ファイルをアップロードする
  *
  * ★ Terraformでファイルを配置できる ★
- * AWS版では `aws s3 sync` を手で叩いていたが、
+ * S3 では `aws s3 sync` を手で叩くことが多いが、
  * google_storage_bucket_object でコード管理できる。
  *
  * 大量のファイルには向かない(1ファイル1リソースになる)ので、
