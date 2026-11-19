@@ -9,7 +9,7 @@
 
 このディレクトリには講義で作った Cloud SQL のコード(`db.tf`)も入っている。
 `google_sql_user` の `precondition` が、パスワードが空のままの `plan` / `apply` を止めるので、
-先に環境変数を設定する。パスワードは変えないので、値は何でもよい(`password_wo_version` を上げない限り送られない)。
+先に環境変数を設定する。パスワードは変えないので、講義と同じ値(自分の `user_name`。メールの `_` を `-` に変えたもの)を入れる(`password_wo_version` を上げない限り送られない)。
 
 ```
 read -rs TF_VAR_db_password

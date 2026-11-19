@@ -34,8 +34,8 @@
 | データベースの選び方 | 10分 | S04-3・S06・S08・S09(S05・S07 は欠番) |
 | 準備 + Step1(ローカルDB) | 15分 | S11〜S15-2(S10 は S04-2 へ移動、S12-2 は章扉) |
 | 休憩 | 5分 | S16 |
-| 4種類の接続方式 + Memorystore(Step2) | 24分 | S17〜S24 |
-| **Cloud SQL(Step3)** | **15分** | S41・S41-2・S43・S41-3・S25・S42・S41-4 |
+| 4種類の接続方式 + Memorystore(Step2) | 24分 | S17〜S25 |
+| **Cloud SQL(Step3)** | **15分** | S41・S41-2・S43・S41-3・S42・S41-4・S41-5 |
 | **Spanner(Step4)** | **39分** | S26〜S42-2 |
 | まとめ・宿題 | 6分 | S45〜S53 |
 
@@ -45,14 +45,15 @@
 > - 「データベースの選び方」12 → 10分: S06(DBの歴史)は口頭だけにする
 > - Spanner 41 → 39分: S32(料金)・S38(データを入れてみる)を短くする
 > - まとめ・宿題 7 → 6分: 宿題3(調べ物)を無くした分
-> - Cloud SQL 18 → 15分: 待ち時間に S25・S42 を進めて詰める
+> - Cloud SQL 18 → 15分: 待ち時間に S42 を進めて詰める
+> - 2026-11-19 に S25(キャッシュの切り替え)を S24 の直後へ移した。S25 の分の時間は、この表ではまだ Cloud SQL 側に入っている(未調整)
 >
 > 実際に通して測ってから、この表を直すこと。
 
 > **ハンズオンは Cloud SQL → Spanner の順に作る。宿題はフェイルオーバーの計測など3つだけ。**
 > Cloud SQL は作成に約4〜5分かかるので、`terraform apply` を先に流し、
-> 待っている間に S25(キャッシュの切り替え)と S42(HA の説明)を進める。
-> Memorystore の作成待ち(S24)の間には、Cloud SQL の説明(S41・S41-2・S43)を進める。
+> 待っている間に S42(HA の説明)を進める。
+> Memorystore の作成待ち(S24)の間は休憩にして、そのあと S25(キャッシュの切り替え)で Memorystore に繋ぐ。
 
 > **待ち時間が長い回。**
 > - S15 スクリプトの実行: 約10分(e2-medium。Spanner のライブラリを取得するぶん、アプリのビルドが長い。2026-11-18 の実測は約10分。e2-microでは終わらない)
@@ -905,7 +906,7 @@ resource "google_memorystore_instance" "cache" {
   terraform apply
 
 ★ Memorystoreの作成には5分前後かかります
-   待っている間に Cloud SQL の説明に進みます(S41へ)
+   出来上がるまで一旦休憩です！
 
 ◼確認
   terraform output cache_host
@@ -920,6 +921,48 @@ resource "google_memorystore_instance" "cache" {
 > プライマリとリーダーのどちらが先の番号になるかは決まっていないので、
 > `connection_type` で選んでいる(検証では順番が逆になることもあった)。
 > `replica_count = 0` で新規に作ったときも、リーダーエンドポイントは作られた(Cloud Shell で確認)。
+
+---
+
+### S25 | アプリの接続先を切り替える
+
+<!-- slide-id: g024slide -->
+
+**[話す]** S24 の apply と休憩のあとに進める。Memorystore は休憩の間に作り終わっている。
+
+**[本文]**
+
+```
+◼webインスタンスに入る
+
+  gcloud compute ssh [自分の名前]-web --zone=asia-northeast1-a --tunnel-through-iap
+
+◼VMの中で、cacheコンテナを止めてMemorystoreに向ける
+
+  sudo su -
+  docker stop cache && docker rm cache
+  curl -X GET "http://localhost"     → Cache接続: 失敗
+
+  redis-cli -h [cache_host] ping     → PONG
+
+  docker stop app && docker rm app
+  docker run -d -p 80:8080 --network app-nw --name app \
+    -e DB_HOST=db -e DB_PASS=infra-study \
+    -e CACHE_HOST=[cache_host] \
+    -e SPANNER_EMULATOR_HOST=spanner:9010 \
+    -e SPANNER_DATABASE='projects/test-project/instances/test-instance/databases/test-db' \
+    app:0.1
+
+  curl -X GET "http://localhost"     → Cache接続: 成功
+
+★ Firewall Rules を1つも書いていないのに繋がります
+   自分のVPCから外へ出る通信(送信)は、既定で許可されているからです
+```
+
+**[話す]** 入り直したVMは、一般ユーザーで入ります。docker は root でないと動かないので、最初に `sudo su -` で root になります。
+なっていないと「permission denied while trying to connect to the Docker daemon socket」で止まります(Step1 のスクリプトを root で実行したのと同じ理由です)。
+
+---
 
 ---
 
@@ -1064,68 +1107,28 @@ precondition: var.db_password != ""    ← 空のまま apply したら止める
 **[本文]**
 
 ```
-  read -rs TF_VAR_db_password      ← 今日のパスワードを入力(画面には出ない)
+  read -rs TF_VAR_db_password      ← [自分の名前] を入力(画面には出ない)
   export TF_VAR_db_password
   terraform init
   terraform plan
   terraform apply
   unset TF_VAR_db_password
 
-★ 入力したパスワードは、あとでアプリに渡します。メモしておいてください
+※ パスワードは [自分の名前] と同じ値にします。アプリにも同じものを渡します
 
 ★ Cloud SQL の作成には5分ほどかかります
-   待っている間に、キャッシュの切り替え(S25)と HA の話(S42)を進めます
+   待っている間に、HA の話(S42)を進めます
 
 ◼確認
   terraform output db_host
   → 172.16.10.x(PSC のエンドポイントIP)
 ```
 
-**[話す]** パスワードは `read -rs` で入力します。入力しても画面には出ません。
+**[話す]** パスワードは、決めたり覚えたりしなくて済むように、`[自分の名前]`(user_name。メールの `_` を `-` に変えたもの。web インスタンス名の先頭と同じ)に統一します。
+`read -rs` で入力します。入力しても画面には出ません。
 空のまま apply すると、`db_password が空です` と出て、作る前に止まります。
 
 > **検証済み(2026-11-18)**: 作成時間は4分8秒。10分を超えず、時間配分に収まる。
-
----
-
-### S25 | アプリの接続先を切り替える(Cloud SQL の作成を待つ間に)
-
-<!-- slide-id: g024slide -->
-
-**[話す]** この順番は、Cloud SQL の apply を流したあとの待ち時間に、別のターミナルで進めるため。
-Cloud Shell のタブをもう1つ開いて、そちらでVMに入る。Memorystore は S24 の待ち時間に作り終わっている。
-
-**[本文]**
-
-```
-◼webインスタンスに入る
-
-  gcloud compute ssh [自分の名前]-web --zone=asia-northeast1-a --tunnel-through-iap
-
-◼VMの中で、cacheコンテナを止めてMemorystoreに向ける
-
-  sudo su -
-  docker stop cache && docker rm cache
-  curl -X GET "http://localhost"     → Cache接続: 失敗
-
-  redis-cli -h [cache_host] ping     → PONG
-
-  docker stop app && docker rm app
-  docker run -d -p 80:8080 --network app-nw --name app \
-    -e DB_HOST=db -e DB_PASS=infra-study \
-    -e CACHE_HOST=[cache_host] \
-    -e SPANNER_EMULATOR_HOST=spanner:9010 \
-    -e SPANNER_DATABASE='projects/test-project/instances/test-instance/databases/test-db' \
-    app:0.1
-
-  curl -X GET "http://localhost"     → Cache接続: 成功
-
-★ Firewall Rules を1つも書いていないのに繋がります
-   自分のVPCから外へ出る通信(送信)は、既定で許可されているからです
-```
-
-**[話す]** 入り直したVMは、一般ユーザーで入ります。docker は root でないと動かないので、最初に `sudo su -` で root になります。
-なっていないと「permission denied while trying to connect to the Docker daemon socket」で止まります(Step1 のスクリプトを root で実行したのと同じ理由です)。
 
 ---
 
@@ -1171,7 +1174,7 @@ gcloud compute ssh [自分の名前]-web --zone=asia-northeast1-a --tunnel-throu
 ◼VMの中で、Cloud SQL に繋いで確かめる
 
 sudo su -
-psql "host=[db_host] user=app dbname=test_db"    ← パスワードを聞かれる(さっきのもの)
+psql "host=[db_host] user=app dbname=test_db"    ← パスワードを聞かれる([自分の名前] と同じ)
 
 CREATE TABLE users (
   id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, name VARCHAR(255) NOT NULL);
@@ -1180,7 +1183,7 @@ SELECT * FROM users;
 \q
 ```
 
-**[話す]** Terraform で作ったユーザー `app` で入ります。パスワードは、さっき `read -rs` で入力したものです。
+**[話す]** Terraform で作ったユーザー `app` で入ります。パスワードは、さっき `read -rs` で入力した、`[自分の名前]` と同じ値です。
 Cloud SQL が使えることを、psql で先に確かめます。
 
 ---
@@ -1199,7 +1202,7 @@ Cloud SQL が使えることを、psql で先に確かめます。
 docker stop db && docker rm db                   ← ローカルのPostgreSQLを止める
 docker stop app && docker rm app                 ← アプリを Cloud SQL に向けて再起動
 docker run -d -p 80:8080 --network app-nw --name app \
-  -e DB_HOST=[db_host] -e DB_USER=app -e DB_PASS='[パスワード]' \
+  -e DB_HOST=[db_host] -e DB_USER=app -e DB_PASS='[自分の名前]' \
   -e CACHE_HOST=[cache_host] \
   -e SPANNER_EMULATOR_HOST=spanner:9010 \
   -e SPANNER_DATABASE='projects/test-project/instances/test-instance/databases/test-db' \
@@ -1527,7 +1530,7 @@ Spanner には DBユーザーもパスワードも無い
 
 ```
   read -rs TF_VAR_db_password      ← このディレクトリには Cloud SQL のコードも入っている
-  export TF_VAR_db_password           パスワードを変えないなら、値は何でもよい
+  export TF_VAR_db_password           値は Step3 と同じ([自分の名前])
   terraform init
   terraform plan
   terraform apply
@@ -1547,7 +1550,7 @@ Spanner には DBユーザーもパスワードも無い
 
 > **注意**: `4. spanner` は `3. cloudsql` に Spanner を足したディレクトリなので、`google_sql_user` の
 > `precondition`(`db_password` が空なら止める)が効く。空のまま `terraform plan` / `apply` すると止まる。
-> `password_wo` は `password_wo_version` を上げない限り Cloud SQL に送られないので、値は何でもよい。
+> `password_wo` は `password_wo_version` を上げない限り Cloud SQL に送られないので、値は何でもよい(Step3 と同じ `[自分の名前]` を入れる)。
 > (値を変えても差分にならないことは、実機で確認した。別の値を入れて plan すると、追加は Spanner の3リソースだけで `google_sql_user` に差分は出なかった)
 >
 > **検証済み(2026-08-28)**: インスタンス + データベース + IAM で 1分6秒。
@@ -1569,7 +1572,7 @@ gcloud compute ssh [自分の名前]-web --zone=asia-northeast1-a --tunnel-throu
 sudo su -
 docker stop app && docker rm app                   ← アプリをSpannerに向けて再起動
 docker run -d -p 80:8080 --network app-nw --name app \
-  -e DB_HOST=[db_host] -e DB_USER=app -e DB_PASS='[パスワード]' \
+  -e DB_HOST=[db_host] -e DB_USER=app -e DB_PASS='[自分の名前]' \
   -e CACHE_HOST=[cache_host] \
   -e SPANNER_DATABASE='projects/xxx/instances/yyy-spanner/databases/test-db' \
   app:0.1
@@ -1683,87 +1686,59 @@ Spannerはそもそも切り替えという概念が無い。この差が価格�
 
 ---
 
-### S45 | 本日のまとめ ①
+### S45 | 本日のまとめ ①(今日のポイント)
 
-<!-- slide-id: g044slide -->
+<!-- slide-id: sm1_slide -->
 
-**[図版]** AWS版 第5回「本日のまとめ」のレイアウトを流用。
+**[図版]** 丸数字(青い円に白抜きの 1〜4)+ 太字の結論1行 + 補足1行 を4段に並べる。ラベルや灰色の枠は使わない。図形は sm1_ 始まりの ID。宿題・片付けは載せない(宿題のページで説明する)。
 
 **[本文]**
 
 ```
-◼GCPのマネージドDBは接続方式が4種類ある
+1  繋ぎ方は、DB ごとに違う
+   Cloud SQL と Memorystore は PSC。Spanner は Google API 経由で、IAM で認証する
 
-  Google API 経由    Spanner / BigQuery
-                     Private Google Access があれば届く
-                     IPもポートもパスワードも無い
+2  HA でも、切り替わる間は接続が切れる
+   Cloud SQL は REGIONAL で自動フェイルオーバーする。スタンバイは待機専用
 
-  PSC(今日使った)  Cloud SQL / Memorystore
-                     エンドポイントIPを1つ立てて繋ぐ
-                     サービス接続ポリシーで作成を許可する
-                     Firewall Rules は不要
-                     社内では今こちらが主流
+3  Spanner は、主キーの設計が全て
+   連番はホットスポットになる。インターリーブで、親子の行を近くに置く
 
-  VPCピアリング       Cloud SQL / Memorystore(旧方式)
-                     限定公開サービスアクセスの設定が必要
-                     Valkey は選べない
-
-  Auth Proxy         Cloud SQL(別解)
-
-★ AWSは「自分のVPCの中にDBが入ってくる」1種類だけだった
+4  秘密は、tfstate に残さない
+   Cloud SQL は password_wo を使う。Spanner は、そもそもパスワードが無い
 ```
+
+**[話す]** 今日の話を4つに絞ると、この4点。
 
 ---
 
-### S46 | 本日のまとめ ②(Spanner)
+### S46 | 本日のまとめ ②(3つのサービスの比較)
+
+<!-- slide-id: sm2_slide -->
+
+**[図版]** 5行×4列の表(sm2_tbl)。見出し行は青、左の列は灰色。下に黄色の ※(sm2_y)。
 
 **[本文]**
 
 ```
-◼Spanner
-リレーショナル・水平スケール・強整合性・高可用性を同時に満たす
-AWSに相当するサービスが無い
-TrueTime が分散トランザクションを成立させている
+              Memorystore         Cloud SQL            Spanner
+種類          キャッシュ(Valkey)  リレーショナルDB     リレーショナルDB(水平スケール)
+                                  (PostgreSQL)
+繋ぎ方        PSC                 PSC                  Google API 経由(IAM)
+可用性        replica_count 1以上  REGIONAL で自動      複数ゾーンに複製して無停止
+              でフェイルオーバー   フェイルオーバー
+気をつける点  PSC 対応は Valkey    password_wo で秘密   主キーは連番にしない
+              版のみ               を残さない
 
-◼構成
-インスタンス(config と processing_units) → データベース → テーブル
-config は後から変更できない。PUは無停止で変更できる
-
-◼設計
-主キーの設計が全て。連番はホットスポットになる
-インターリーブで親子を物理的に近くに置ける
-
-◼接続
-IAMで認可する。パスワードが存在しない
-database/sql で書ける(ドライバが違うだけ)
+※ 選び方
+   小さく始める・PostgreSQL をそのまま使いたい → Cloud SQL
+   スケールが要る・止められない → Spanner
 ```
 
----
+**[話す]** 3つを並べると、キャッシュ・リレーショナルDB・水平に伸ばせるDB、という使い分け。
+最後の ※ が、実務でどちらを選ぶかの目安。
 
-### S47 | 本日のまとめ ③(その他)
-
-<!-- slide-id: g046slide -->
-
-**[本文]**
-
-```
-◼Memorystore
-ElastiCacheの4リソースが1リソースになる
-Memorystore for Valkey を PSC で繋ぐ
-replica_count = 0 は1ノード、1以上でフェイルオーバーあり
-標準の Redis は PSC に対応していないので使わない
-
-◼Cloud SQL
-RDSの6リソースが3リソースになる
-PostgreSQL を PSC で繋ぐ(サービス接続ポリシーは、サービスクラスごとに1つ)
-availability_type = REGIONAL でHA構成
-スタンバイは待機専用。フェイルオーバー中は接続が切れる
-password_wo を使うと tfstate に残らない
-
-◼選び方
-小さく始める・MySQL / PostgreSQL / SQL Server をそのまま使いたい → Cloud SQL
-スケールが要る・止められない        → Spanner
-```
+※ S47 は欠番(旧「選び方と宿題」。宿題は宿題のページ(S49 以降)で説明するため、まとめには載せない)
 
 ---
 
@@ -1793,9 +1768,11 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
 ---
 
-### S50 | 宿題2 実装課題
+### S50 | 宿題2 実装課題 ①②
 
 <!-- slide-id: g049slide -->
+
+**[図版]** 第3回 S52 と同じ形式(◼見出し + 説明 + ・の補足 + 回答例)。1ページに入りきらないので、①② と ③ の2ページに分ける。
 
 **[本文]**
 
@@ -1804,33 +1781,91 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
   replica_count を 0 → 1 にして apply する
   読み取り専用のエンドポイントが使えるようになる
-  そこに書き込むとどうなるか試してみる
 
-◼2. Spanner のインターリーブを体験しよう
-
-  users と orders にデータを入れてJOINしてみる
-  親を消すと子も消えることを確認する
+  ・そこに書き込むとどうなるか試してみる
 
   回答例: gcp/lesson4/syukudai1/
 
 
-◼3. Cloud SQL のフェイルオーバーを測ろう
+◼2. Spanner のインターリーブを体験しよう
 
-  講義で作った Cloud SQL(REGIONAL)を使う
-  curl を打ち続けながら、gcloud sql instances failover を実行する
-  DB接続が「失敗」から「成功」に戻るまでの秒数を数える
-  切り替わったあと、ゾーンが変わっていることを確認する
+  users と orders にデータを入れて、JOIN してみる
+  親を消すと子も消えることを確認する
 
-  回答例: gcp/lesson4/syukudai2/
-
-★ 次回(12/24)まで14日ありますが年末なので、宿題は軽めにしています
+  回答例: gcp/lesson4/syukudai1/(①と同じ)
 ```
 
 ---
 
-> **欠番**: S51「宿題3 調べ物」(Spanner の主キー設計・Spanner にフェイルオーバーが無い理由)は、
-> 宿題が多すぎるので削除した(2026-11-18、ユーザーが不要と判断)。回答例の `syukudai3/` も削除した。
-> ドキュメントのリンク集(Spanner / Memorystore / PSC)も、このページと一緒に無くなった。
+### S50b | 宿題2 実装課題 ③
+
+<!-- slide-id: g049b_slide -->
+
+**[本文]**
+
+```
+◼3. Cloud SQL のフェイルオーバーを測ろう
+
+  講義で作った Cloud SQL(REGIONAL)を使う
+  curl を打ち続けながら、gcloud sql instances failover を実行する
+
+  ・DB接続が「失敗」から「成功」に戻るまでの秒数を数える
+  ・切り替わったあと、ゾーンが変わっていることを確認する
+
+  回答例: gcp/lesson4/syukudai2/
+
+
+※ 次回(12/24)まで14日ありますが年末なので、宿題は軽めにしています
+```
+
+---
+
+### S51 | 宿題3 ドキュメント
+
+<!-- slide-id: g049c_slide -->
+
+**[図版]** 第3回 S54 と同じ形式(◼見出し + リンク)。調べ物の課題ではなく、眺めるだけ。
+
+**[本文]**
+
+```
+◼Memorystore のドキュメントを眺めてみよう
+  https://cloud.google.com/memorystore/docs/valkey
+
+◼Cloud SQL のドキュメントを眺めてみよう
+  https://cloud.google.com/sql/docs
+
+◼Cloud Spanner のドキュメントを眺めてみよう
+  https://cloud.google.com/spanner/docs
+
+◼Private Service Connect のドキュメントを眺めてみよう
+  https://cloud.google.com/vpc/docs/private-service-connect
+
+◼Terraform google provider の各ドキュメントを眺めてみよう
+  google_memorystore_instance
+  google_sql_database_instance
+  google_sql_user
+  google_spanner_instance
+  google_spanner_database
+  google_network_connectivity_service_connection_policy
+```
+
+**[リンク]**
+
+- [https://cloud.google.com/memorystore/docs/valkey](https://cloud.google.com/memorystore/docs/valkey)
+- [https://cloud.google.com/sql/docs](https://cloud.google.com/sql/docs)
+- [https://cloud.google.com/spanner/docs](https://cloud.google.com/spanner/docs)
+- [https://cloud.google.com/vpc/docs/private-service-connect](https://cloud.google.com/vpc/docs/private-service-connect)
+- [google_memorystore_instance](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/memorystore_instance)
+- [google_sql_database_instance](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/sql_database_instance)
+- [google_sql_user](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/sql_user)
+- [google_spanner_instance](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/spanner_instance)
+- [google_spanner_database](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/spanner_database)
+- [google_network_connectivity_service_connection_policy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/network_connectivity_service_connection_policy)
+
+> 旧 S51「宿題3 調べ物」(Spanner の主キー設計・Spanner にフェイルオーバーが無い理由)は、
+> 宿題が多すぎるので削除したまま(2026-11-18)。回答例の `syukudai3/` も無い。
+> このページは調べ物ではなく、ドキュメントを眺めるだけ(2026-11-19、ユーザー指示で追加)。
 
 ---
 
@@ -1838,7 +1873,7 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 
 <!-- slide-id: g051slide -->
 
-**[図版]** AWS版「注意事項」スライドを流用。
+**[図版]** 第3回 S56 と同じ形式(cd 行を灰色の枠で囲み、右に「←」の注釈。`terraform destroy` は別の小さな枠。注意は ※ で並べる)。
 
 **[本文]**
 
@@ -1846,28 +1881,26 @@ https://docs.google.com/forms/d/e/1FAIpQLSeQjLfR6f6H_jDR1ZHRQUmJPkaw3BmBEnGPV-t8
 宿題などで作成したリソースは必ず削除してください！
 
 ◼リソースの削除(最後に apply したディレクトリで実行)
-  cd ~/works/lesson4/syukudai1       ← 実装課題1・2をやった
-  cd ~/works/lesson4/"4. spanner"    ← 講義 Step4 まで(実装課題3もここ)
+  cd ~/works/lesson4/syukudai1       ← 実装課題①②まで
+  cd ~/works/lesson4/"4. spanner"    ← 講義 Step4 まで(実装課題③もここ)
 
   terraform destroy   → 確認で yes と入力
 
-★★ この回は課金が大きいです ★★
-   Spanner(100 PU)      無料枠なし。今日の中で一番高い
-   Cloud SQL (REGIONAL)  2ゾーン分
-   Memorystore (Valkey)  レプリカを付けると、その分も
+※ この回は課金が大きいです
+   Spanner(100 PU) / Cloud SQL(REGIONAL) / Memorystore(Valkey)
 
-★ destroy にも時間がかかります(1回で終わります)
-   Memorystore の削除に約8〜10分、Cloud SQL に約2分
-   時間に余裕を持って実行してください
+※ destroy にも時間がかかります
+   Memorystore に約5〜6分、Cloud SQL に約1〜2分(1回で終わります)
 
-★ deletion_protection / force_destroy の設定を確認
-   本番では逆にする(消せないようにする)設定です
+※ 全員で1つのプロジェクトを共有しています
+   消し忘れはQuotaを圧迫して、他の人のapplyを止めます
 
-★ tfstate用のバケットは残しておいてください
+※ tfstate用のバケットは残しておいてください
+※ deletion_protection / force_destroy は、本番では逆にします
 ```
 
 **[話す]** PSC は、ピアリングのときのような「1回目の destroy が失敗する」問題が無い。
-1回で終わる(実機で確認済み。付録A-2)。ただし Memorystore の削除は8分ほどかかる。
+1回で終わる(実機で確認済み。付録A-2)。ただし Memorystore の削除は5〜6分ほどかかる。
 S52b(旧「注意事項(続き)」)は、この説明が不要になったので欠番にした。
 
 ---
@@ -2038,9 +2071,11 @@ Spanner接続: 成功
 - S13〜S15-2: MySQL の記述を PostgreSQL に差し替え
 - S04-2(ゴール): Cloud SQL を足す
 - 新規ページ: S41-2(Terraform コード)・S41-3(Step3 実行)・S41-4(接続先の切り替え)
-- 移動: S41・S43(パスワード)・S42(HA)を Spanner の前へ。S25 を Cloud SQL の待ち時間の位置へ。S42-2(比較表)を S40 の後ろへ
+- 移動: S41・S43(パスワード)・S42(HA)を Spanner の前へ。S42-2(比較表)を S40 の後ろへ。S25(キャッシュの切り替え)は、いったん Cloud SQL の待ち時間に置いたが、2026-11-19 に S24 の直後へ戻した(S24 の apply 中は休憩のため)
 - 削除: 旧 S44(「Cloud SQL は宿題で作ります」)・宿題3(調べ物)
+- 2026-11-19: 本日のまとめ(S45〜S46)を作り直した。①今日のポイント(丸数字1〜4 + 太字の結論 + 補足)、②3つのサービスの比較(表 + 黄色の ※ 選び方)。S39 や 48ページのラベル形式は使わない(ユーザー指示: まとめらしいまとめ方にする)。宿題・片付けはまとめに載せない(宿題のページで説明する)ため S47 は欠番。旧 g044slide・g045slide・g046slide は削除し、sm1_slide・sm2_slide に置き換え。AWS との比較、TrueTime の記述は載せない
 - 作り直し: 宿題(3項目)・注意事項(destroy するディレクトリ)・S35 と S36 の文言
+- 2026-11-19: Cloud SQL のパスワードは「何でもよい」だと決めにくく忘れやすいので、`[自分の名前]`(user_name。メールの `_` を `-` に変えたもの)に統一する指示にした(S41-3・S41-4・S41-5・S36・S37・宿題1・2の README、デッキの cs_run・cs_sw1・cs_sw2・g033slide・g034slide)。研修用で Cloud SQL は PSC のみ(パブリックIPなし)のため許容。本番では推測されにくい値にする
 
 ## PSC + Memorystore for Valkey への切り替え(2026-11-17)
 
@@ -2196,3 +2231,5 @@ roles/spanner.admin
   両方に繋げるようにしてある(2026-11-19 から、切り替えではなく3行すべての結果を出す。下の「アプリの表示に Spanner の行を追加」)
 - 「4種類の接続方式」は設計書5章の「置換では済まない設計判断」に
   追加すべき項目。第5回(Cloud Run)でも接続方式の話が出てくる
+- 2026-11-19(ユーザー指示「55・56の宿題と注意を3回目の資料を参考にブラッシュアップ」): 宿題2を第3回と同じ形式(◼見出し・空行・・の補足・回答例)で ①② と ③ の2ページに分けた(S50 と S50b、デッキは g049slide と g049b_slide)。注意事項(S52)は第3回の形式に揃えた(★→※、cd 行の枠を広げて注釈のはみ出しを直した)。第3回にあった「全員で1つのプロジェクトを共有 → 消し忘れは Quota を圧迫」を追加。「Spanner は無料枠なし・今日で一番高い」「レプリカを付けるとその分も」の補足は短くして削った。
+- 2026-11-19(ユーザー指示「宿題3 ドキュメントのページが無い。追加して」): 第3回 S54 と同じ形式で S51「宿題3 ドキュメント」(g049c_slide、デッキは宿題③の次)を追加。Memorystore(Valkey)・Cloud SQL・Spanner・Private Service Connect のドキュメントと、Terraform google provider の6リソース(memorystore_instance・sql_database_instance・sql_user・spanner_instance・spanner_database・network_connectivity_service_connection_policy)へのリンク。調べ物の課題は復活させていない。

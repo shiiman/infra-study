@@ -11,7 +11,7 @@ Cloud SQL を作るコード(`db.tf`)は、講義の `3. cloudsql` と同じ。
 ★ 講義のあと destroy してしまった場合は、次のコマンドで作り直す。
 
 ```
-read -rs TF_VAR_db_password      # パスワードを入力(画面には出ない)
+read -rs TF_VAR_db_password      # 自分の user_name を入力(画面には出ない)
 export TF_VAR_db_password
 terraform apply
 unset TF_VAR_db_password
